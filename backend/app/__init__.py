@@ -1,0 +1,2 @@
+"""RestaurantAI backend application package."""
+
