@@ -8,3 +8,4 @@
   - Configured environment variable loading with `.env` file support and defaults for database settings (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
   - Created module-level singleton `settings` instance.
   - Added `.env.example` in the project root with sensible placeholders.
+

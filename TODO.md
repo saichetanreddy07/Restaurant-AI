@@ -4,6 +4,9 @@
 
 ### Project Setup
 
+- [ ] Create Python virtual environment
+- [ ] Install dependencies
+- [ ] Setup FastAPI
 - [ ] Configure MySQL
 - [ ] Test database connection
 
