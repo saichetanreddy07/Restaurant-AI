@@ -2,12 +2,6 @@
 
 ## To Do
 
-### Backend Foundation
-
-- [ ] Configure Alembic
-
----
-
 ### Ingredient Management
 
 - [ ] Design ingredient database schema
@@ -16,12 +10,13 @@
 - [ ] Implement CRUD operations
 - [ ] Create service layer
 - [ ] Create API endpoints
+- [ ] Generate and apply Alembic migration for ingredients table
 
 ---
 
 ## In Progress
 
-None
+- [ ] Ingredient Management Module (Schema design & Model implementation)
 
 ---
 
@@ -51,3 +46,4 @@ None
 - [x] Configure database connection management
 - [x] Implement database health check endpoint
 - [x] Verify database connectivity
+- [x] Configure Alembic for database migrations

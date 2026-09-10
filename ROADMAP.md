@@ -13,11 +13,11 @@
 - [x] Setup SQLAlchemy database layer
 - [x] Verify backend setup
 - [x] Implement database health check
-- [ ] Configure Alembic
+- [x] Configure Alembic
 
 ---
 
-## Phase 2 — Ingredient Management
+## Phase 2 — Ingredient Management (Active)
 
 - [ ] Design ingredient database schema
 - [ ] Create Ingredient model

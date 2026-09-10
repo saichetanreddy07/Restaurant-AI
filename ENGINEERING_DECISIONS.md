@@ -341,3 +341,212 @@ It offers:
 - Add relationships between tables.
 - Use transactions where multiple database operations must succeed together.
 - Explore asynchronous database support if the project grows significantly.
+
+---
+
+## Decision 004: Adopt Alembic for Database Migrations
+
+### 1. Decision
+
+Adopt **Alembic** as the schema migration management tool for SQLAlchemy and the MySQL database in the RestaurantAI application.
+
+### 2. Context
+
+As features like Ingredient Management, Inventory Batches, Recipes, and Menus are implemented, the database schema will continuously evolve. Changes include adding new tables, altering column types, creating foreign key constraints, and indexing frequently queried columns.
+
+Relying on manual SQL scripts or `Base.metadata.create_all()` is insufficient for real-world applications because:
+- `create_all()` only creates missing tables; it cannot detect altered columns, added constraints, or dropped fields on existing tables.
+- Manual SQL scripts lack version tracking, execution history, and systematic rollback procedures.
+- Teams need a shared, deterministic mechanism to synchronize database structures across development, testing, and production environments.
+
+### 3. Why Alembic?
+
+Alembic is the official database migration tool written by the author of SQLAlchemy. It provides:
+- **Direct SQLAlchemy Integration:** Reads models inheriting from `DeclarativeBase` (`Base.metadata`) directly.
+- **Autogeneration:** Automatically generates migration scripts by comparing the state of Python model definitions against the live database schema (`alembic revision --autogenerate`).
+- **Version Control for Databases:** Each migration is a versioned Python script committed to Git, enabling reproducible state across all team members and deployment targets.
+- **Bi-directional Migrations:** Supports both `upgrade()` (applying changes) and `downgrade()` (rolling back changes).
+- **Online and Offline Modes:** Capable of executing changes directly on a live database or outputting raw SQL scripts for security-conscious production deployments.
+
+### 4. Alternatives Considered
+
+- **`Base.metadata.create_all()`:** SQLAlchemy's built-in table creation method.
+- **Manual SQL Scripts (`ALTER TABLE`):** Executing raw SQL statements directly on the database.
+- **Flyway / Liquibase:** General-purpose, language-agnostic database migration tools.
+
+### 5. Why Alternatives Were Not Chosen
+
+- **`Base.metadata.create_all()`:** While useful for quick prototypes, it does not support migrations. Once a table exists, `create_all()` completely ignores model alterations (e.g., adding an `expiry_date` column to an `Ingredient` table).
+- **Manual SQL Scripts:** Lacks automated tracking of which migrations have been applied to which environment, introduces high risk of human error, and makes rolling back changes complex and error-prone.
+- **Flyway / Liquibase:** Require Java runtimes and do not inspect Python/SQLAlchemy models automatically, requiring redundant manual DDL script authoring.
+
+### 6. Benefits
+
+- Eliminates schema drift between developers and deployed environments.
+- Generates migration scripts automatically from Python model changes.
+- Safe, tracked migrations recorded in the database inside the `alembic_version` table.
+- Versioned scripts reside directly in Git alongside the application code.
+- Reversible changes through explicit downgrade functions.
+
+### 7. Limitations
+
+- Autogenerate cannot detect all schema changes automatically (such as table or column renames, which appear as a drop followed by an add). Generated scripts must always be reviewed by a developer before execution.
+- Requires team discipline to ensure new migrations are generated and applied whenever models change.
+
+### 8. When This Decision May Not Be Appropriate
+
+- Projects using schemaless databases (e.g., MongoDB, Redis).
+- Disposable, in-memory databases (e.g., SQLite in-memory testing where tables are recreated from scratch on each test run).
+
+### 9. Interview Questions & Answers
+
+#### Q1: Why use Alembic instead of `Base.metadata.create_all()`?
+> **Answer:** `Base.metadata.create_all()` only creates tables if they do not already exist in the database. It cannot alter existing tables, add or rename columns, modify data types, or rollback changes. Alembic tracks schema version history over time, allowing incremental upgrades, downgrades, and automated schema evolution without data loss.
+
+#### Q2: Why are migrations preferred over manually executing `ALTER TABLE` statements?
+> **Answer:** Manual `ALTER TABLE` commands are error-prone, lack audit trails, and easily lead to schema drift across development, staging, and production. Alembic migrations are version-controlled Python files committed to Git that run deterministically in deployment pipelines and record applied versions in an `alembic_version` table.
+
+#### Q3: What is the difference between offline and online migrations in Alembic?
+> **Answer:** Online migrations connect directly to the target database and execute DDL queries inside a transaction in real time. Offline migrations generate raw SQL scripts without connecting to a live database, allowing DBAs to review and approve SQL before execution in locked-down production environments.
+
+#### Q4: What is `target_metadata` in Alembic's `env.py`?
+> **Answer:** `target_metadata` points to our application's `Base.metadata`. During `--autogenerate`, Alembic inspects this metadata to learn the desired database schema from our Python models and compares it to the live database schema to generate the migration script.
+
+### 10. Future Considerations
+
+- Integrate migration validation into automated CI/CD workflows.
+- Implement data migration scripts for backward-compatible schema changes when production traffic begins.
+
+### 11. What We Implemented
+
+- Initialized Alembic inside `backend/alembic`.
+- Configured `backend/alembic.ini` with `script_location = %(here)s/alembic`.
+- Updated `backend/alembic/env.py` to import `Base.metadata`, `engine`, and `DATABASE_URL` from the application's database layer.
+- Verified migration execution via `alembic -c backend/alembic.ini heads`.
+
+---
+
+# Interview Revision Guide: Core Engineering Concepts
+
+This guide summarizes the key concepts implemented across the backend foundation, configuration management, database layer, health check API, and migration setup for interview preparation.
+
+---
+
+## 1. Web Framework & API Concepts
+
+### FastAPI
+- **What it is:** A modern, high-performance web framework for building APIs with Python 3.8+ based on standard Python type hints.
+- **Why it is used:** Combines high speed (comparable to NodeJS and Go) with rapid development ergonomics, automatic validation, and automatic documentation.
+- **How it works:** Built on top of Starlette (for ASGI web routing and middleware) and Pydantic (for data validation and serialization). Runs on ASGI servers like Uvicorn.
+- **Common Mistakes:** Using blocking synchronous calls (like `time.sleep()` or blocking database calls) inside `async def` endpoints, which freezes the event loop.
+
+### APIRouter
+- **What it is:** A modular routing component within FastAPI used to group related endpoints into separate files.
+- **Why it is used:** Prevents monolithic `main.py` files by organizing routes by domain (e.g., `health`, `ingredients`, `recipes`, `menu`).
+- **How it works:** Endpoints are registered on an `APIRouter` instance, which is then mounted onto the main FastAPI application using `app.include_router()`.
+- **Best Practice:** Use `prefix` and `tags` (e.g., `APIRouter(prefix="/health", tags=["Health"])`) to keep URLs consistent and Swagger UI well-categorized.
+
+### Dependency Injection
+- **What it is:** A software design pattern where a component receives its dependencies from an external system rather than creating them internally.
+- **Why it is used:** Decouples route handlers from resource creation, enables easy test mocking, and standardizes resource lifecycle management (e.g., acquiring and closing database sessions).
+- **How it works in FastAPI:** Uses `Depends()`. FastAPI resolves the requested dependency function (like `get_db()`), executes it, passes the returned or yielded value to the endpoint, and cleans up after the response is sent.
+- **Best Practice:** Use generator dependencies (`yield`) for resources requiring cleanup (database connections, HTTP client sessions).
+
+### HTTP Status Codes
+- **What they are:** Standardized 3-digit response codes defined in the HTTP protocol indicating the outcome of a client request.
+- **Key Categories:**
+  - **`200 OK`:** Request succeeded (e.g., successful data retrieval or health check).
+  - **`201 Created`:** New resource successfully created (e.g., creating an ingredient).
+  - **`400 Bad Request`:** Client sent an invalid payload or malformed request.
+  - **`404 Not Found`:** Requested resource does not exist.
+  - **`422 Unprocessable Entity`:** Payload syntax is valid, but semantic validation failed (FastAPI/Pydantic default for invalid field types or constraints).
+  - **`500 Internal Server Error`:** Unhandled server-side exception.
+  - **`503 Service Unavailable`:** Server is currently unable to handle the request due to temporary failure of a dependency (e.g., database connection down in `/health`).
+
+---
+
+## 2. Configuration & Environment Concepts
+
+### Environment Variables
+- **What they are:** Dynamic key-value pairs stored in the operating system process environment.
+- **Why they are used:** Enable the 12-Factor App methodology (Factor III: Config) by keeping credentials and environment-specific parameters outside the source code.
+- **Best Practice:** Never commit `.env` files containing secrets to Git; provide a `.env.example` file with placeholder values for onboarding.
+
+### Pydantic Settings
+- **What it is:** A specialized extension of Pydantic (`BaseSettings`) designed for application configuration management.
+- **Why it is used:** Reads environment variables and automatically coerces them into validated Python data types (e.g., string `"3306"` to integer `3306`).
+- **How it works:** When a `Settings` class is instantiated, it checks process environment variables first, falls back to values in `.env`, and finally defaults to in-code fallback defaults.
+- **Best Practice:** Instantiate as a module-level singleton (`settings = Settings()`) so configuration parsing and validation only occur once during startup.
+
+---
+
+## 3. Database, ORM & Connection Concepts
+
+### ORM (Object Relational Mapper)
+- **What it is:** A programming technique and library that converts data between relational database tables and object-oriented programming language classes.
+- **Why it is used:** Eliminates tedious manual SQL string construction, protects against SQL injection via parameterized queries, and provides structured domain objects.
+- **Trade-offs:** Adds a slight performance abstraction overhead compared to raw SQL, but drastically increases maintainability and developer productivity.
+
+### SQLAlchemy
+- **What it is:** The leading Python SQL toolkit and Object Relational Mapper.
+- **Why it is used in 2.x:** Provides modern, type-safe query syntax (`select()`), robust connection management, and explicit declarative models.
+
+### Engine
+- **What it is:** The core entry point and connectivity interface between SQLAlchemy and the database driver (PyMySQL).
+- **How it works:** Created via `create_engine()`. The engine manages a connection pool and dialect translator, generating actual database connections on demand.
+- **Best Practice:** Use `pool_pre_ping=True` with MySQL to automatically test connections before handing them to queries, preventing stale connection errors (`MySQL server has gone away`).
+
+### Session & SessionLocal
+- **Session:** Represents a conversation or workspace with the database. It tracks pending objects, handles transactions (`commit()` / `rollback()`), and executes queries.
+- **SessionLocal:** A session factory created by `sessionmaker(bind=engine)`. Instead of using a single global session (which would cause thread-safety issues across concurrent requests), calling `SessionLocal()` produces an isolated session for a single unit of work.
+
+### DeclarativeBase
+- **What it is:** The base class introduced in SQLAlchemy 2.0 (`from sqlalchemy.orm import DeclarativeBase`) from which all database models inherit.
+- **Why it is used:** Replaces the legacy 1.x `declarative_base()` factory function with modern type annotations, cleaner static analysis, and integrated cataloging of `metadata`.
+
+### Models vs Database Tables
+- **Database Table:** The physical, relational storage structure residing inside MySQL with rows, columns, data types, indexes, and primary/foreign keys.
+- **Model:** A Python class inheriting from `Base` that represents a database table in code. It defines how table columns map to Python object attributes.
+- **Difference:** The model is a Python-side definition/representation; the table is the live storage entity in MySQL. Changes in models do not affect tables until migrations are applied.
+
+### DATABASE_URL
+- **What it is:** A standard connection string URI describing how to reach the database.
+- **Format:** `dialect+driver://username:password@host:port/database_name` (e.g., `mysql+pymysql://root:pass@localhost:3306/restaurant_db`).
+- **Best Practice:** Use `urllib.parse.quote_plus` on passwords to safely escape special characters (e.g., `@`, `:`, `/`).
+
+### get_db()
+- **What it is:** A FastAPI generator dependency controlling the lifecycle of a database session.
+- **How it works:**
+  1. Instantiates `db = SessionLocal()`.
+  2. `yield db` gives the session to the route handler.
+  3. `finally: db.close()` guarantees the session and its underlying pooled connection are returned to the pool after the HTTP response completes, preventing connection pool exhaustion.
+
+### Connection Pooling
+- **What it is:** A cache of active database connections kept open in memory and reused across successive requests.
+- **Why it is used:** Establishing a new TCP/TLS connection and authenticating with MySQL on every single HTTP request adds substantial latency (10–50ms+). Connection pooling eliminates this handshake overhead.
+- **How it works:** When a session closes, the connection is returned to the pool rather than physically closed.
+
+---
+
+## 4. Database Migration Concepts
+
+### Database Migrations
+- **What they are:** Version-controlled scripts that record and execute incremental, reversible changes to a relational database schema.
+- **Why they are used:** Keeps database schemas synchronized with application code across multiple developers, branches, and deployment environments without data loss.
+
+### Base.metadata & target_metadata
+- **`Base.metadata`:** The SQLAlchemy `MetaData` registry attached to `Base`. Whenever a class inherits from `Base`, its table schema, columns, and constraints register into this object.
+- **`target_metadata`:** A variable in Alembic's `env.py` pointing to `Base.metadata`. During autogeneration, Alembic inspects `target_metadata` to discover all defined models.
+
+### Offline vs Online Migrations
+- **Online Migrations:** Alembic connects directly to the live database, acquires locks, and executes DDL statements inside a transaction.
+- **Offline Migrations:** Alembic does not connect to the database. Instead, it inspects migration scripts against a starting revision and writes raw SQL statements to a file or standard output (`alembic upgrade head --sql`). This is standard in regulated enterprises where DBAs must review SQL before production release.
+
+### Why Alembic instead of `Base.metadata.create_all()`?
+- `create_all()` only issues `CREATE TABLE IF NOT EXISTS`. If you add a column, rename a field, or change a column from integer to string, `create_all()` does nothing.
+- Alembic generates incremental migration scripts that modify existing tables using `ALTER TABLE`, drops/adds indexes, and supports rollbacks (`downgrade()`).
+
+### Why Migrations over Manual `ALTER TABLE` execution?
+- **Reproducibility:** Migrations run identically in CI, local development, staging, and production.
+- **Traceability:** Stored in Git, providing a complete history of who changed what schema and when.
+- **Safety:** Alembic checks its `alembic_version` database table so migrations are never accidentally executed twice.

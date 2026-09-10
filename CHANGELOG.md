@@ -53,3 +53,17 @@
   - Reused the existing `get_db()` dependency for session management.
   - Returns a success response when the database connection is healthy.
   - Returns `503 Service Unavailable` when the database connection cannot be established.
+
+---
+
+## Alembic Migration Support
+
+- **Feature completed:** Database Migrations Setup with Alembic
+
+- **Summary of changes:**
+
+  - Initialized Alembic migration environment under `backend/alembic`.
+  - Configured `backend/alembic.ini` with relative script location (`%(here)s/alembic`).
+  - Configured `backend/alembic/env.py` to use the application's existing SQLAlchemy engine, `DATABASE_URL`, and `Base.metadata`.
+  - Configured both online and offline migration execution modes.
+  - Added sys.path resolution ensuring compatibility whether commands are executed from the project root or backend directory.

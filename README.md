@@ -82,7 +82,25 @@ Future (Optional)
 
 # Current Status
 
-Project planning and backend setup.
+- **Phase 1 (Backend Foundation):** Completed
+- **Phase 2 (Ingredient Management):** Active / In Progress
+
+## Features Implemented
+
+- **FastAPI Application Setup:** Clean, layered backend structure (`api`, `core`, `db`, `models`, `schemas`, `services`) with automatic Swagger/OpenAPI documentation.
+- **Configuration Management:** Type-safe environment variable parsing with `pydantic-settings` and `.env` support.
+- **Database Layer:** SQLAlchemy 2.x engine, connection pooling with `pool_pre_ping=True`, `SessionLocal` factory, and `get_db()` generator dependency.
+- **Database Health Check:** Dedicated endpoint validating live MySQL connectivity via `SELECT 1`.
+- **Alembic Migration Setup:** Migration environment configured with `Base.metadata` and application engine for schema versioning.
+
+## API Endpoints
+
+| Method | Endpoint | Description | Status Code |
+|---|---|---|---|
+| `GET` | `/` | Application welcome message | `200 OK` |
+| `GET` | `/health` | Database connectivity health check | `200 OK` / `503 Service Unavailable` |
+| `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
+| `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
 
 ---
 
