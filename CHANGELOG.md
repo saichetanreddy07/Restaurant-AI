@@ -67,3 +67,42 @@
   - Configured `backend/alembic/env.py` to use the application's existing SQLAlchemy engine, `DATABASE_URL`, and `Base.metadata`.
   - Configured both online and offline migration execution modes.
   - Added sys.path resolution ensuring compatibility whether commands are executed from the project root or backend directory.
+
+---
+
+## Ingredient Model & Measurement Unit Enum
+
+- **Feature completed:** Ingredient Entity and Standardized Unit Enum
+
+- **Summary of changes:**
+
+  - Defined the `Ingredient` model in `backend/app/models/ingredient.py` with 10 core fields: `id`, `name`, `category`, `unit`, `current_stock`, `minimum_stock`, `cost_per_unit`, `supplier`, `created_at`, and `updated_at`.
+  - Defined the `Unit` string enum (`KG`, `G`, `L`, `ML`, `PCS`) for standardized unit representation.
+  - Added indexed unique constraint on ingredient `name`.
+  - Used `Numeric(10, 2)` for precise cost tracking.
+  - Exported `Ingredient` via `backend/app/models/__init__.py`.
+
+---
+
+## Initial Database Migration Generation
+
+- **Feature completed:** Initial Database Migration for Ingredients
+
+- **Summary of changes:**
+
+  - Generated initial migration script `b6446b3796c3_create_ingredients_table.py` using Alembic autogeneration.
+  - Defined table schema for `ingredients` including primary key, unique index on `name`, enum constraint on `unit`, and server default timestamps.
+  - Included bidirectional upgrade and downgrade logic.
+
+---
+
+## Core Enums Refactoring
+
+- **Feature completed:** Decouple Domain Enums from Models Layer
+
+- **Summary of changes:**
+
+  - Moved `enums.py` from `backend/app/models/` to `backend/app/core/enums.py`.
+  - Updated model imports in `backend/app/models/ingredient.py` to import from `app.core.enums`.
+  - Exported `Unit` in `backend/app/core/__init__.py` to provide a clean package interface.
+  - Eliminated circular dependency risks between models and upcoming schema validation layers.

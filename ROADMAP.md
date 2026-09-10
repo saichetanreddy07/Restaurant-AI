@@ -19,8 +19,9 @@
 
 ## Phase 2 — Ingredient Management (Active)
 
-- [ ] Design ingredient database schema
-- [ ] Create Ingredient model
+- [x] Design ingredient database schema
+- [x] Create Ingredient model
+- [x] Generate initial database migration
 - [ ] Create Pydantic schemas
 - [ ] Implement CRUD operations
 - [ ] Create service layer

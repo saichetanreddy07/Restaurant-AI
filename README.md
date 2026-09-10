@@ -85,15 +85,81 @@ Future (Optional)
 - **Phase 1 (Backend Foundation):** Completed
 - **Phase 2 (Ingredient Management):** Active / In Progress
 
-## Features Implemented
+---
 
-- **FastAPI Application Setup:** Clean, layered backend structure (`api`, `core`, `db`, `models`, `schemas`, `services`) with automatic Swagger/OpenAPI documentation.
-- **Configuration Management:** Type-safe environment variable parsing with `pydantic-settings` and `.env` support.
-- **Database Layer:** SQLAlchemy 2.x engine, connection pooling with `pool_pre_ping=True`, `SessionLocal` factory, and `get_db()` generator dependency.
-- **Database Health Check:** Dedicated endpoint validating live MySQL connectivity via `SELECT 1`.
-- **Alembic Migration Setup:** Migration environment configured with `Base.metadata` and application engine for schema versioning.
+# Project Structure
 
-## API Endpoints
+```text
+restaurant-ai/
+├── backend/
+│   ├── alembic/
+│   │   ├── versions/
+│   │   │   └── b6446b3796c3_create_ingredients_table.py
+│   │   └── env.py
+│   ├── alembic.ini
+│   └── app/
+│       ├── api/
+│       │   ├── __init__.py
+│       │   └── health.py
+│       ├── core/
+│       │   ├── __init__.py
+│       │   ├── config.py
+│       │   └── enums.py
+│       ├── db/
+│       │   ├── __init__.py
+│       │   └── database.py
+│       ├── models/
+│       │   ├── __init__.py
+│       │   └── ingredient.py
+│       ├── schemas/
+│       │   └── __init__.py
+│       ├── services/
+│       │   └── __init__.py
+│       ├── __init__.py
+│       └── main.py
+├── .env.example
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
+
+---
+
+# Features Implemented
+
+### 1. Backend Foundation
+- **FastAPI Application:** Modular backend setup with layered packages (`api`, `core`, `db`, `models`, `schemas`, `services`) and automatic OpenAPI/Swagger documentation.
+- **Configuration Management:** Centralized, type-safe environment variable loading using `pydantic-settings` with `.env` and default fallback support.
+- **Database Layer:** SQLAlchemy 2.x declarative architecture (`DeclarativeBase`), engine connection with connection pooling (`pool_pre_ping=True`), `SessionLocal` factory, and request-scoped session dependency (`get_db`).
+- **Health Check API:** Dedicated endpoint validating live MySQL connectivity via `SELECT 1`.
+- **Database Migrations:** Alembic initialized and configured to bind with the existing SQLAlchemy engine and declarative metadata.
+
+### 2. Ingredient Management (Data Model)
+- **Ingredient Model:** SQLAlchemy 2.x declarative entity mapping the `ingredients` table.
+- **Standardized Units:** Measurement units enforced through a dedicated `Unit` Enum (`KG`, `G`, `L`, `ML`, `PCS`) decoupled into `backend/app/core/enums.py`.
+- **Financial Precision:** Unit costs tracked via `Numeric(10, 2)` mapped to Python `Decimal` to avoid floating-point inaccuracies.
+- **Initial Migration:** Generated initial Alembic migration `b6446b3796c3_create_ingredients_table.py` with indexes, constraints, and audit timestamps.
+
+---
+
+# Database Schema: `ingredients`
+
+| Column | Type | Constraints / Defaults | Description |
+|---|---|---|---|
+| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
+| `name` | `String(100)` | Unique, Indexed, Not Null | Name of the ingredient |
+| `category` | `String(100)` | Nullable | Ingredient classification (e.g. Dairy, Vegetable) |
+| `unit` | `Enum(Unit)` | Not Null (`kg`, `g`, `l`, `ml`, `pcs`) | Standardized unit of measurement |
+| `current_stock` | `Float` | Not Null, Default `0.0` | On-hand quantity |
+| `minimum_stock` | `Float` | Not Null, Default `0.0` | Reorder threshold |
+| `cost_per_unit` | `Numeric(10, 2)` | Not Null, Default `0.00` | Unit purchase/cost value |
+| `supplier` | `String(100)` | Nullable | Supplier or vendor name |
+| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
+| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
+
+---
+
+# API Endpoints
 
 | Method | Endpoint | Description | Status Code |
 |---|---|---|---|

@@ -550,3 +550,88 @@ This guide summarizes the key concepts implemented across the backend foundation
 - **Reproducibility:** Migrations run identically in CI, local development, staging, and production.
 - **Traceability:** Stored in Git, providing a complete history of who changed what schema and when.
 - **Safety:** Alembic checks its `alembic_version` database table so migrations are never accidentally executed twice.
+
+---
+
+## Decision 005: Ingredient Entity Design and Standardized Measurement Units via Core Enums
+
+### 1. Decision
+
+Design the **`Ingredient`** database model with comprehensive stock tracking attributes (`current_stock`, `minimum_stock`, `cost_per_unit`, `supplier`, timestamps) and standardize measurement units using a dedicated Python Enum (`Unit`) located in `backend/app/core/enums.py`.
+
+### 2. Context
+
+In a restaurant management system, ingredients are the foundational resource upon which inventory batches, recipes, production simulation, and cost calculations are built.
+
+A proper ingredient model must satisfy several business and architectural requirements:
+- **Unit Consistency:** Measurement units must be standardized (`kg`, `g`, `l`, `ml`, `pcs`). Free-form text fields lead to inconsistent entries (e.g., `"kilogram"`, `"kg"`, `"Kgs"`) that make automated recipe scaling and inventory deductions impossible.
+- **Decoupled Architecture:** Enums represent domain-level primitive types needed across multiple layers (Pydantic schemas for request validation, SQLAlchemy models for column definitions, and services for conversions). Storing enums in `models/` created circular dependency risks. Moving enums to `app.core.enums` cleanly decouples domain types from ORM persistence models.
+- **Financial Precision:** Food costing calculations require exact monetary values. Using floating-point numbers introduces rounding inaccuracies; therefore, currency values (`cost_per_unit`) must use fixed-point decimal arithmetic.
+- **Reorder Thresholds:** To prevent kitchen stockouts, ingredients require reorder points (`minimum_stock`) alongside physical on-hand quantities (`current_stock`).
+
+### 3. Why this approach?
+
+- **Standardized `Unit` Enum:** Using `Unit(str, Enum)` with values `kg`, `g`, `l`, `ml`, and `pcs` restricts input to valid, recognized culinary metrics and enables strict database-level enum constraints in MySQL.
+- **Placement in `core/`:** Placing enums in `app.core.enums` allows both `app.models` and upcoming `app.schemas` to import `Unit` without circular imports.
+- **`Numeric(10, 2)` for Cost:** Stored as `Decimal` in Python and `NUMERIC(10, 2)` in MySQL, preventing IEEE 754 floating-point inaccuracies.
+- **Indexed Unique Name:** `name` is marked `unique=True` and `index=True` (`String(100)`), preventing duplicate ingredient records and optimizing query lookups.
+- **Server-Side Timestamps:** `created_at` and `updated_at` use `server_default=func.now()` and `onupdate=func.now()`, ensuring automated audit trails managed by the database server.
+
+### 4. Alternatives Considered
+
+- **Free-Form Text for Units (`String(20)`):** Allowing arbitrary strings for units.
+- **Enums Stored Inside `models/enums.py`:** Keeping enum definitions alongside SQLAlchemy database models.
+- **Separate `units` Database Table:** Storing units in a dedicated relational table with foreign key relationships (`unit_id`).
+- **`Float` for `cost_per_unit`:** Storing financial costs as floating-point numbers.
+
+### 5. Why Alternatives Were Not Chosen
+
+- **Free-Form String:** Leads to data corruption, typos, and broken recipe calculations when users enter inconsistent unit variations.
+- **Enums in `models/`:** Creates tight coupling and circular import risks when Pydantic request validation schemas in `schemas/` require the same enum before database models are touched.
+- **Separate `units` Table:** Over-engineers the design for standard measurement units that rarely change in restaurant operations, adding unnecessary joins and latency.
+- **`Float` for Costs:** Floating-point arithmetic suffers from rounding errors (e.g., `0.1 + 0.2 = 0.30000000000000004`), which is unacceptable for financial costing and inventory accounting.
+
+### 6. Benefits
+
+- Strict data integrity enforced at both application (Pydantic/Python) and database (MySQL Enum/Check) levels.
+- Elimination of circular dependencies between schema validation and ORM persistence layers.
+- Accurate monetary calculations using Python's `Decimal` type.
+- Automatic audit history with server-managed timestamps.
+- Clear, interview-ready demonstration of domain-driven design and layered architecture.
+
+### 7. Limitations
+
+- Adding new units of measurement requires updating the Python `Unit` enum and executing an Alembic schema migration.
+- MySQL handles enums natively, but cross-database migrations (e.g., to SQLite for in-memory testing) require SQLAlchemy's Enum type mapping.
+
+### 8. When This Decision May Not Be Appropriate
+
+- Applications where end-users must define arbitrary, custom units dynamically at runtime (where a dynamic `units` table would be appropriate).
+- Schemaless document databases where strict column typing is not enforced.
+
+### 9. Interview Questions & Answers
+
+#### Q1: Why are measurement units represented as an Enum rather than free-form text?
+> **Answer:** Representing units as an Enum enforces data consistency across the application. In restaurant inventory and recipes, calculations depend on predictable unit standards (e.g., converting grams to kilograms). Free-form text allows typos like "kilo", "Kg", and "kgs", which break automated inventory deduction and recipe cost calculations.
+
+#### Q2: Why is `cost_per_unit` stored as `Numeric(10, 2)` instead of `Float`?
+> **Answer:** `Float` uses binary floating-point representation (IEEE 754), which cannot precisely represent many base-10 fractional numbers, leading to compounding rounding errors in financial calculations. `Numeric(10, 2)` maps to fixed-point decimal arithmetic (`Decimal` in Python), ensuring exact penny-accurate financial totals.
+
+#### Q3: Why was `enums.py` moved from `models/` to `core/`?
+> **Answer:** Enums represent domain-level data types that are shared across multiple layers, including API request validation (Pydantic schemas) and database persistence (SQLAlchemy models). Placing enums in `core/` prevents circular imports and adheres to the separation of concerns, ensuring schemas do not need to import from the database persistence layer.
+
+#### Q4: What is the purpose of `minimum_stock` on the `Ingredient` model?
+> **Answer:** `minimum_stock` serves as an automated reorder threshold. When `current_stock` falls below `minimum_stock`, the system can immediately flag the ingredient as low-stock on dashboards and alert the kitchen or purchasing manager before an ingredient stockout halts dish preparation.
+
+### 10. Future Considerations
+
+- Implement a unit conversion utility service in `app.services` to convert compatible units (e.g., grams to kilograms, milliliters to liters) during recipe costing and stock deductions.
+- Link the `Ingredient` model with incoming inventory batch records (Phase 3) using foreign key relationships.
+
+### 11. What We Implemented
+
+- Created [`backend/app/core/enums.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/enums.py) with the [`Unit`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/enums.py#L4) enum (`KG`, `G`, `L`, `ML`, `PCS`).
+- Created [`backend/app/models/ingredient.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/ingredient.py) with all 10 attributes mapped using SQLAlchemy 2.x `Mapped` and `mapped_column`.
+- Exported [`Ingredient`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/ingredient.py#L16) via [`backend/app/models/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/__init__.py).
+- Exported [`Unit`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/enums.py#L4) via [`backend/app/core/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/__init__.py).
+- Generated initial Alembic migration [`backend/alembic/versions/b6446b3796c3_create_ingredients_table.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/alembic/versions/b6446b3796c3_create_ingredients_table.py).

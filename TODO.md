@@ -4,19 +4,19 @@
 
 ### Ingredient Management
 
-- [ ] Design ingredient database schema
-- [ ] Create Ingredient model
-- [ ] Create Pydantic schemas
-- [ ] Implement CRUD operations
-- [ ] Create service layer
-- [ ] Create API endpoints
-- [ ] Generate and apply Alembic migration for ingredients table
+- [ ] Create Ingredient Pydantic schemas (`IngredientCreate`, `IngredientUpdate`, `IngredientResponse`)
+- [ ] Implement Ingredient CRUD service/repository operations
+- [ ] Implement Ingredient API endpoints (`POST`, `GET`, `PUT`, `DELETE` `/ingredients`)
+- [ ] Register Ingredient router in `main.py`
+- [ ] Add input validation and duplicate name error handling
+- [ ] Add unit tests for Ingredient CRUD APIs
+- [ ] Execute Alembic migration on target MySQL database
 
 ---
 
 ## In Progress
 
-- [ ] Ingredient Management Module (Schema design & Model implementation)
+- [ ] Ingredient Management Pydantic Schemas & CRUD Service Layer
 
 ---
 
@@ -47,3 +47,11 @@
 - [x] Implement database health check endpoint
 - [x] Verify database connectivity
 - [x] Configure Alembic for database migrations
+
+### Ingredient Management (Model & Schema)
+
+- [x] Design ingredient database schema
+- [x] Define standardized `Unit` enum (`core/enums.py`)
+- [x] Implement `Ingredient` SQLAlchemy model with all 10 attributes
+- [x] Decouple domain enums from models to `backend/app/core/enums.py`
+- [x] Generate initial Alembic migration for `ingredients` table
