@@ -32,5 +32,27 @@ htmlcov/
 # AI Files
 AGENTS.md
 
-# MySQL
+# Database
 *.db
+
+# Build & Packaging
+build/
+dist/
+*.egg
+
+# Type Checking
+.mypy_cache/
+
+# Python Linting
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node (Future React Frontend)
+node_modules/
+
+# Environment Files
+.env.local
+.env.production
+.env.development

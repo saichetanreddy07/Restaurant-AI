@@ -6,22 +6,25 @@
 - [x] Initialize Git
 - [x] Create project structure
 - [x] Setup documentation
-- [ ] Setup Python environment
-- [ ] Install project dependencies
-- [ ] Setup FastAPI
 - [x] Setup Python environment
 - [x] Install project dependencies
 - [x] Setup FastAPI
-- [ ] Configure MySQL
-- [ ] Verify backend setup
+- [x] Configure application settings
+- [x] Setup SQLAlchemy database layer
+- [x] Verify backend setup
+- [x] Implement database health check
+- [ ] Configure Alembic
 
 ---
 
 ## Phase 2 — Ingredient Management
 
-- [ ] Database design
-- [ ] Ingredient model
-- [ ] CRUD APIs
+- [ ] Design ingredient database schema
+- [ ] Create Ingredient model
+- [ ] Create Pydantic schemas
+- [ ] Implement CRUD operations
+- [ ] Create service layer
+- [ ] Implement API endpoints
 - [ ] Validation
 - [ ] Unit testing
 
@@ -29,18 +32,25 @@
 
 ## Phase 3 — Inventory Management
 
+- [ ] Design inventory database schema
+- [ ] Create Inventory model
 - [ ] Inventory batches
 - [ ] Purchase records
+- [ ] Stock updates
 - [ ] Expiry tracking
-- [ ] Inventory APIs
+- [ ] CRUD APIs
+- [ ] Unit testing
 
 ---
 
 ## Phase 4 — Recipe Management
 
+- [ ] Design recipe database schema
 - [ ] Recipe model
 - [ ] Recipe ingredients
 - [ ] CRUD APIs
+- [ ] Validation
+- [ ] Unit testing
 
 ---
 
@@ -49,6 +59,7 @@
 - [ ] Menu model
 - [ ] Link recipes
 - [ ] Availability calculation
+- [ ] CRUD APIs
 
 ---
 
@@ -58,27 +69,33 @@
 - [ ] Inventory deduction
 - [ ] Ingredient shortage detection
 - [ ] Production history
+- [ ] Production reports
 
 ---
 
 ## Phase 7 — React Frontend
 
-- [ ] Project setup
+- [ ] Setup React project
+- [ ] Configure TypeScript
+- [ ] Configure Tailwind CSS
+- [ ] Setup Axios
 - [ ] Dashboard
-- [ ] Ingredient Management
-- [ ] Inventory Management
-- [ ] Recipe Management
-- [ ] Menu Management
+- [ ] Ingredient Management UI
+- [ ] Inventory Management UI
+- [ ] Recipe Management UI
+- [ ] Menu Management UI
+- [ ] API Integration
 
 ---
 
 ## Phase 8 — Production Readiness
 
-- [ ] Error handling
+- [ ] Centralized error handling
 - [ ] Logging
-- [ ] Testing
+- [ ] API testing
 - [ ] Performance improvements
-- [ ] Documentation
+- [ ] Final documentation
+- [ ] Project cleanup
 
 ---
 
