@@ -1,5 +1,12 @@
 # Roadmap
 
+## Overall Backend Progress
+
+- **Completed:** Backend foundation and Ingredient Management
+- **Next:** Inventory Management
+- **Backend progress:** 2 of 6 backend phases completed
+- **Overall project progress:** 2 of 8 planned phases completed (25%)
+
 ## Phase 1 — Project Setup
 
 - [x] Create repository
@@ -17,21 +24,23 @@
 
 ---
 
-## Phase 2 — Ingredient Management (Active)
+## Phase 2 — Ingredient Management (Completed)
 
 - [x] Design ingredient database schema
 - [x] Create Ingredient model
 - [x] Generate initial database migration
-- [ ] Create Pydantic schemas
-- [ ] Implement CRUD operations
-- [ ] Create service layer
-- [ ] Implement API endpoints
-- [ ] Validation
-- [ ] Unit testing
+- [x] Create Pydantic schemas
+- [x] Implement CRUD operations
+- [x] Create service layer
+- [x] Implement API endpoints
+- [x] Validation
+- [x] Unit testing
 
 ---
 
 ## Phase 3 — Inventory Management
+
+**Next recommended milestone:** Build inventory batch tracking so stock can be received, adjusted, and monitored by expiry date.
 
 - [ ] Design inventory database schema
 - [ ] Create Inventory model

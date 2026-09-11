@@ -84,6 +84,12 @@ ENGINEERING_DECISIONS.md
 - Do not over-engineer.
 - Introduce new technologies only when justified.
 - Every architectural decision should be explainable in an interview.
+- Keep API route handlers thin; place domain and persistence operations in a service layer.
+- Use dependency injection for request-scoped SQLAlchemy sessions and close sessions through the existing database dependency.
+- Define shared domain enums in `backend/app/core/` so schemas and ORM models can reuse them without circular dependencies.
+- Use Pydantic schemas at API boundaries and keep ORM models responsible for database persistence.
+- Review and apply an Alembic migration for every database schema change; do not rely on `Base.metadata.create_all()` for schema evolution.
+- Normalize user-facing text before persistence and perform case-insensitive duplicate checks for unique names.
 
 ---
 

@@ -42,7 +42,7 @@ RestaurantAI aims to solve these problems through a centralized inventory and re
 
 # Planned Features
 
-- Ingredient Management
+- Ingredient Management (Completed)
 - Inventory Batch Management
 - Recipe Management
 - Menu Management
@@ -83,7 +83,8 @@ Future (Optional)
 # Current Status
 
 - **Phase 1 (Backend Foundation):** Completed
-- **Phase 2 (Ingredient Management):** Active / In Progress
+- **Phase 2 (Ingredient Management):** Completed
+- **Phase 3 (Inventory Management):** Next milestone
 
 ---
 
@@ -100,7 +101,8 @@ restaurant-ai/
 │   └── app/
 │       ├── api/
 │       │   ├── __init__.py
-│       │   └── health.py
+│   │   ├── health.py
+│   │   └── ingredients.py
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── config.py
@@ -112,9 +114,11 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   └── ingredient.py
 │       ├── schemas/
-│       │   └── __init__.py
+│       │   ├── __init__.py
+│       │   └── ingredient.py
 │       ├── services/
-│       │   └── __init__.py
+│       │   ├── __init__.py
+│       │   └── ingredient_service.py
 │       ├── __init__.py
 │       └── main.py
 ├── .env.example
@@ -139,6 +143,14 @@ restaurant-ai/
 - **Standardized Units:** Measurement units enforced through a dedicated `Unit` Enum (`KG`, `G`, `L`, `ML`, `PCS`) decoupled into `backend/app/core/enums.py`.
 - **Financial Precision:** Unit costs tracked via `Numeric(10, 2)` mapped to Python `Decimal` to avoid floating-point inaccuracies.
 - **Initial Migration:** Generated initial Alembic migration `b6446b3796c3_create_ingredients_table.py` with indexes, constraints, and audit timestamps.
+
+### 3. Ingredient Inventory Module (Completed)
+- **Pydantic v2 Schemas:** Added validated create, update, and response schemas with field constraints, normalization, and SQLAlchemy ORM serialization.
+- **CRUD Service Layer:** Implemented create, read, list, update, and delete operations in `IngredientService`, including pagination and alphabetical ordering.
+- **REST API:** Registered the Ingredient router with dependency-injected database sessions and documented response status codes.
+- **Duplicate Protection:** Ingredient names are normalized and checked case-insensitively before create and update operations.
+- **MySQL Integration:** Connected the model and migration to the configured SQLAlchemy MySQL database.
+- **Validation:** Enforced valid units, non-negative stock and costs, bounded text fields, and normalized optional text values.
 
 ---
 
@@ -167,6 +179,11 @@ restaurant-ai/
 | `GET` | `/health` | Database connectivity health check | `200 OK` / `503 Service Unavailable` |
 | `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
 | `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
+| `POST` | `/ingredients/` | Create an ingredient | `201 Created` / `409 Conflict` |
+| `GET` | `/ingredients/` | List ingredients with `skip` and `limit` pagination | `200 OK` |
+| `GET` | `/ingredients/{ingredient_id}` | Get an ingredient by ID | `200 OK` / `404 Not Found` |
+| `PUT` | `/ingredients/{ingredient_id}` | Update an ingredient | `200 OK` / `404 Not Found` / `409 Conflict` |
+| `DELETE` | `/ingredients/{ingredient_id}` | Delete an ingredient | `200 OK` / `404 Not Found` |
 
 ---
 

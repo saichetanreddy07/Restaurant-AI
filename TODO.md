@@ -2,21 +2,20 @@
 
 ## To Do
 
-### Ingredient Management
+### Inventory Management (Priority Order)
 
-- [ ] Create Ingredient Pydantic schemas (`IngredientCreate`, `IngredientUpdate`, `IngredientResponse`)
-- [ ] Implement Ingredient CRUD service/repository operations
-- [ ] Implement Ingredient API endpoints (`POST`, `GET`, `PUT`, `DELETE` `/ingredients`)
-- [ ] Register Ingredient router in `main.py`
-- [ ] Add input validation and duplicate name error handling
-- [ ] Add unit tests for Ingredient CRUD APIs
-- [ ] Execute Alembic migration on target MySQL database
+- [ ] Design the inventory batch and purchase record schema
+- [ ] Implement the Inventory model and Alembic migration
+- [ ] Add inventory batch CRUD service operations
+- [ ] Add stock receipt and adjustment APIs
+- [ ] Add expiry tracking and low-stock validation
+- [ ] Add unit tests for inventory workflows
 
 ---
 
 ## In Progress
 
-- [ ] Ingredient Management Pydantic Schemas & CRUD Service Layer
+- [ ] Inventory Management schema and model design
 
 ---
 
@@ -48,10 +47,16 @@
 - [x] Verify database connectivity
 - [x] Configure Alembic for database migrations
 
-### Ingredient Management (Model & Schema)
+### Ingredient Management (Completed)
 
 - [x] Design ingredient database schema
 - [x] Define standardized `Unit` enum (`core/enums.py`)
 - [x] Implement `Ingredient` SQLAlchemy model with all 10 attributes
 - [x] Decouple domain enums from models to `backend/app/core/enums.py`
 - [x] Generate initial Alembic migration for `ingredients` table
+- [x] Create Ingredient Pydantic schemas (`IngredientCreate`, `IngredientUpdate`, `IngredientResponse`)
+- [x] Implement Ingredient CRUD service operations
+- [x] Implement and register Ingredient API endpoints
+- [x] Add input validation and case-insensitive duplicate name handling
+- [x] Add unit tests for Ingredient CRUD APIs
+- [x] Execute and verify the Alembic migration on the target MySQL database

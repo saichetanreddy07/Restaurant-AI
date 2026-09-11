@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Ingredient Inventory Module
+
+- Added the SQLAlchemy `Ingredient` model with standardized units, stock fields, cost precision, supplier details, and audit timestamps.
+- Added Pydantic v2 schemas for ingredient creation, partial updates, and ORM-backed responses.
+- Added the `IngredientService` CRUD service layer with pagination and alphabetical listing.
+- Added REST API endpoints for creating, listing, retrieving, updating, and deleting ingredients.
+- Added the Alembic migration for the `ingredients` table, including indexes, constraints, and defaults.
+- Integrated Ingredient persistence with the configured SQLAlchemy MySQL database.
+- Improved validation with field bounds, non-negative stock and cost checks, text normalization, valid unit enforcement, and case-insensitive duplicate-name detection.
+
+---
+
 ## FastAPI Application Setup
 
 - **Feature completed:** FastAPI Application Initialization
