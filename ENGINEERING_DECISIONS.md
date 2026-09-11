@@ -635,3 +635,67 @@ A proper ingredient model must satisfy several business and architectural requir
 - Exported [`Ingredient`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/ingredient.py#L16) via [`backend/app/models/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/__init__.py).
 - Exported [`Unit`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/enums.py#L4) via [`backend/app/core/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/__init__.py).
 - Generated initial Alembic migration [`backend/alembic/versions/b6446b3796c3_create_ingredients_table.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/alembic/versions/b6446b3796c3_create_ingredients_table.py).
+
+---
+
+## Decision 006: Use a Service Layer for Ingredient CRUD
+
+### 1. Decision
+
+Keep Ingredient CRUD and business rules in `IngredientService`, separate from FastAPI route handlers.
+
+### 2. Context
+
+Ingredient endpoints need database access, duplicate detection, pagination, transaction handling, and not-found behavior. Embedding those concerns in route functions would make the API layer harder to test and maintain as inventory and recipe features are added.
+
+### 3. Rationale
+
+The service layer keeps route handlers focused on HTTP input and output while centralizing domain operations and transaction boundaries. It also provides a reusable seam for unit tests and future callers that do not use HTTP.
+
+---
+
+## Decision 007: Use Pydantic v2 at the API Boundary
+
+### 1. Decision
+
+Use Pydantic v2 schemas for Ingredient request validation and response serialization.
+
+### 2. Rationale
+
+`IngredientCreate`, `IngredientUpdate`, and `IngredientResponse` provide typed API contracts, enforce bounds and enum values before persistence, normalize names and optional text, and use `from_attributes` for safe serialization from SQLAlchemy ORM objects.
+
+---
+
+## Decision 008: Use Dependency Injection for Database Sessions
+
+### 1. Decision
+
+Inject a request-scoped SQLAlchemy `Session` through FastAPI's `Depends(get_db)` mechanism.
+
+### 2. Rationale
+
+Dependency injection keeps session lifecycle management out of endpoint code, guarantees cleanup through the existing generator dependency, and makes route and service tests easier to isolate with replacement session providers.
+
+---
+
+## Decision 009: Use Case-Insensitive Duplicate Checks and Internal IDs
+
+### 1. Decision
+
+Normalize ingredient names for display, check duplicates case-insensitively in the service layer, and use the database-generated integer ID for internal resource identity.
+
+### 2. Rationale
+
+Users search for ingredients by familiar names in the UI, so trimming and title-casing improves consistency while case-insensitive checks prevent records such as `Tomato` and `tomato` from being created separately. Names remain user-facing labels and may change; stable IDs are therefore used internally for URL paths, updates, deletes, relationships, and database joins.
+
+---
+
+## Decision 010: Manage Ingredient Schema Changes with Alembic
+
+### 1. Decision
+
+Represent the Ingredient schema change as a versioned Alembic migration and apply it to the configured MySQL database.
+
+### 2. Rationale
+
+Versioned migrations make the `ingredients` table reproducible across environments, preserve upgrade and downgrade paths, and keep database structure changes synchronized with the SQLAlchemy model.
