@@ -3,9 +3,11 @@ from fastapi import FastAPI, status
 try:
     from app.api.health import router as health_router
     from app.api.ingredients import router as ingredients_router
+    from app.api.menu_items import router as menu_items_router
 except ModuleNotFoundError:
     from backend.app.api.health import router as health_router
     from backend.app.api.ingredients import router as ingredients_router
+    from backend.app.api.menu_items import router as menu_items_router
 
 app = FastAPI(
     title="RestaurantAI API",
@@ -21,6 +23,13 @@ app.include_router(
     ingredients_router,
     prefix="/ingredients",
     tags=["Ingredients"],
+)
+
+# Menu Item endpoints
+app.include_router(
+    menu_items_router,
+    prefix="/menu-items",
+    tags=["Menu Items"],
 )
 
 
