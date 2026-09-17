@@ -136,3 +136,17 @@
   - Implemented `MenuItemService` in `backend/app/services/menu_item_service.py` with case-insensitive duplicate validation, pagination (`skip`/`limit`), transactional error handling, and complete CRUD methods.
   - Implemented the FastAPI router in `backend/app/api/menu_items.py` with dependency injection (`get_db`) and registered the router at `/menu-items` in `main.py`.
   - Verified full test coverage including schema validation, database DDL creation, and service-layer CRUD operations.
+
+---
+
+## 2026-09-17 — Roadmap & Multi-Phase Architecture Alignment
+
+- **Feature completed:** Project Documentation and Roadmap Standardization
+
+- **Summary of changes:**
+
+  - Realigned the project roadmap into a strict 4-phase delivery strategy: Phase 1 (Backend Core Modules), Phase 2 (Backend Refactoring), Phase 3 (Frontend), and Phase 4 (Production Readiness).
+  - Documented completion of the first two backend core modules (Ingredients and Menu Items) and formalized the remaining Phase 1 sequence: Recipes (next), Recipe Ingredients, Inventory, and Availability.
+  - Formulated the Phase 2 backend refactoring scope (code deduplication, architectural improvements, centralized error handling, enhanced validation, service optimization) to be executed upon completion of all six backend modules prior to frontend commencement.
+  - Added Engineering Decision 007 documenting the sequential module delivery and dedicated refactoring phase architecture.
+  - Synchronized status, progress metrics, and TODO items across all Markdown documentation files.

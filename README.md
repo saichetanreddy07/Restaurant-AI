@@ -2,7 +2,7 @@
 
 A production-inspired Restaurant Operations Management System built to learn and demonstrate modern backend and full-stack development.
 
-> **Status:** 🚧 Under Development
+> **Status:** 🚧 Under Development — Phase 1: Backend Core Modules (2 of 6 Completed)
 
 ---
 
@@ -42,18 +42,20 @@ RestaurantAI aims to solve these problems through a centralized inventory and re
 
 # Planned Features
 
-- Ingredient Management (Completed)
-- Inventory Batch Management
-- Recipe Management
-- Menu Management
-- Production Simulation
-- Inventory Analytics
-- Expiry Tracking Dashboard
+- Ingredient Management (Completed ✅)
+- Menu Item Management (Completed ✅)
+- Recipe Management (Active ⏳)
+- Recipe Ingredients Management
+- Inventory Batch & Stock Management
+- Real-Time Dish Availability Engine
+- Production Simulation (Post-MVP)
+- Inventory Analytics & Expiry Dashboard (Post-MVP)
 
-Future (Optional)
+Future Scope (Optional)
 
 - AI Recommendations
 - ML Forecasting
+- Authentication & Multi-Tenancy
 
 ---
 
@@ -63,9 +65,10 @@ Future (Optional)
 
 - Python
 - FastAPI
-- SQLAlchemy
+- SQLAlchemy 2.0
 - MySQL
 - Alembic
+- Pydantic v2
 
 ## Frontend
 
@@ -80,11 +83,21 @@ Future (Optional)
 
 ---
 
-# Current Status
+# Current Status & Roadmap Strategy
 
-- **Phase 1 (Backend Foundation):** Completed
-- **Phase 2 (Ingredient Management):** Completed
-- **Phase 5 (Menu Management — Catalog):** Completed
+We are building the backend core one module at a time. After all six core modules are finished, we will execute a dedicated refactoring phase across the entire backend before starting the React frontend.
+
+- **Phase 1 (Backend Core Modules):** In Progress (2 of 6 modules completed — 33.3%)
+  - Backend Foundation: Completed
+  - Module 1: Ingredients: Completed ✅
+  - Module 2: Menu Items: Completed ✅
+  - Module 3: Recipes: Next Active Milestone ⏳
+  - Module 4: Recipe Ingredients: Planned 📋
+  - Module 5: Inventory: Planned 📋
+  - Module 6: Availability: Planned 📋
+- **Phase 2 (Backend Refactoring):** Planned 📋 *(Triggered after all 6 core modules complete — deduplication, architecture, centralized error handling, validations, query optimization, logging)*
+- **Phase 3 (Frontend):** Planned 📋 *(Triggered after backend is stable — React, TypeScript, Tailwind CSS, Axios API integration)*
+- **Phase 4 (Production Readiness):** Planned 📋 *(Testing, final documentation, deployment)*
 
 ---
 
@@ -143,15 +156,16 @@ restaurant-ai/
 - **Health Check API:** Dedicated endpoint validating live MySQL connectivity via `SELECT 1`.
 - **Database Migrations:** Alembic initialized and configured to bind with the existing SQLAlchemy engine and declarative metadata.
 
-### 2. Ingredient Management
+### 2. Phase 1 — Module 1: Ingredients (Completed & Tested)
 - **Ingredient Model:** SQLAlchemy 2.x declarative entity mapping the `ingredients` table.
 - **Standardized Units:** Measurement units enforced through a dedicated `Unit` Enum (`KG`, `G`, `L`, `ML`, `PCS`) decoupled into `backend/app/core/enums.py`.
 - **Financial Precision:** Unit costs tracked via `Numeric(10, 2)` mapped to Python `Decimal` to avoid floating-point inaccuracies.
 - **Pydantic Schemas:** Request and response schemas with input normalization, title casing, and validation.
 - **Service Layer:** `IngredientService` with transactional rollback, case-insensitive uniqueness checks, and pagination.
 - **REST API:** Complete CRUD endpoints under `/ingredients`.
+- **Testing:** Validated CRUD lifecycle, edge cases, and duplicate rejection.
 
-### 3. Menu Item Management (Product Catalog)
+### 3. Phase 1 — Module 2: Menu Items (Product Catalog - Completed & Tested)
 - **Purpose:** Represents the restaurant's commercial product catalog (sellable items like burgers, pizzas, beverages, sides). Decoupled from recipes, inventory stocks, ingredient consumption, and suppliers to maintain clear separation of concerns.
 - **MenuItem Model:** SQLAlchemy 2.0 declarative model mapping the `menu_items` table with `id`, `name`, `category`, `price`, `created_at`, and `updated_at`.
 - **Standardized Categories:** `MenuCategory` enum (`APPETIZER`, `MAIN_COURSE`, `DESSERT`, `BEVERAGE`, `SIDE`) decoupled into `backend/app/core/enums.py`.
@@ -213,11 +227,6 @@ restaurant-ai/
 | `DELETE` | `/menu-items/{id}` | Delete menu item by ID | `200 OK` / `404 Not Found` |
 | `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
 | `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
-| `POST` | `/ingredients/` | Create an ingredient | `201 Created` / `409 Conflict` |
-| `GET` | `/ingredients/` | List ingredients with `skip` and `limit` pagination | `200 OK` |
-| `GET` | `/ingredients/{ingredient_id}` | Get an ingredient by ID | `200 OK` / `404 Not Found` |
-| `PUT` | `/ingredients/{ingredient_id}` | Update an ingredient | `200 OK` / `404 Not Found` / `409 Conflict` |
-| `DELETE` | `/ingredients/{ingredient_id}` | Delete an ingredient | `200 OK` / `404 Not Found` |
 
 ---
 

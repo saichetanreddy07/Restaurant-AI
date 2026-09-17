@@ -84,6 +84,9 @@ ENGINEERING_DECISIONS.md
 - Do not over-engineer.
 - Introduce new technologies only when justified.
 - Every architectural decision should be explainable in an interview.
+- Implement Phase 1 backend core modules sequentially (one module at a time: Ingredients, Menu Items, Recipes, Recipe Ingredients, Inventory, Availability).
+- Defer cross-cutting refactoring (code deduplication, centralized error handling, generic base services, query optimization) until Phase 2 when all six backend core modules are complete.
+- Complete and stabilize the backend before commencing React frontend development (Phase 3).
 - Keep API route handlers thin; place domain and persistence operations in a service layer.
 - Use dependency injection for request-scoped SQLAlchemy sessions and close sessions through the existing database dependency.
 - Define shared domain enums in `backend/app/core/` so schemas and ORM models can reuse them without circular dependencies.

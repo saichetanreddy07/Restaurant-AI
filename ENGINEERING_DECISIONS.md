@@ -730,3 +730,84 @@ Coupling menu items directly with recipe details or raw inventory creates rigid 
 - Created [`backend/app/services/menu_item_service.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/services/menu_item_service.py) with complete CRUD, pagination, and case-insensitive validation.
 - Exported service via [`backend/app/services/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/services/__init__.py).
 - Created API router in [`backend/app/api/menu_items.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/api/menu_items.py) and registered it at `/menu-items` in [`backend/app/main.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/main.py).
+
+---
+
+## Decision 007: Sequential Module Delivery with Dedicated Backend Refactoring Phase (Two-Pass Backend Architecture)
+
+### 1. Decision
+
+Implement Phase 1 backend core modules sequentially (one module at a time: `Ingredients`, `Menu Items`, `Recipes`, `Recipe Ingredients`, `Inventory`, `Availability`) using focused, self-contained service implementations, followed by a dedicated **Phase 2 (Backend Refactoring)** phase across all modules before initiating frontend development.
+
+### 2. Context
+
+RestaurantAI consists of six core operational backend modules that model the lifecycle of restaurant operations:
+1. **Ingredients:** Raw catalog items with standardized units, reorder points, and baseline costs.
+2. **Menu Items:** Commercial product catalog of customer-facing sellable items and prices.
+3. **Recipes:** Culinary formulas linked to menu items.
+4. **Recipe Ingredients:** Quantified ingredient requirements per recipe.
+5. **Inventory:** Real-time stock levels, batch tracking, and inventory adjustments.
+6. **Availability:** Dynamic engine computing which menu items can be prepared based on current inventory and recipes.
+
+When building an end-to-end backend, engineers often face a dilemma:
+- **Premature Abstraction:** Trying to build generic base services, generic repositories, complex centralized error hierarchies, and shared validation frameworks before domain models are fully understood.
+- **Monolithic "Big Bang":** Attempting to build backend and frontend simultaneously, leading to frequent breaking changes and fragile integration.
+
+To maintain engineering clarity, learn domain requirements organically, and prevent premature abstractions, a clear multi-phase roadmap strategy was required.
+
+### 3. Why this approach?
+
+- **Zero Premature Abstraction:** By implementing each domain module independently first, we observe genuine repetition and recurring patterns across all six distinct domains rather than guessing what abstractions will be needed.
+- **Single-Domain Focus:** Developers can concentrate fully on the business rules of one module at a time (e.g., unit conversions, decimal costing, case-insensitive uniqueness) without worrying about cross-cutting framework refactors.
+- **Dedicated Consolidation (Phase 2):** Having a planned, explicit refactoring phase guarantees that code duplication is systematically eliminated, centralized error handling and logging are added, query performance is tuned, and API contracts are standardized before exposing them to clients.
+- **Stable Frontend Contracts (Phase 3):** The React frontend is built strictly against a stabilized, tested, and refactored backend API, preventing rework caused by shifting backend endpoints and payload structures.
+
+### 4. Alternatives Considered
+
+- **Continuous Premature Abstraction:** Attempting to extract generic CRUD base classes, abstract repository layers, and universal exception middleware during the very first module.
+- **Vertical Full-Stack Slices:** Building the backend module and its corresponding React UI concurrently for each domain (e.g., Ingredients backend + Ingredients React UI, then Menu Items backend + Menu Items React UI).
+- **Monolithic "Big Bang" Delivery:** Writing all database models, all services, and all endpoints in one massive pass without verifying individual modules end-to-end.
+
+### 5. Why These Alternatives Were Not Chosen
+
+- **Continuous Premature Abstraction:** Creating abstractions with only 1 or 2 concrete examples (e.g., only `Ingredient` and `MenuItem`) leads to rigid, incorrect abstractions that break when encountering more complex relational domains like `RecipeIngredient` or multi-factor availability calculations. The Rule of Three in software engineering advises abstracting only after three or more concrete implementations exist.
+- **Vertical Full-Stack Slices:** Constantly switching between Python/FastAPI/SQLAlchemy and TypeScript/React/Tailwind introduces context-switching penalties. Moreover, backend schema changes in later modules (such as recipe linkages) frequently force cascading UI rewrites.
+- **Monolithic Delivery:** Prevents iterative testing, makes debugging difficult, and obscures root causes when migrations or validations fail.
+
+### 6. Benefits
+
+- Predictable, milestone-driven velocity with demonstrable progress after each module.
+- High domain cohesion: each module's model, schemas, service layer, and router are fully verified before moving to the next.
+- Abstractions introduced in Phase 2 will be grounded in real-world patterns observed across all six modules.
+- Frontend development in Phase 3 benefits from completely frozen, verified REST API contracts and comprehensive OpenAPI documentation.
+- Demonstrates senior-level software engineering judgment and maturity in an interview setting.
+
+### 7. Limitations
+
+- Temporary duplication of boilerplate code (such as pagination parameter handling, CRUD session management, and repetitive HTTP 404/409 exceptions) across the six initial modules.
+- Requires discipline to resist early refactoring until all six Phase 1 modules are completed.
+
+### 8. When This Decision May Not Be Appropriate
+
+- Pre-existing enterprise codebases with established, battle-tested framework abstractions (e.g., standard internal CRUD frameworks).
+- Trivial applications with only 1 or 2 static endpoints where refactoring phases provide negligible benefit.
+
+### 9. Interview Questions & Answers
+
+#### Q1: Why build all six backend modules before performing cross-cutting refactoring?
+> **Answer:** Building the modules first prevents premature abstraction. In software engineering, abstracting too early based on one or two models often results in the wrong abstractions. Completing all six core domains allows us to identify genuine commonalities (such as pagination, error handling, and transactional patterns) and design clean, unified refactoring solutions in Phase 2.
+
+#### Q2: What is premature abstraction, and why is it dangerous?
+> **Answer:** Premature abstraction occurs when developers create generic base classes or reusable frameworks before understanding the full set of concrete requirements. It leads to overly complex code, leaky abstractions, and excessive indirection that make subsequent features harder to implement.
+
+#### Q3: Why postpone the React frontend to Phase 3 instead of building full-stack slices?
+> **Answer:** Developing full-stack vertical slices while backend schemas are actively evolving leads to frequent frontend rewrites whenever database relationships or API response contracts change. Finalizing and stabilizing the backend first provides reliable, self-documenting REST APIs with Swagger/OpenAPI specifications, enabling rapid and uninterrupted frontend development.
+
+#### Q4: What specific improvements are planned for Phase 2 Backend Refactoring?
+> **Answer:** Phase 2 will eliminate boilerplate duplication across services and routers, implement centralized FastAPI exception handlers for custom domain errors, unify response envelope models, add structured logging, enhance input validation rules, and optimize database query execution plans.
+
+### 10. Future Considerations
+
+- Begin Phase 2 refactoring immediately after Module 6 (Availability) passes all unit and integration validations.
+- Establish automated Pytest test suites during Phase 2 to ensure zero regressions during architectural consolidation.
+- Generate OpenAPI client schemas for TypeScript integration in Phase 3.
