@@ -2,20 +2,20 @@
 
 ## To Do
 
-### Inventory Management (Priority Order)
+### Database Migrations
 
-- [ ] Design the inventory batch and purchase record schema
-- [ ] Implement the Inventory model and Alembic migration
-- [ ] Add inventory batch CRUD service operations
-- [ ] Add stock receipt and adjustment APIs
-- [ ] Add expiry tracking and low-stock validation
-- [ ] Add unit tests for inventory workflows
+- [ ] Execute Alembic migrations on target MySQL database
+
+### Unit Testing
+
+- [ ] Add unit tests for Ingredient CRUD APIs
+- [ ] Add unit tests for MenuItem CRUD APIs
 
 ---
 
 ## In Progress
 
-- [ ] Inventory Management schema and model design
+*No tasks currently in progress.*
 
 ---
 
@@ -47,7 +47,7 @@
 - [x] Verify database connectivity
 - [x] Configure Alembic for database migrations
 
-### Ingredient Management (Completed)
+### Ingredient Management
 
 - [x] Design ingredient database schema
 - [x] Define standardized `Unit` enum (`core/enums.py`)
@@ -55,8 +55,19 @@
 - [x] Decouple domain enums from models to `backend/app/core/enums.py`
 - [x] Generate initial Alembic migration for `ingredients` table
 - [x] Create Ingredient Pydantic schemas (`IngredientCreate`, `IngredientUpdate`, `IngredientResponse`)
-- [x] Implement Ingredient CRUD service operations
-- [x] Implement and register Ingredient API endpoints
-- [x] Add input validation and case-insensitive duplicate name handling
-- [x] Add unit tests for Ingredient CRUD APIs
-- [x] Execute and verify the Alembic migration on the target MySQL database
+- [x] Implement Ingredient CRUD service/repository operations
+- [x] Implement Ingredient API endpoints (`POST`, `GET`, `PUT`, `DELETE` `/ingredients`)
+- [x] Register Ingredient router in `main.py`
+- [x] Add input validation and duplicate name error handling
+
+### Menu Item Management (Product Catalog)
+
+- [x] Design menu items database schema
+- [x] Define standardized `MenuCategory` enum (`core/enums.py`)
+- [x] Implement `MenuItem` SQLAlchemy model (`models/menu_item.py`)
+- [x] Generate Alembic migration for `menu_items` table (`alembic/versions/6319aa944bc3_create_menu_items_table.py`)
+- [x] Create MenuItem Pydantic schemas (`MenuItemBase`, `MenuItemCreate`, `MenuItemUpdate`, `MenuItemResponse`)
+- [x] Implement MenuItem CRUD service layer (`MenuItemService`) with case-insensitive validation and pagination
+- [x] Implement MenuItem API endpoints (`POST`, `GET`, `PUT`, `DELETE` `/menu-items`)
+- [x] Register MenuItem router in `main.py`
+- [x] Validate model constraints, DDL compilation, schema normalization, and CRUD operations

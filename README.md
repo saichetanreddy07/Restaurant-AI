@@ -84,7 +84,7 @@ Future (Optional)
 
 - **Phase 1 (Backend Foundation):** Completed
 - **Phase 2 (Ingredient Management):** Completed
-- **Phase 3 (Inventory Management):** Next milestone
+- **Phase 5 (Menu Management — Catalog):** Completed
 
 ---
 
@@ -95,14 +95,16 @@ restaurant-ai/
 ├── backend/
 │   ├── alembic/
 │   │   ├── versions/
-│   │   │   └── b6446b3796c3_create_ingredients_table.py
+│   │   │   ├── b6446b3796c3_create_ingredients_table.py
+│   │   │   └── 6319aa944bc3_create_menu_items_table.py
 │   │   └── env.py
 │   ├── alembic.ini
 │   └── app/
 │       ├── api/
 │       │   ├── __init__.py
-│   │   ├── health.py
-│   │   └── ingredients.py
+│       │   ├── health.py
+│       │   ├── ingredients.py
+│       │   └── menu_items.py
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── config.py
@@ -112,13 +114,16 @@ restaurant-ai/
 │       │   └── database.py
 │       ├── models/
 │       │   ├── __init__.py
-│       │   └── ingredient.py
+│       │   ├── ingredient.py
+│       │   └── menu_item.py
 │       ├── schemas/
 │       │   ├── __init__.py
-│       │   └── ingredient.py
+│       │   ├── ingredient.py
+│       │   └── menu_item.py
 │       ├── services/
 │       │   ├── __init__.py
-│       │   └── ingredient_service.py
+│       │   ├── ingredient_service.py
+│       │   └── menu_item_service.py
 │       ├── __init__.py
 │       └── main.py
 ├── .env.example
@@ -138,23 +143,31 @@ restaurant-ai/
 - **Health Check API:** Dedicated endpoint validating live MySQL connectivity via `SELECT 1`.
 - **Database Migrations:** Alembic initialized and configured to bind with the existing SQLAlchemy engine and declarative metadata.
 
-### 2. Ingredient Management (Data Model)
+### 2. Ingredient Management
 - **Ingredient Model:** SQLAlchemy 2.x declarative entity mapping the `ingredients` table.
 - **Standardized Units:** Measurement units enforced through a dedicated `Unit` Enum (`KG`, `G`, `L`, `ML`, `PCS`) decoupled into `backend/app/core/enums.py`.
 - **Financial Precision:** Unit costs tracked via `Numeric(10, 2)` mapped to Python `Decimal` to avoid floating-point inaccuracies.
-- **Initial Migration:** Generated initial Alembic migration `b6446b3796c3_create_ingredients_table.py` with indexes, constraints, and audit timestamps.
+- **Pydantic Schemas:** Request and response schemas with input normalization, title casing, and validation.
+- **Service Layer:** `IngredientService` with transactional rollback, case-insensitive uniqueness checks, and pagination.
+- **REST API:** Complete CRUD endpoints under `/ingredients`.
 
-### 3. Ingredient Inventory Module (Completed)
-- **Pydantic v2 Schemas:** Added validated create, update, and response schemas with field constraints, normalization, and SQLAlchemy ORM serialization.
-- **CRUD Service Layer:** Implemented create, read, list, update, and delete operations in `IngredientService`, including pagination and alphabetical ordering.
-- **REST API:** Registered the Ingredient router with dependency-injected database sessions and documented response status codes.
-- **Duplicate Protection:** Ingredient names are normalized and checked case-insensitively before create and update operations.
-- **MySQL Integration:** Connected the model and migration to the configured SQLAlchemy MySQL database.
-- **Validation:** Enforced valid units, non-negative stock and costs, bounded text fields, and normalized optional text values.
+### 3. Menu Item Management (Product Catalog)
+- **Purpose:** Represents the restaurant's commercial product catalog (sellable items like burgers, pizzas, beverages, sides). Decoupled from recipes, inventory stocks, ingredient consumption, and suppliers to maintain clear separation of concerns.
+- **MenuItem Model:** SQLAlchemy 2.0 declarative model mapping the `menu_items` table with `id`, `name`, `category`, `price`, `created_at`, and `updated_at`.
+- **Standardized Categories:** `MenuCategory` enum (`APPETIZER`, `MAIN_COURSE`, `DESSERT`, `BEVERAGE`, `SIDE`) decoupled into `backend/app/core/enums.py`.
+- **Financial Precision:** Selling prices stored as `Numeric(10, 2)` and mapped to Python `Decimal`.
+- **Database Migration:** Generated Alembic migration `6319aa944bc3_create_menu_items_table.py` with primary key, unique index on `name`, enum constraint, and server timestamps.
+- **Pydantic Schemas:** `MenuItemBase`, `MenuItemCreate`, `MenuItemUpdate`, and `MenuItemResponse` with whitespace stripping, `.title()` name normalization, length constraints, and decimal validation.
+- **Service Layer:** `MenuItemService` providing complete CRUD functionality, case-insensitive duplicate name prevention (`func.lower()`), alphabetical ordering, and pagination (`skip`/`limit`).
+- **REST API:** Complete REST endpoints under `/menu-items`.
+- **Testing Completed:** Comprehensive unit verification covering schema validation, in-memory SQLite DDL compilation, case-insensitive duplicate rejection, and CRUD lifecycle operations.
+- **Future Integration with Recipes:** Designed to connect cleanly with the upcoming Recipe Management module (`Recipe` entity linked via foreign key to `MenuItem`), enabling automated ingredient cost rollups, shortage detection, and real-time dish availability calculation.
 
 ---
 
-# Database Schema: `ingredients`
+# Database Schemas
+
+### Table: `ingredients`
 
 | Column | Type | Constraints / Defaults | Description |
 |---|---|---|---|
@@ -169,6 +182,17 @@ restaurant-ai/
 | `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
 | `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
 
+### Table: `menu_items`
+
+| Column | Type | Constraints / Defaults | Description |
+|---|---|---|---|
+| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
+| `name` | `String(100)` | Unique, Indexed, Not Null | Unique name of the sellable menu item |
+| `category` | `Enum(MenuCategory)` | Not Null (`appetizer`, `main_course`, `dessert`, `beverage`, `side`) | Product catalog classification |
+| `price` | `Numeric(10, 2)` | Not Null, Default `0.00` | Retail selling price |
+| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
+| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
+
 ---
 
 # API Endpoints
@@ -177,6 +201,16 @@ restaurant-ai/
 |---|---|---|---|
 | `GET` | `/` | Application welcome message | `200 OK` |
 | `GET` | `/health` | Database connectivity health check | `200 OK` / `503 Service Unavailable` |
+| `POST` | `/ingredients/` | Create a new ingredient | `201 Created` / `409 Conflict` |
+| `GET` | `/ingredients/` | Retrieve all ingredients (paginated) | `200 OK` |
+| `GET` | `/ingredients/{id}` | Retrieve single ingredient by ID | `200 OK` / `404 Not Found` |
+| `PUT` | `/ingredients/{id}` | Update ingredient fields | `200 OK` / `404 Not Found` / `409 Conflict` |
+| `DELETE` | `/ingredients/{id}` | Delete ingredient by ID | `200 OK` / `404 Not Found` |
+| `POST` | `/menu-items/` | Create a new menu item | `201 Created` / `409 Conflict` |
+| `GET` | `/menu-items/` | Retrieve all menu items (paginated) | `200 OK` |
+| `GET` | `/menu-items/{id}` | Retrieve single menu item by ID | `200 OK` / `404 Not Found` |
+| `PUT` | `/menu-items/{id}` | Update menu item fields | `200 OK` / `404 Not Found` / `409 Conflict` |
+| `DELETE` | `/menu-items/{id}` | Delete menu item by ID | `200 OK` / `404 Not Found` |
 | `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
 | `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
 | `POST` | `/ingredients/` | Create an ingredient | `201 Created` / `409 Conflict` |

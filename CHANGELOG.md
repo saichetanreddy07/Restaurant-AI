@@ -120,3 +120,19 @@
   - Updated model imports in `backend/app/models/ingredient.py` to import from `app.core.enums`.
   - Exported `Unit` in `backend/app/core/__init__.py` to provide a clean package interface.
   - Eliminated circular dependency risks between models and upcoming schema validation layers.
+
+---
+
+## 2026-09-17 — Menu Item Module
+
+- **Feature completed:** Menu Item Product Catalog (Model, Migration, Schemas, Service & API)
+
+- **Summary of changes:**
+
+  - Defined the `MenuCategory` string enum (`APPETIZER`, `MAIN_COURSE`, `DESSERT`, `BEVERAGE`, `SIDE`) in `backend/app/core/enums.py`.
+  - Implemented the `MenuItem` SQLAlchemy model in `backend/app/models/menu_item.py` mapping the `menu_items` table with `name` (unique, indexed), `category`, `price` (`Numeric(10, 2)`), and server-side audit timestamps.
+  - Generated and validated Alembic migration `6319aa944bc3_create_menu_items_table.py` using autogenerate against the live MySQL schema.
+  - Created Pydantic validation schemas (`MenuItemBase`, `MenuItemCreate`, `MenuItemUpdate`, `MenuItemResponse`) with whitespace trimming, `.title()` name normalization, length constraints, and decimal precision enforcement.
+  - Implemented `MenuItemService` in `backend/app/services/menu_item_service.py` with case-insensitive duplicate validation, pagination (`skip`/`limit`), transactional error handling, and complete CRUD methods.
+  - Implemented the FastAPI router in `backend/app/api/menu_items.py` with dependency injection (`get_db`) and registered the router at `/menu-items` in `main.py`.
+  - Verified full test coverage including schema validation, database DDL creation, and service-layer CRUD operations.

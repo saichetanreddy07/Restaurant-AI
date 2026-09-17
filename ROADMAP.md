@@ -38,7 +38,7 @@
 
 ---
 
-## Phase 3 — Inventory Management
+## Phase 3 — Inventory Management (Active)
 
 **Next recommended milestone:** Build inventory batch tracking so stock can be received, adjusted, and monitored by expiry date.
 
@@ -66,10 +66,11 @@
 
 ## Phase 5 — Menu Management
 
-- [ ] Menu model
+- [x] Menu item model (`MenuItem`)
+- [x] Menu item CRUD APIs
 - [ ] Link recipes
 - [ ] Availability calculation
-- [ ] CRUD APIs
+
 
 ---
 

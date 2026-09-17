@@ -638,64 +638,95 @@ A proper ingredient model must satisfy several business and architectural requir
 
 ---
 
-## Decision 006: Use a Service Layer for Ingredient CRUD
+## Decision 006: Menu Item Commercial Catalog Architecture and Separation from Recipes & Inventory
 
 ### 1. Decision
 
-Keep Ingredient CRUD and business rules in `IngredientService`, separate from FastAPI route handlers.
+Design the **`MenuItem`** entity strictly as the restaurant's commercial product catalog (storing `id`, `name`, `category`, `price`, and audit timestamps), while deliberately decoupling it from recipe compositions, ingredient usage, inventory levels, supplier tracking, and real-time stock availability.
 
 ### 2. Context
 
-Ingredient endpoints need database access, duplicate detection, pagination, transaction handling, and not-found behavior. Embedding those concerns in route functions would make the API layer harder to test and maintain as inventory and recipe features are added.
+In restaurant operations, there is a fundamental distinction between three core concepts:
+1. **Commercial Offering (Menu Item):** What the customer sees, orders, and pays for (e.g., "Chicken Burger", "Coke", "Margherita Pizza").
+2. **Culinary Composition (Recipe):** How the kitchen prepares that item, including ingredient ratios, preparation steps, and yields.
+3. **Physical Supply (Ingredients & Inventory):** The raw bulk commodities stocked, tracked for expiration, and purchased from suppliers (e.g., buns, chicken patties, flour, cheese).
 
-### 3. Rationale
+Coupling menu items directly with recipe details or raw inventory creates rigid schemas that cannot handle real-world restaurant requirements, such as items with no culinary recipe (e.g., canned soda), seasonal recipe alterations, portion variations, or dish availability calculations based on real-time multi-ingredient inventory balances.
 
-The service layer keeps route handlers focused on HTTP input and output while centralizing domain operations and transaction boundaries. It also provides a reusable seam for unit tests and future callers that do not use HTTP.
+### 3. Why this approach?
 
----
+- **Single Responsibility Principle:** The `MenuItem` model manages only the commercial product definition (name, category, selling price).
+- **Separation of Concerns:** Operational concerns (recipe ingredients, inventory batch consumption, preparation costs) belong in distinct, specialized modules that integrate with `MenuItem` rather than polluting its core schema.
+- **Decoupled `MenuCategory` Enum:** Categorization is standardized through `MenuCategory(str, Enum)` defined in `backend/app/core/enums.py` (`APPETIZER`, `MAIN_COURSE`, `DESSERT`, `BEVERAGE`, `SIDE`), preventing circular dependencies across schema and persistence layers.
+- **Financial Precision:** Menu prices use SQLAlchemy `Numeric(10, 2)` and Python's `Decimal` type to eliminate binary floating-point rounding errors during customer billing and financial accounting.
+- **Indexed Unique Name:** `name` has `unique=True` and `index=True` (`String(100)`), preventing duplicate menu items and speeding up catalog lookups.
+- **Case-Insensitive Duplicate Protection:** The service layer enforces `func.lower(MenuItem.name)` checks on creation and update, preventing duplicate records due to capitalization variants (e.g., "Coke" vs "coke").
+- **Server-Managed Audit Timestamps:** `created_at` and `updated_at` use `server_default=func.now()` and `onupdate=func.now()` for reliable auditability.
 
-## Decision 007: Use Pydantic v2 at the API Boundary
+### 4. Alternatives Considered
 
-### 1. Decision
+- **Monolithic Menu Model with Embedded Recipe:** Embedding ingredient lists or recipe steps directly within the `menu_items` table (e.g., as JSON columns or foreign keys to ingredients).
+- **Unified Product/Inventory Table:** Combining raw ingredients and sellable dishes into a single generic "products" or "items" table with a type flag.
+- **Free-Form Category Strings (`String(50)`):** Allowing arbitrary strings for menu categories.
+- **`Float` Data Type for Price:** Storing prices as floating-point numbers.
 
-Use Pydantic v2 schemas for Ingredient request validation and response serialization.
+### 5. Why Alternatives Were Not Chosen
 
-### 2. Rationale
+- **Embedded Recipe in Menu Item:** Violates database normalization, prevents recipe reusability (e.g., using the same pizza sauce recipe across multiple pizzas), and makes it impossible to model retail items like canned sodas that require no recipe preparation.
+- **Unified Items Table:** Mixes distinct business lifecycles and attributes. Raw ingredients require reorder points, units of measure, bulk purchase costs, and supplier info. Menu items require selling prices, categories, and customer-facing names. Combining them results in sparsely populated tables full of nullable columns.
+- **Free-Form Category Strings:** Leads to fragmented data, typos, and broken UI menu filtering (e.g., "Mains", "main course", "MainCourse").
+- **`Float` for Price:** Binary floating-point representation causes compounding decimal inaccuracies (e.g., `0.1 + 0.2 != 0.3`), which is unacceptable in point-of-sale and financial reporting systems.
 
-`IngredientCreate`, `IngredientUpdate`, and `IngredientResponse` provide typed API contracts, enforce bounds and enum values before persistence, normalize names and optional text, and use `from_attributes` for safe serialization from SQLAlchemy ORM objects.
+### 6. Benefits
 
----
+- Clean, modular domain architecture that mirrors professional restaurant POS/ERP systems.
+- High flexibility: items without recipes (e.g., retail drinks) and items with complex multi-step recipes fit seamlessly into the same catalog.
+- Type safety and automated documentation across FastAPI Swagger/OpenAPI docs via Pydantic v2 schemas and string enums.
+- Exact penny precision in financial calculations.
+- Clean foundation for future integration with the Recipe Management module.
 
-## Decision 008: Use Dependency Injection for Database Sessions
+### 7. Limitations
 
-### 1. Decision
+- Computing whether a menu item is currently "In Stock" or "Available to Order" cannot be answered by querying `menu_items` alone; it requires joining through recipes to inspect ingredient stock levels.
+- Modifying menu category enum values requires an Alembic database migration.
 
-Inject a request-scoped SQLAlchemy `Session` through FastAPI's `Depends(get_db)` mechanism.
+### 8. When This Decision May Not Be Appropriate
 
-### 2. Rationale
+- Simple retail stores where every item sold is purchased and stocked as an identical discrete unit without any culinary assembly or recipe transformation.
+- Dynamically nested menu hierarchies with arbitrary user-defined category trees (which would require an adjacency-list or closure-table category entity).
 
-Dependency injection keeps session lifecycle management out of endpoint code, guarantees cleanup through the existing generator dependency, and makes route and service tests easier to isolate with replacement session providers.
+### 9. Interview Questions & Answers
 
----
+#### Q1: Why is MenuItem separate from Recipe in the database design?
+> **Answer:** In a restaurant, a menu item is a commercial product sold to customers for a price, whereas a recipe is the kitchen formula detailing how to prepare a dish from raw ingredients. Decoupling them allows retail items (like bottled sodas) to exist without recipes, allows recipes to be updated or substituted without altering the customer-facing menu item ID, and follows the Single Responsibility Principle.
 
-## Decision 009: Use Case-Insensitive Duplicate Checks and Internal IDs
+#### Q2: Why is the price column stored as `Numeric(10, 2)` instead of `Float`?
+> **Answer:** `Float` uses IEEE 754 floating-point arithmetic, which cannot precisely represent many decimal fractions in base-2, causing rounding errors in financial totals. `Numeric(10, 2)` maps directly to fixed-point arithmetic and Python's `Decimal` class, guaranteeing penny-accurate calculations for tax, discounts, and sales reporting.
 
-### 1. Decision
+#### Q3: Why is `MenuCategory` defined in `app/core/enums.py` instead of inside `app/models/menu_item.py`?
+> **Answer:** Domain enums represent fundamental value types shared across multiple application layers, including Pydantic request validation schemas (`schemas/`), database persistence models (`models/`), and business services (`services/`). Placing enums in `core/enums.py` prevents circular imports and adheres to layered architecture principles.
 
-Normalize ingredient names for display, check duplicates case-insensitively in the service layer, and use the database-generated integer ID for internal resource identity.
+#### Q4: How does the system prevent duplicate menu items with different casing?
+> **Answer:** In addition to the unique B-tree index on the database `name` column, the service layer queries `func.lower(MenuItem.name) == input_name.lower()` before inserting or updating. This catches duplicates like "coke" and "Coke" and raises a clean `HTTP 409 Conflict` before the database integrity constraint is violated.
 
-### 2. Rationale
+#### Q5: How will MenuItem integrate with the upcoming Recipe Management module?
+> **Answer:** In Phase 4 (Recipe Management), a `Recipe` entity will link to `MenuItem` via a one-to-one or many-to-one foreign key relationship (`recipe.menu_item_id`). The recipe will contain `RecipeIngredient` association rows linking required ingredient quantities. When determining if a menu item can be prepared, the engine will query the linked recipe, check available stock for all required ingredients, and compute maximum preparation quantities.
 
-Users search for ingredients by familiar names in the UI, so trimming and title-casing improves consistency while case-insensitive checks prevent records such as `Tomato` and `tomato` from being created separately. Names remain user-facing labels and may change; stable IDs are therefore used internally for URL paths, updates, deletes, relationships, and database joins.
+### 10. Future Considerations
 
----
+- Link `MenuItem` to `Recipe` through a foreign key relationship (`recipe.menu_item_id`).
+- Add a dynamic availability calculation service that computes real-time dish availability from recipe ingredient quantities and current stock.
+- Implement an image URL or display order field for frontend digital menu rendering.
 
-## Decision 010: Manage Ingredient Schema Changes with Alembic
+### 11. What We Implemented
 
-### 1. Decision
-
-Represent the Ingredient schema change as a versioned Alembic migration and apply it to the configured MySQL database.
-
-### 2. Rationale
-
-Versioned migrations make the `ingredients` table reproducible across environments, preserve upgrade and downgrade paths, and keep database structure changes synchronized with the SQLAlchemy model.
+- Created [`backend/app/core/enums.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/enums.py) with the [`MenuCategory`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/enums.py#L12) enum (`APPETIZER`, `MAIN_COURSE`, `DESSERT`, `BEVERAGE`, `SIDE`).
+- Created [`backend/app/models/menu_item.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/menu_item.py) with all 6 attributes mapped using SQLAlchemy 2.0 `Mapped` and `mapped_column()`.
+- Exported [`MenuItem`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/menu_item.py#L17) via [`backend/app/models/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/models/__init__.py).
+- Exported [`MenuCategory`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/enums.py#L12) via [`backend/app/core/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/core/__init__.py).
+- Generated Alembic migration [`backend/alembic/versions/6319aa944bc3_create_menu_items_table.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/alembic/versions/6319aa944bc3_create_menu_items_table.py).
+- Created Pydantic schemas in [`backend/app/schemas/menu_item.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/schemas/menu_item.py) (`MenuItemBase`, `MenuItemCreate`, `MenuItemUpdate`, `MenuItemResponse`).
+- Exported schemas via [`backend/app/schemas/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/schemas/__init__.py).
+- Created [`backend/app/services/menu_item_service.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/services/menu_item_service.py) with complete CRUD, pagination, and case-insensitive validation.
+- Exported service via [`backend/app/services/__init__.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/services/__init__.py).
+- Created API router in [`backend/app/api/menu_items.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/api/menu_items.py) and registered it at `/menu-items` in [`backend/app/main.py`](file:///c:/Users/badve/OneDrive/Desktop/Work/restaurant-ai/backend/app/main.py).
