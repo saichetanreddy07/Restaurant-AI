@@ -3,11 +3,11 @@
 ## Overall Progress Summary
 
 - **Current Phase:** Phase 1 — Backend Core Modules (In Progress)
-- **Phase 1 Progress:** 2 of 6 modules completed (33.3%)
+- **Phase 1 Progress:** 3 of 6 modules completed (50.0%)
   - Module 1: Ingredients ✅ Completed & Tested
   - Module 2: Menu Items ✅ Completed & Tested
-  - Module 3: Recipes ⏳ Next Active Milestone
-  - Module 4: Recipe Ingredients 📋 Planned
+  - Module 3: Recipes ✅ Completed & Tested
+  - Module 4: Recipe Ingredients ⏳ Next Active Milestone
   - Module 5: Inventory 📋 Planned
   - Module 6: Availability 📋 Planned
 - **Phase 2 (Backend Refactoring):** 📋 Planned (triggered after all 6 backend modules are completed)
@@ -47,17 +47,17 @@ We are intentionally completing the backend one domain module at a time. Each mo
 - [x] Validation, price precision, and case-insensitive duplicate checking
 - [x] Tested successfully
 
-### Module 3: Recipes (Active / Next Milestone ⏳)
-- [ ] Design recipe database schema (`recipes` table)
-- [ ] Implement `Recipe` SQLAlchemy model (linked to `menu_items`)
-- [ ] Generate Alembic migration for `recipes` table
-- [ ] Create Pydantic schemas (`RecipeCreate`, `RecipeUpdate`, `RecipeResponse`)
-- [ ] Implement `RecipeService` CRUD operations with pagination
-- [ ] Implement Recipe REST API endpoints (`/recipes`)
-- [ ] Validation, preparation time, and yield management
-- [ ] Unit and integration testing
+### Module 3: Recipes (Completed ✅)
+- [x] Design recipe database schema (`recipes` table with 1:1 `menu_item_id` foreign key)
+- [x] Implement `Recipe` SQLAlchemy model (linked to `menu_items` with cascading delete and `passive_deletes=True`)
+- [x] Generate Alembic migration for `recipes` table (`alembic/versions/d8e009624a08_create_recipes_table.py`)
+- [x] Create Pydantic schemas (`RecipeBase`, `RecipeCreate`, `RecipeUpdate`, `RecipeResponse`)
+- [x] Implement `RecipeService` CRUD operations with pagination, duplicate protection, and 1:1 validation
+- [x] Implement Recipe REST API endpoints (`/recipes`)
+- [x] Input validation, title casing, and error response handling
+- [x] Comprehensive testing completed successfully (21/21 scenarios passed)
 
-### Module 4: Recipe Ingredients (Planned 📋)
+### Module 4: Recipe Ingredients (Active / Next Milestone ⏳)
 - [ ] Design recipe-ingredient relationship schema (`recipe_ingredients` table)
 - [ ] Implement `RecipeIngredient` association model (linking `Recipe` and `Ingredient`)
 - [ ] Generate Alembic migration for `recipe_ingredients` table

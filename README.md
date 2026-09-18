@@ -2,7 +2,7 @@
 
 A production-inspired Restaurant Operations Management System built to learn and demonstrate modern backend and full-stack development.
 
-> **Status:** 🚧 Under Development — Phase 1: Backend Core Modules (2 of 6 Completed)
+> **Status:** 🚧 Under Development — Phase 1: Backend Core Modules (3 of 6 Completed)
 
 ---
 
@@ -44,8 +44,8 @@ RestaurantAI aims to solve these problems through a centralized inventory and re
 
 - Ingredient Management (Completed ✅)
 - Menu Item Management (Completed ✅)
-- Recipe Management (Active ⏳)
-- Recipe Ingredients Management
+- Recipe Management (Completed ✅)
+- Recipe Ingredients Management (Next Active ⏳)
 - Inventory Batch & Stock Management
 - Real-Time Dish Availability Engine
 - Production Simulation (Post-MVP)
@@ -87,12 +87,12 @@ Future Scope (Optional)
 
 We are building the backend core one module at a time. After all six core modules are finished, we will execute a dedicated refactoring phase across the entire backend before starting the React frontend.
 
-- **Phase 1 (Backend Core Modules):** In Progress (2 of 6 modules completed — 33.3%)
+- **Phase 1 (Backend Core Modules):** In Progress (3 of 6 modules completed — 50.0%)
   - Backend Foundation: Completed
   - Module 1: Ingredients: Completed ✅
   - Module 2: Menu Items: Completed ✅
-  - Module 3: Recipes: Next Active Milestone ⏳
-  - Module 4: Recipe Ingredients: Planned 📋
+  - Module 3: Recipes: Completed ✅
+  - Module 4: Recipe Ingredients: Next Active Milestone ⏳
   - Module 5: Inventory: Planned 📋
   - Module 6: Availability: Planned 📋
 - **Phase 2 (Backend Refactoring):** Planned 📋 *(Triggered after all 6 core modules complete — deduplication, architecture, centralized error handling, validations, query optimization, logging)*
@@ -109,7 +109,8 @@ restaurant-ai/
 │   ├── alembic/
 │   │   ├── versions/
 │   │   │   ├── b6446b3796c3_create_ingredients_table.py
-│   │   │   └── 6319aa944bc3_create_menu_items_table.py
+│   │   │   ├── 6319aa944bc3_create_menu_items_table.py
+│   │   │   └── d8e009624a08_create_recipes_table.py
 │   │   └── env.py
 │   ├── alembic.ini
 │   └── app/
@@ -117,7 +118,8 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── health.py
 │       │   ├── ingredients.py
-│       │   └── menu_items.py
+│       │   ├── menu_items.py
+│       │   └── recipes.py
 │       ├── core/
 │       │   ├── __init__.py
 │       │   ├── config.py
@@ -128,15 +130,18 @@ restaurant-ai/
 │       ├── models/
 │       │   ├── __init__.py
 │       │   ├── ingredient.py
-│       │   └── menu_item.py
+│       │   ├── menu_item.py
+│       │   └── recipe.py
 │       ├── schemas/
 │       │   ├── __init__.py
 │       │   ├── ingredient.py
-│       │   └── menu_item.py
+│       │   ├── menu_item.py
+│       │   └── recipe.py
 │       ├── services/
 │       │   ├── __init__.py
 │       │   ├── ingredient_service.py
-│       │   └── menu_item_service.py
+│       │   ├── menu_item_service.py
+│       │   └── recipe_service.py
 │       ├── __init__.py
 │       └── main.py
 ├── .env.example
@@ -175,7 +180,16 @@ restaurant-ai/
 - **Service Layer:** `MenuItemService` providing complete CRUD functionality, case-insensitive duplicate name prevention (`func.lower()`), alphabetical ordering, and pagination (`skip`/`limit`).
 - **REST API:** Complete REST endpoints under `/menu-items`.
 - **Testing Completed:** Comprehensive unit verification covering schema validation, in-memory SQLite DDL compilation, case-insensitive duplicate rejection, and CRUD lifecycle operations.
-- **Future Integration with Recipes:** Designed to connect cleanly with the upcoming Recipe Management module (`Recipe` entity linked via foreign key to `MenuItem`), enabling automated ingredient cost rollups, shortage detection, and real-time dish availability calculation.
+- **Integration with Recipes:** Designed to connect cleanly with the Recipe Management module (`Recipe` entity linked via 1:1 foreign key to `MenuItem`), enabling automated ingredient cost rollups, shortage detection, and real-time dish availability calculation.
+
+### 4. Phase 1 — Module 3: Recipes (Completed & Tested)
+- **Purpose:** Connects a commercial `MenuItem` with its culinary formula via a strict 1-to-1 relationship.
+- **Recipe Model:** SQLAlchemy 2.0 declarative model mapping `recipes` table with `id`, `name` (unique, indexed), `menu_item_id` (unique foreign key -> `menu_items.id` with `ON DELETE CASCADE`), `created_at`, and `updated_at`. Configured with `menu_item` ORM relationship using `passive_deletes=True`.
+- **Database Migration:** Generated and applied Alembic migration `d8e009624a08_create_recipes_table.py` configuring foreign key cascade, unique name index, and unique constraint on `menu_item_id`.
+- **Pydantic Schemas:** `RecipeBase`, `RecipeCreate`, `RecipeUpdate`, and `RecipeResponse` with whitespace stripping, `.title()` name normalization, positive integer constraints (`gt=0`), and ORM serialization.
+- **Service Layer:** `RecipeService` providing full CRUD operations, pagination (`skip`/`limit`), parent `MenuItem` existence checks (HTTP 404), case-insensitive duplicate name protection (HTTP 409), and 1-to-1 menu item assignment validation (HTTP 409).
+- **REST API:** Complete REST endpoints under `/recipes`.
+- **Testing Completed:** Verified across 21 test scenarios covering validation, database cascades, duplicate rejections, pagination, and OpenAPI specifications with 100% pass rate.
 
 ---
 
@@ -207,6 +221,16 @@ restaurant-ai/
 | `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
 | `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
 
+### Table: `recipes`
+
+| Column | Type | Constraints / Defaults | Description |
+|---|---|---|---|
+| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
+| `name` | `String(100)` | Unique, Indexed, Not Null | Unique name of the recipe |
+| `menu_item_id` | `Integer` | Foreign Key -> `menu_items.id`, Unique, Not Null, On Delete `CASCADE` | 1-to-1 reference to associated menu item |
+| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
+| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
+
 ---
 
 # API Endpoints
@@ -225,6 +249,11 @@ restaurant-ai/
 | `GET` | `/menu-items/{id}` | Retrieve single menu item by ID | `200 OK` / `404 Not Found` |
 | `PUT` | `/menu-items/{id}` | Update menu item fields | `200 OK` / `404 Not Found` / `409 Conflict` |
 | `DELETE` | `/menu-items/{id}` | Delete menu item by ID | `200 OK` / `404 Not Found` |
+| `POST` | `/recipes/` | Create a new recipe | `201 Created` / `404 Not Found` / `409 Conflict` |
+| `GET` | `/recipes/` | Retrieve all recipes (paginated) | `200 OK` |
+| `GET` | `/recipes/{id}` | Retrieve single recipe by ID | `200 OK` / `404 Not Found` |
+| `PUT` | `/recipes/{id}` | Update recipe fields | `200 OK` / `404 Not Found` / `409 Conflict` |
+| `DELETE` | `/recipes/{id}` | Delete recipe by ID | `200 OK` / `404 Not Found` |
 | `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
 | `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
 

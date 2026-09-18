@@ -92,6 +92,9 @@ ENGINEERING_DECISIONS.md
 - Define shared domain enums in `backend/app/core/` so schemas and ORM models can reuse them without circular dependencies.
 - Use Pydantic schemas at API boundaries and keep ORM models responsible for database persistence.
 - Review and apply an Alembic migration for every database schema change; do not rely on `Base.metadata.create_all()` for schema evolution.
+- Ensure every newly created SQLAlchemy model is explicitly imported and exposed in `backend/app/models/__init__.py` to guarantee cataloging in `Base.metadata` for Alembic autogeneration and relational mapper configuration.
+- Model one-to-one entity relationships with a `unique=True` constraint on the foreign key column, configuring database-level `ON DELETE CASCADE` paired with ORM `passive_deletes=True`.
+- Validate foreign key references in the service layer before insert and update operations, returning an explicit `HTTP 404 Not Found` if the referenced entity does not exist.
 - Normalize user-facing text before persistence and perform case-insensitive duplicate checks for unique names.
 
 ---

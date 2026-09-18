@@ -150,3 +150,19 @@
   - Formulated the Phase 2 backend refactoring scope (code deduplication, architectural improvements, centralized error handling, enhanced validation, service optimization) to be executed upon completion of all six backend modules prior to frontend commencement.
   - Added Engineering Decision 007 documenting the sequential module delivery and dedicated refactoring phase architecture.
   - Synchronized status, progress metrics, and TODO items across all Markdown documentation files.
+
+---
+
+## 2026-09-18 — Recipe Management Module
+
+- **Feature completed:** Recipe Management Module (Model, Migration, Schemas, Service & API)
+
+- **Summary of changes:**
+
+  - Implemented the `Recipe` SQLAlchemy model in `backend/app/models/recipe.py` mapping the `recipes` table with `id`, `name` (unique, indexed), `menu_item_id` (unique foreign key referencing `menu_items.id` with `ON DELETE CASCADE`), audit timestamps, and ORM relationship to `MenuItem` configured with `passive_deletes=True`.
+  - Exported `Recipe` in `backend/app/models/__init__.py`.
+  - Generated and applied Alembic migration `d8e009624a08_create_recipes_table.py` establishing the `recipes` table, unique index on `name`, unique constraint on `menu_item_id`, and foreign key cascade constraint on MySQL.
+  - Created Pydantic v2 schemas in `backend/app/schemas/recipe.py` (`RecipeBase`, `RecipeCreate`, `RecipeUpdate`, `RecipeResponse`) featuring whitespace trimming, Title Case name formatting, field length validation, positive ID enforcement (`gt=0`), and ORM serialization via `model_config = ConfigDict(from_attributes=True)`.
+  - Implemented `RecipeService` in `backend/app/services/recipe_service.py` with transactional rollback, alphabetical ordering, pagination (`skip`/`limit`), parent `MenuItem` existence validation (HTTP 404), case-insensitive duplicate name protection (HTTP 409), and 1:1 recipe-to-menu-item assignment validation (HTTP 409).
+  - Implemented the FastAPI router in `backend/app/api/recipes.py` with dependency injection (`get_db`), query parameter validation (`skip >= 0`, `1 <= limit <= 500`), and registered the router at `/recipes` in `backend/app/main.py`.
+  - Conducted comprehensive testing across 21 distinct scenarios (CREATE, READ, UPDATE, DELETE, pagination, constraint violations, and OpenAPI schema) verifying 100% test success rate against live MySQL storage.

@@ -4,16 +4,6 @@
 
 ### Phase 1 — Backend Core Modules (Sequential Delivery)
 
-#### Module 3: Recipe Management
-- [ ] Design recipe database schema (`recipes` table)
-- [ ] Implement `Recipe` SQLAlchemy model (linked to `menu_items`)
-- [ ] Generate Alembic migration for `recipes` table
-- [ ] Create Pydantic validation schemas (`RecipeCreate`, `RecipeUpdate`, `RecipeResponse`)
-- [ ] Implement `RecipeService` CRUD operations with validation and pagination
-- [ ] Implement Recipe API router (`/recipes`)
-- [ ] Register Recipe router in `main.py`
-- [ ] Test Recipe CRUD operations & constraints
-
 #### Module 4: Recipe Ingredients
 - [ ] Design recipe-ingredient relationship schema (`recipe_ingredients` table)
 - [ ] Implement `RecipeIngredient` SQLAlchemy model (linking `Recipe` and `Ingredient` with required quantity and unit)
@@ -79,7 +69,7 @@
 
 ## In Progress
 
-- [ ] Phase 1 — Module 3: Recipe Management (Planning schema design and relationships)
+- [ ] Phase 1 — Module 4: Recipe Ingredients (Designing recipe-ingredient association schema and unit compatibility)
 
 ---
 
@@ -136,3 +126,15 @@
 - [x] Implement MenuItem API endpoints (`POST`, `GET`, `PUT`, `DELETE` `/menu-items`)
 - [x] Register MenuItem router in `main.py`
 - [x] Unit and integration testing completed successfully (constraints, DDL compilation, schema normalization, CRUD operations)
+
+### Phase 1 — Module 3: Recipe Management (Completed & Tested)
+
+- [x] Design recipe database schema (`recipes` table with 1:1 `menu_item_id` foreign key)
+- [x] Implement `Recipe` SQLAlchemy model (`models/recipe.py`) with cascading delete and `passive_deletes=True`
+- [x] Generate Alembic migration for `recipes` table (`alembic/versions/d8e009624a08_create_recipes_table.py`)
+- [x] Create Recipe Pydantic schemas (`RecipeBase`, `RecipeCreate`, `RecipeUpdate`, `RecipeResponse`)
+- [x] Implement Recipe CRUD service layer (`RecipeService`) with case-insensitive uniqueness, 1:1 validation, and pagination
+- [x] Implement Recipe API router (`POST`, `GET`, `PUT`, `DELETE` `/recipes`)
+- [x] Register Recipe router in `main.py`
+- [x] Comprehensive testing completed successfully (21/21 scenarios passed across CRUD, pagination, error handling, and OpenAPI)
+

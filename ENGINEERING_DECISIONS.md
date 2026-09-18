@@ -811,3 +811,93 @@ To maintain engineering clarity, learn domain requirements organically, and prev
 - Begin Phase 2 refactoring immediately after Module 6 (Availability) passes all unit and integration validations.
 - Establish automated Pytest test suites during Phase 2 to ensure zero regressions during architectural consolidation.
 - Generate OpenAPI client schemas for TypeScript integration in Phase 3.
+
+---
+
+## Decision 008: One Recipe per Menu Item Architecture with Database-Level Cascading Deletions and Service-Layer Uniqueness Validation
+
+### 1. Decision
+
+Design the **`Recipe`** entity with a strict **one-to-one (1:1)** relationship to [`MenuItem`](backend/app/models/menu_item.py) via a unique foreign key constraint (`menu_item_id`, `unique=True`), configure database-level cascading deletion (`ON DELETE CASCADE`) paired with SQLAlchemy's `passive_deletes=True`, and enforce multi-stage business validations (parent existence, case-insensitive recipe name uniqueness, and 1:1 constraint verification) inside [`RecipeService`](backend/app/services/recipe_service.py).
+
+### 2. Context
+
+With [`Ingredient`](backend/app/models/ingredient.py) (Module 1) and [`MenuItem`](backend/app/models/menu_item.py) (Module 2) established, the Recipe module bridges commercial products and culinary execution. A recipe specifies the assembly formula and ingredient composition required to prepare a sellable menu item.
+
+Key design requirements and operational constraints needed to be addressed:
+- **Relational Cardinality:** Should a menu item have multiple recipes, or should each menu item have exactly one primary recipe?
+- **Lifecycle Dependency & Referential Integrity:** If a menu item is permanently retired and deleted from the catalog, what should happen to its linked culinary recipe?
+- **Validation Sequencing & Error Consistency:** When creating or updating a recipe, how should foreign key existence, name uniqueness, and duplicate assignment conflicts be detected and reported to API consumers?
+- **Text Normalization:** Ensuring user input strings are consistently formatted and cleaned before storage and duplicate comparisons.
+
+### 3. Why this approach?
+
+- **Strict 1:1 Mapping (`menu_item_id` unique constraint):** Enforcing `unique=True` on `menu_item_id` at both the database level (unique B-Tree index) and the service layer ensures that a menu item maps to at most one recipe. This drastically simplifies subsequent modules (Phase 1 Module 4: Recipe Ingredients and Module 6: Availability Engine), as dish preparation and inventory availability calculations can deterministically resolve a single recipe per dish without ambiguous recipe selection logic.
+- **Database-Level `ON DELETE CASCADE`:** Configuring `ForeignKey("menu_items.id", ondelete="CASCADE")` instructs the MySQL storage engine to automatically purge the child `recipes` record whenever the parent `menu_items` record is deleted. This guarantees referential integrity at the database level and eliminates orphaned recipe records even if deletions occur outside the application ORM.
+- **ORM `passive_deletes=True`:** Instructs SQLAlchemy that cascading deletions are handled natively by the database foreign key constraint. This prevents SQLAlchemy from issuing unnecessary `UPDATE ... SET menu_item_id = NULL` queries or emitting individual `DELETE` statements for child rows when a parent `MenuItem` is deleted in a session.
+- **Comprehensive Service-Layer Validation:** Rather than allowing raw database constraint violations to trigger unhandled `500 Internal Server Error` or generic database driver exceptions, `RecipeService` executes explicit, sequenced checks:
+  1. *Parent Existence Check:* Validates that `menu_item_id` exists in `menu_items`; raises `HTTP 404 Not Found` if missing.
+  2. *Recipe Name Uniqueness:* Performs case-insensitive matching (`func.lower(Recipe.name) == input_name.lower()`); raises `HTTP 409 Conflict` on duplicates.
+  3. *1:1 Relationship Protection:* Checks if another recipe already references `menu_item_id`; raises `HTTP 409 Conflict` if occupied.
+- **Pydantic v2 Normalization:** Request schemas (`RecipeBase`, `RecipeUpdate`) trim whitespace (`.strip()`), reject empty/whitespace-only strings, and normalize names to Title Case (`.title()`), ensuring consistent data presentation and matching behavior.
+
+### 4. Alternatives Considered
+
+- **One-to-Many (1:N) Relationship (Multiple Recipes per Menu Item):** Allowing multiple versioned or seasonal recipes per menu item with an `is_active` flag.
+- **Application-Level Cascading (`cascade="all, delete-orphan"` without DB `ON DELETE CASCADE`):** Relying solely on SQLAlchemy session tracking to delete children without database foreign key cascade constraints.
+- **Soft Deletion (`is_deleted` flag):** Marking records inactive rather than deleting rows from the database.
+- **Deferred Database Error Handling:** Letting database integrity errors occur and catching `IntegrityError` in the service to determine the response.
+
+### 5. Why Alternatives Were Not Chosen
+
+- **One-to-Many Recipes:** Adds unnecessary complexity for a restaurant MVP. Supporting multiple recipes requires recipe activation workflows, versioning, and complex selection heuristics during inventory availability checks. A 1:1 relationship satisfies standard restaurant operations where each menu offering has one standardized kitchen spec.
+- **Application-Level Only Cascading:** If a record is deleted through direct SQL scripts, database administration tools, or bulk delete queries (`Query.delete()`), SQLAlchemy session cascades are bypassed, creating orphaned records and violating relational integrity.
+- **Soft Deletion:** Soft deletes complicate uniqueness constraints (e.g., creating a new recipe with the same name as a soft-deleted one requires partial indexing or composite uniqueness rules) and add query-filtering boilerplate across all endpoints.
+- **Catching Database `IntegrityError`:** Parsing database error strings (e.g., MySQL error 1062 vs 1452) is brittle, database-driver specific, and produces poor developer ergonomics. Pre-checking conditions explicitly in the service layer returns clear, domain-specific HTTP 404 and 409 messages.
+
+### 6. Benefits
+
+- Guaranteed data integrity at both application and MySQL database storage levels.
+- Predictable 1:1 relational model that streamlines inventory consumption and availability calculations.
+- Clean, informative HTTP error contracts (`404` for missing parents/records, `409` for naming and relationship conflicts, `422` for schema violations).
+- Elimination of orphaned recipe records upon menu item deletion.
+- Efficient database session operations via `passive_deletes=True`.
+
+### 7. Limitations
+
+- A menu item cannot support multiple simultaneous recipe variations (e.g., "Regular" vs "Gluten-Free" preparation) under the same menu item ID; variations must currently be modeled as distinct menu items.
+- Cascading delete permanently removes recipes when a menu item is deleted; accidental menu item deletions will also delete associated recipe records.
+
+### 8. When This Decision May Not Be Appropriate
+
+- Large-scale enterprise food manufacturing systems requiring versioned recipe histories, R&D draft recipes, and multi-facility recipe variations for the exact same commercial SKU.
+- Applications with strict audit requirements prohibiting physical record deletions (where soft deletes and temporal tables are mandated).
+
+### 9. Interview Questions & Answers
+
+#### Q1: Why did you model Recipe and MenuItem as a 1:1 relationship rather than 1:N?
+> **Answer:** In restaurant operations, a commercial menu item (e.g., "Classic Cheeseburger") has one standard kitchen preparation formula at any given time. Modeling this as a 1:1 relationship keeps the architecture clean and prevents ambiguity when calculating dish availability or deducting inventory. If variation is needed (such as a gluten-free bun), it represents a distinct commercial offering with its own menu item and recipe.
+
+#### Q2: What is the difference between database `ON DELETE CASCADE` and SQLAlchemy `cascade="all, delete-orphan"`?
+> **Answer:** `ON DELETE CASCADE` is a foreign key constraint enforced by the relational database engine (MySQL). When a parent row is deleted, the database automatically removes child rows, ensuring referential integrity even if deletions happen via direct SQL. SQLAlchemy's `cascade="all, delete-orphan"` is an ORM-level feature that requires loading parent and child objects into the Python session so SQLAlchemy can issue individual `DELETE` statements. We configure database-level `ON DELETE CASCADE` alongside `passive_deletes=True` to let the database handle cascades efficiently without unnecessary ORM queries.
+
+#### Q3: Why is `passive_deletes=True` configured on the relationship?
+> **Answer:** By default, when a parent object is deleted in SQLAlchemy, the ORM attempts to set the child's foreign key to `NULL` or load child objects to issue delete queries. Setting `passive_deletes=True` informs SQLAlchemy that the database already has an `ON DELETE CASCADE` constraint, preventing SQLAlchemy from executing redundant `UPDATE` or `DELETE` statements and reducing round-trips.
+
+#### Q4: Why validate `menu_item_id` existence in the service layer if the database foreign key already enforces it?
+> **Answer:** Relying solely on the database foreign key causes the driver to raise an unhandled `IntegrityError` when a non-existent ID is passed, resulting in a generic `500 Internal Server Error` unless caught. Validating existence in the service layer allows us to return a clean, descriptive `HTTP 404 Not Found` response (`Menu item with ID {id} not found`), adhering to REST API best practices.
+
+### 10. Future Considerations
+
+- In Phase 1 Module 4, link `Recipe` to `RecipeIngredient` rows using a one-to-many relationship (`recipe.ingredients`).
+- In Phase 1 Module 6, utilize the 1:1 `MenuItem -> Recipe` relationship to dynamically traverse required recipe ingredients and evaluate stock availability against current inventory balances.
+
+### 11. What We Implemented
+
+- Implemented `Recipe` SQLAlchemy model in [`backend/app/models/recipe.py`](backend/app/models/recipe.py) with `id`, `name` (unique, indexed), `menu_item_id` (unique, foreign key with `ON DELETE CASCADE`), timestamps, and `menu_item` relationship with `passive_deletes=True`.
+- Exported `Recipe` in [`backend/app/models/__init__.py`](backend/app/models/__init__.py).
+- Applied Alembic migration [`backend/alembic/versions/d8e009624a08_create_recipes_table.py`](backend/alembic/versions/d8e009624a08_create_recipes_table.py) generating the `recipes` table, unique index on `name`, and cascading foreign key constraint.
+- Implemented Pydantic v2 schemas in [`backend/app/schemas/recipe.py`](backend/app/schemas/recipe.py) (`RecipeBase`, `RecipeCreate`, `RecipeUpdate`, `RecipeResponse`) with validation and title casing.
+- Implemented `RecipeService` in [`backend/app/services/recipe_service.py`](backend/app/services/recipe_service.py) with full CRUD operations, pagination, parent verification, case-insensitive duplicate protection, and 1:1 conflict checks.
+- Implemented FastAPI router in [`backend/app/api/recipes.py`](backend/app/api/recipes.py) and registered it at `/recipes` in [`backend/app/main.py`](backend/app/main.py).
+- Successfully executed end-to-end integration and API test suite (21/21 scenarios passed).
