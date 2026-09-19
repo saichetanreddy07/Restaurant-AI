@@ -96,6 +96,10 @@ ENGINEERING_DECISIONS.md
 - Model one-to-one entity relationships with a `unique=True` constraint on the foreign key column, configuring database-level `ON DELETE CASCADE` paired with ORM `passive_deletes=True`.
 - Validate foreign key references in the service layer before insert and update operations, returning an explicit `HTTP 404 Not Found` if the referenced entity does not exist.
 - Normalize user-facing text before persistence and perform case-insensitive duplicate checks for unique names.
+- Model many-to-many relationships with an explicit association model with payload (`RecipeIngredient`), using composite unique constraints on `(parent_id, child_id)` at both the database and service layers to prevent duplicate pairings.
+- Shared master records (such as `Ingredient`) must never be modified or deleted indirectly through association operations; only the specific association record may be created, updated, or deleted.
+- Enforce entity boundary immutability: foreign key identifiers that define an association's parent boundary (such as `recipe_id`) must never be updatable; moving associations requires explicit deletion and recreation.
+- Enforce strict positive quantities and exact decimal precision (`Numeric(10, 2)` / Python `Decimal`) across schemas, services, and database columns to prevent floating-point drift in recipe scaling and inventory deductions.
 
 ---
 

@@ -901,3 +901,103 @@ Key design requirements and operational constraints needed to be addressed:
 - Implemented `RecipeService` in [`backend/app/services/recipe_service.py`](backend/app/services/recipe_service.py) with full CRUD operations, pagination, parent verification, case-insensitive duplicate protection, and 1:1 conflict checks.
 - Implemented FastAPI router in [`backend/app/api/recipes.py`](backend/app/api/recipes.py) and registered it at `/recipes` in [`backend/app/main.py`](backend/app/main.py).
 - Successfully executed end-to-end integration and API test suite (21/21 scenarios passed).
+
+---
+
+## Decision 009: Many-to-Many Recipe-Ingredient Association Entity with Composite Uniqueness, Decimal Precision, and Service-Layer Boundary Isolation
+
+### 1. Decision
+
+Implement the **`RecipeIngredient`** entity as a dedicated association table with payload (`quantity: Numeric(10, 2)`), linking [`Recipe`](backend/app/models/recipe.py) and master [`Ingredient`](backend/app/models/ingredient.py) records via cascading foreign keys (`ON DELETE CASCADE`) paired with ORM `passive_deletes=True`. Enforce database-level and application-level composite uniqueness on `(recipe_id, ingredient_id)`, disallow updates to `recipe_id` to maintain recipe boundary isolation, and enforce strict positive `Decimal` quantities.
+
+### 2. Context
+
+In restaurant operations, the relationship between culinary recipes and ingredients represents a classic **many-to-many (M:N)** domain:
+- A single recipe contains multiple ingredients in precise quantities (e.g., a Burger requires 1 Patty, 1 Bun, and 20g Cheese).
+- A single master ingredient is reused across dozens of recipes (e.g., Cheese is used in Burgers, Pizzas, and Pastas).
+
+Critical domain constraints and architectural challenges required careful design:
+- **Association Payload:** Unlike pure join tables that store only pairs of IDs, culinary formulations require metadata on each link—specifically, the required preparation quantity per serving.
+- **Recipe Boundary Independence:** Modifying or deleting an ingredient requirement in one dish (e.g., removing cheese from a burger) must never affect another dish (e.g., pizza) or mutate the shared master ingredient record.
+- **Duplicate Prevention:** A recipe should never contain duplicate lines for the same ingredient; requirements for an ingredient must be consolidated into a single distinct quantity.
+- **Measurement Precision:** Scaling recipes for batch production and deducting stock during kitchen operations requires penny/gram-accurate fixed-point decimal arithmetic, avoiding binary floating-point rounding drift.
+- **Lifecycle Cascades:** If a recipe is deleted, its ingredient requirement links must be automatically purged. If a master ingredient is retired, all recipe links referencing it must cascade cleanly.
+
+### 3. Why this approach?
+
+- **Association Table with Payload (`recipe_ingredients`):** Rather than using an implicit join table or embedding ingredients into a JSON document, an explicit association entity provides first-class relational modeling with primary keys, audit timestamps, and dedicated columns for `quantity`.
+- **Composite Unique Constraint (`uq_recipe_ingredient` on `(recipe_id, ingredient_id)`):** Enforcing uniqueness on the combination of `recipe_id` and `ingredient_id` prevents duplicate ingredients within the same recipe while allowing the ingredient to appear across any number of distinct recipes.
+- **Exact Decimal Arithmetic (`Numeric(10, 2)`):** Storing `quantity` as `Numeric(10, 2)` in MySQL and Python's `Decimal` guarantees that recipe scaling, stock deductions, and unit cost rollups remain completely free of binary floating-point rounding errors.
+- **Recipe Immutability (`recipe_id` Cannot Be Updated):** An association is strictly scoped to its parent recipe. Excluding `recipe_id` from [`RecipeIngredientUpdate`](backend/app/schemas/recipe_ingredient.py) and stripping it in [`RecipeIngredientService`](backend/app/services/recipe_ingredient_service.py) prevents accidental mutation or transfer of ingredient specifications between unrelated recipes. Reassigning ingredients requires explicit deletion and recreation.
+- **Dual Cascade Protection (`ON DELETE CASCADE` + `passive_deletes=True`):** Both foreign keys (`recipes.id` and `ingredients.id`) specify `ondelete="CASCADE"`, guaranteeing that deleting a recipe or ingredient automatically cleans up its join rows without leaving orphaned association data or requiring manual multi-table deletion queries.
+- **Service-Layer Referential & Pre-Conflict Checks:** Before issuing writes, `RecipeIngredientService` queries the database to verify the referenced recipe and ingredient exist (`HTTP 404 Not Found`) and verifies no duplicate association exists (`HTTP 409 Conflict`), providing clean REST error messages before database constraints can raise unhandled driver exceptions.
+
+### 4. Alternatives Considered
+
+- **Pure SQLAlchemy `Table` Association (Implicit M:N):** Using `sqlalchemy.Table` with `secondary` argument on `relationship()`.
+- **Embedded JSON Array in Recipe (`recipes.ingredients_json`):** Storing ingredients and quantities as a JSON document inside the `recipes` table.
+- **Embedded Foreign Key in Master Ingredient Table:** Adding `recipe_id` to `ingredients`.
+- **Allowing `Float` for Ingredient Quantities:** Storing quantities as standard IEEE 754 floats.
+- **Permitting `recipe_id` Mutations in Update Requests:** Allowing users to move an association from one recipe to another by altering `recipe_id`.
+
+### 5. Why Alternatives Were Not Chosen
+
+- **Implicit Secondary Table:** Pure join tables in SQLAlchemy do not natively expose a dedicated model class, making it awkward to query, validate, paginate, and independently manage association metadata (`quantity`, timestamps) through standard REST API CRUD patterns.
+- **JSON Column in Recipe:** Breaks relational integrity, eliminates foreign key constraints to the master `ingredients` table, makes checking whether an ingredient is in use expensive, and prevents database-level indexing.
+- **`recipe_id` on Ingredient:** Limits an ingredient to only one recipe (1:N), violating the fundamental requirement that ingredients like salt, cheese, or onions are shared across many recipes.
+- **`Float` for Quantities:** Floating-point numbers introduce binary fraction representation drift (e.g., `0.1 + 0.2 = 0.30000000000000004`), which causes inventory deduction discrepancies and unit costing errors over time.
+- **Mutable `recipe_id`:** Allowing `recipe_id` to be modified during updates creates cross-recipe side effects, violates domain boundaries, and increases the risk of accidental recipe corruption.
+
+### 6. Benefits
+
+- Exact, penny/gram-accurate culinary quantity calculations using `Decimal` / `Numeric(10, 2)`.
+- Guaranteed recipe independence: mutations to one recipe's ingredients never touch other recipes or alter master ingredient catalogs.
+- Clean referential integrity with automated database cascading cleanup.
+- Prevention of duplicate ingredient lines through composite unique indexing.
+- Clear REST API error semantics (`400 Bad Request`, `404 Not Found`, `409 Conflict`, `422 Unprocessable Entity`).
+- Direct foundation for upcoming Inventory consumption, availability calculations, and production simulations.
+
+### 7. Limitations
+
+- Does not support alternative/substitute ingredients within the same association row (must be modeled as distinct recipes or handled in future enhancement phases).
+- Composite unique constraint prevents intentional multiple entries of an ingredient with different preparation notes on the same recipe (all quantities must be aggregated into one line).
+
+### 8. When This Decision May Not Be Appropriate
+
+- Dynamic, free-form recipe builders where ingredients are not mapped to master inventory catalog items (e.g., user-submitted recipe blogs where ingredients are arbitrary text strings).
+- Systems requiring versioned recipe bill-of-materials with temporal effective dates (where a historical BOM ledger pattern is required).
+
+### 9. Interview Questions & Answers
+
+#### Q1: Why did you model RecipeIngredient as an explicit association model rather than using SQLAlchemy's implicit `secondary` table?
+> **Answer:** In SQLAlchemy, an implicit `secondary` table is suitable for pure many-to-many relationships without extra data. In restaurant operations, each recipe-ingredient link carries crucial association metadata: the required `quantity` per serving. Creating an explicit declarative model (`RecipeIngredient`) gives us a first-class entity with its own primary key, validation schemas, service layer, and dedicated REST endpoints.
+
+#### Q2: Why is a composite unique constraint required on `(recipe_id, ingredient_id)`?
+> **Answer:** An ingredient should only appear once per recipe with its total required quantity. The composite unique constraint `uq_recipe_ingredient` prevents duplicate rows for the same ingredient within a single recipe, while still allowing that same ingredient to be referenced across any number of other recipes.
+
+#### Q3: Why is `recipe_id` immutable in `RecipeIngredientUpdate`?
+> **Answer:** An ingredient requirement belongs strictly to the domain boundary of its specific recipe. Allowing `recipe_id` to be updated would allow "moving" an ingredient association between dishes, risking unintentional formula alterations and cross-recipe side effects. If an ingredient needs to be associated with another dish, the correct domain operation is to delete the association from the original recipe and create a separate association on the target recipe.
+
+#### Q4: Why is `quantity` stored as `Numeric(10, 2)` instead of `Float`?
+> **Answer:** `Float` uses binary IEEE 754 floating-point arithmetic, which suffers from precision loss when representing decimal fractions. When scaling recipes for hundreds of servings and calculating inventory deductions, small rounding errors accumulate and create discrepancies between theoretical and physical stock. `Numeric(10, 2)` maps to Python's `Decimal`, guaranteeing exact base-10 arithmetic.
+
+#### Q5: What happens when an ingredient is deleted from the master `Ingredient` table?
+> **Answer:** Both foreign keys in `recipe_ingredients` define `ondelete="CASCADE"`. If a master ingredient is deleted, MySQL automatically deletes all referencing `recipe_ingredients` association rows. Furthermore, `passive_deletes=True` on the relationship informs SQLAlchemy to let the database handle the cascades, avoiding unnecessary ORM select and delete queries.
+
+### 10. Future Considerations
+
+- In Phase 1 Module 5 (Inventory), use `RecipeIngredient.quantity` to calculate batch stock consumption during food preparation.
+- In Phase 1 Module 6 (Availability), evaluate `min(Ingredient.current_stock / RecipeIngredient.quantity)` across all linked ingredients to determine the real-time maximum servings of each menu item.
+- In Phase 2 (Backend Refactoring), add bidirectional ORM relationships (`Recipe.ingredients`, `Ingredient.recipes`) with joined eager loading.
+
+### 11. What We Implemented
+
+- Implemented `RecipeIngredient` model in [`backend/app/models/recipe_ingredient.py`](backend/app/models/recipe_ingredient.py) with `id`, `recipe_id` (FK -> `recipes.id`, cascade), `ingredient_id` (FK -> `ingredients.id`, cascade), `quantity` (`Numeric(10, 2)`), timestamps, and composite unique constraint `uq_recipe_ingredient`.
+- Exported `RecipeIngredient` in [`backend/app/models/__init__.py`](backend/app/models/__init__.py).
+- Generated and applied Alembic migration [`backend/alembic/versions/13e9221faf22_create_recipe_ingredients_table.py`](backend/alembic/versions/13e9221faf22_create_recipe_ingredients_table.py).
+- Implemented Pydantic v2 schemas in [`backend/app/schemas/recipe_ingredient.py`](backend/app/schemas/recipe_ingredient.py) (`RecipeIngredientBase`, `RecipeIngredientCreate`, `RecipeIngredientUpdate`, `RecipeIngredientResponse`) with positive ID and positive `Decimal` quantity validation.
+- Exported schemas in [`backend/app/schemas/__init__.py`](backend/app/schemas/__init__.py).
+- Implemented `RecipeIngredientService` in [`backend/app/services/recipe_ingredient_service.py`](backend/app/services/recipe_ingredient_service.py) with parent existence validation (HTTP 404), duplicate checking (HTTP 409), strict positive quantity enforcement, `recipe_id` immutability, deterministic ordering (`recipe_id ASC, ingredient_id ASC`), and pagination.
+- Exported service in [`backend/app/services/__init__.py`](backend/app/services/__init__.py).
+- Implemented FastAPI router in [`backend/app/api/recipe_ingredients.py`](backend/app/api/recipe_ingredients.py) and registered it at `/recipe-ingredients` in [`backend/app/main.py`](backend/app/main.py).
+- Executed full end-to-end API test suite across 22 scenarios (CREATE, READ, UPDATE, DELETE, validation errors, duplicate detection, and immutability) with a 100% pass rate.

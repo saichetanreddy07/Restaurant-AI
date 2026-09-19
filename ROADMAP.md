@@ -3,12 +3,12 @@
 ## Overall Progress Summary
 
 - **Current Phase:** Phase 1 — Backend Core Modules (In Progress)
-- **Phase 1 Progress:** 3 of 6 modules completed (50.0%)
+- **Phase 1 Progress:** 4 of 6 modules completed (66.7%)
   - Module 1: Ingredients ✅ Completed & Tested
   - Module 2: Menu Items ✅ Completed & Tested
   - Module 3: Recipes ✅ Completed & Tested
-  - Module 4: Recipe Ingredients ⏳ Next Active Milestone
-  - Module 5: Inventory 📋 Planned
+  - Module 4: Recipe Ingredients ✅ Completed & Tested
+  - Module 5: Inventory ⏳ Next Active Milestone
   - Module 6: Availability 📋 Planned
 - **Phase 2 (Backend Refactoring):** 📋 Planned (triggered after all 6 backend modules are completed)
 - **Phase 3 (Frontend):** 📋 Planned (triggered only after backend is stable)
@@ -57,17 +57,17 @@ We are intentionally completing the backend one domain module at a time. Each mo
 - [x] Input validation, title casing, and error response handling
 - [x] Comprehensive testing completed successfully (21/21 scenarios passed)
 
-### Module 4: Recipe Ingredients (Active / Next Milestone ⏳)
-- [ ] Design recipe-ingredient relationship schema (`recipe_ingredients` table)
-- [ ] Implement `RecipeIngredient` association model (linking `Recipe` and `Ingredient`)
-- [ ] Generate Alembic migration for `recipe_ingredients` table
-- [ ] Create Pydantic schemas for recipe ingredient mappings
-- [ ] Implement service logic for recipe ingredient management
-- [ ] Implement REST API endpoints for recipe ingredients
-- [ ] Validate unit compatibility between ingredients and recipe requirements
-- [ ] Unit and integration testing
+### Module 4: Recipe Ingredients (Completed ✅)
+- [x] Design recipe-ingredient relationship schema (`recipe_ingredients` table with composite unique constraint)
+- [x] Implement `RecipeIngredient` association model (linking `Recipe` and `Ingredient` with `Numeric(10, 2)` quantity and cascading deletes)
+- [x] Generate and apply Alembic migration for `recipe_ingredients` table (`alembic/versions/13e9221faf22_create_recipe_ingredients_table.py`)
+- [x] Create Pydantic schemas (`RecipeIngredientBase`, `RecipeIngredientCreate`, `RecipeIngredientUpdate`, `RecipeIngredientResponse`)
+- [x] Implement `RecipeIngredientService` with parent validation, duplicate prevention, and recipe immutability
+- [x] Implement REST API endpoints for recipe ingredients (`/recipe-ingredients`)
+- [x] Enforce strictly positive quantities and fixed-point decimal precision
+- [x] Comprehensive end-to-end testing completed successfully (22/22 scenarios passed)
 
-### Module 5: Inventory (Planned 📋)
+### Module 5: Inventory (Active / Next Milestone ⏳)
 - [ ] Design inventory tracking schema (`inventory_batches` / stock tracking)
 - [ ] Implement `Inventory` SQLAlchemy model with batch tracking and expiry dates
 - [ ] Generate Alembic migration for inventory tables

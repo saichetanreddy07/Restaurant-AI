@@ -13,6 +13,18 @@ try:
         MenuItemResponse,
         MenuItemUpdate,
     )
+    from app.schemas.recipe import (
+        RecipeBase,
+        RecipeCreate,
+        RecipeResponse,
+        RecipeUpdate,
+    )
+    from app.schemas.recipe_ingredient import (
+        RecipeIngredientBase,
+        RecipeIngredientCreate,
+        RecipeIngredientResponse,
+        RecipeIngredientUpdate,
+    )
 except ModuleNotFoundError:
     from backend.app.schemas.ingredient import (
         IngredientBase,
@@ -26,6 +38,18 @@ except ModuleNotFoundError:
         MenuItemResponse,
         MenuItemUpdate,
     )
+    from backend.app.schemas.recipe import (
+        RecipeBase,
+        RecipeCreate,
+        RecipeResponse,
+        RecipeUpdate,
+    )
+    from backend.app.schemas.recipe_ingredient import (
+        RecipeIngredientBase,
+        RecipeIngredientCreate,
+        RecipeIngredientResponse,
+        RecipeIngredientUpdate,
+    )
 
 __all__ = [
     "IngredientBase",
@@ -36,4 +60,12 @@ __all__ = [
     "MenuItemCreate",
     "MenuItemUpdate",
     "MenuItemResponse",
+    "RecipeBase",
+    "RecipeCreate",
+    "RecipeUpdate",
+    "RecipeResponse",
+    "RecipeIngredientBase",
+    "RecipeIngredientCreate",
+    "RecipeIngredientUpdate",
+    "RecipeIngredientResponse",
 ]

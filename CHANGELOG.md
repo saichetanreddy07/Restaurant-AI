@@ -166,3 +166,22 @@
   - Implemented `RecipeService` in `backend/app/services/recipe_service.py` with transactional rollback, alphabetical ordering, pagination (`skip`/`limit`), parent `MenuItem` existence validation (HTTP 404), case-insensitive duplicate name protection (HTTP 409), and 1:1 recipe-to-menu-item assignment validation (HTTP 409).
   - Implemented the FastAPI router in `backend/app/api/recipes.py` with dependency injection (`get_db`), query parameter validation (`skip >= 0`, `1 <= limit <= 500`), and registered the router at `/recipes` in `backend/app/main.py`.
   - Conducted comprehensive testing across 21 distinct scenarios (CREATE, READ, UPDATE, DELETE, pagination, constraint violations, and OpenAPI schema) verifying 100% test success rate against live MySQL storage.
+
+---
+
+## 2026-09-19 — Recipe Ingredients Module
+
+- **Feature completed:** Recipe Ingredients Association Module (Model, Migration, Schemas, Service & API)
+
+- **Summary of changes:**
+
+  - Implemented the `RecipeIngredient` SQLAlchemy model in `backend/app/models/recipe_ingredient.py` mapping the `recipe_ingredients` association table with `id`, `recipe_id` (foreign key -> `recipes.id` with `ON DELETE CASCADE`), `ingredient_id` (foreign key -> `ingredients.id` with `ON DELETE CASCADE`), `quantity` (`Numeric(10, 2)`), audit timestamps, ORM relationships to `Recipe` and `Ingredient` using `passive_deletes=True`, and composite unique constraint `uq_recipe_ingredient` on `(recipe_id, ingredient_id)`.
+  - Exported `RecipeIngredient` in `backend/app/models/__init__.py` for Alembic autogeneration and relational mapping.
+  - Generated and applied Alembic migration `13e9221faf22_create_recipe_ingredients_table.py` creating the `recipe_ingredients` table, foreign key constraints with cascade deletes, and composite unique constraint on MySQL.
+  - Implemented Pydantic v2 schemas in `backend/app/schemas/recipe_ingredient.py` (`RecipeIngredientBase`, `RecipeIngredientCreate`, `RecipeIngredientUpdate`, `RecipeIngredientResponse`) validating positive entity IDs (`gt=0`), strictly positive quantities (`gt=0`), fixed-point decimal precision (up to 2 decimal places), and excluding `recipe_id` from updates to maintain recipe boundary isolation.
+  - Exported `Recipe*` and `RecipeIngredient*` schemas via `backend/app/schemas/__init__.py`.
+  - Implemented `RecipeIngredientService` in `backend/app/services/recipe_ingredient_service.py` with transactional rollbacks, pagination (`skip`/`limit`), deterministic ordering (`recipe_id ASC, ingredient_id ASC`), parent `Recipe` existence validation (HTTP 404), parent `Ingredient` existence validation (HTTP 404), duplicate association prevention (HTTP 409), strict positive quantity enforcement (HTTP 400), and `recipe_id` update stripping.
+  - Exported `RecipeService` and `RecipeIngredientService` via `backend/app/services/__init__.py`.
+  - Implemented the FastAPI router in `backend/app/api/recipe_ingredients.py` with full OpenAPI annotations and registered the router at `/recipe-ingredients` in `backend/app/main.py`.
+  - Executed end-to-end API verification across 22 scenarios (creation, duplicates, invalid references, validation errors, pagination, updates, immutability, and cascade isolation) with 100% pass rate.
+

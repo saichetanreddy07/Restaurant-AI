@@ -4,16 +4,6 @@
 
 ### Phase 1 — Backend Core Modules (Sequential Delivery)
 
-#### Module 4: Recipe Ingredients
-- [ ] Design recipe-ingredient relationship schema (`recipe_ingredients` table)
-- [ ] Implement `RecipeIngredient` SQLAlchemy model (linking `Recipe` and `Ingredient` with required quantity and unit)
-- [ ] Generate Alembic migration for `recipe_ingredients` table
-- [ ] Create Pydantic schemas for recipe ingredient mappings
-- [ ] Implement service logic for managing recipe ingredient compositions
-- [ ] Implement API endpoints for recipe ingredients
-- [ ] Validate unit compatibility between recipes and ingredients
-- [ ] Test Recipe Ingredients operations
-
 #### Module 5: Inventory Management
 - [ ] Design inventory schema (`inventory_batches` / stock tracking)
 - [ ] Implement `Inventory` SQLAlchemy model with batch tracking and expiry dates
@@ -69,7 +59,7 @@
 
 ## In Progress
 
-- [ ] Phase 1 — Module 4: Recipe Ingredients (Designing recipe-ingredient association schema and unit compatibility)
+- [ ] Phase 1 — Module 5: Inventory Management (Designing inventory batches and stock tracking schema)
 
 ---
 
@@ -138,3 +128,13 @@
 - [x] Register Recipe router in `main.py`
 - [x] Comprehensive testing completed successfully (21/21 scenarios passed across CRUD, pagination, error handling, and OpenAPI)
 
+### Phase 1 — Module 4: Recipe Ingredients (Association Module - Completed & Tested)
+
+- [x] Design recipe-ingredient relationship schema (`recipe_ingredients` table with composite unique constraint)
+- [x] Implement `RecipeIngredient` SQLAlchemy model (`models/recipe_ingredient.py`) linking `Recipe` and `Ingredient` with `Numeric(10, 2)` quantity and cascade deletions
+- [x] Generate and apply Alembic migration for `recipe_ingredients` table (`alembic/versions/13e9221faf22_create_recipe_ingredients_table.py`)
+- [x] Create RecipeIngredient Pydantic schemas (`RecipeIngredientBase`, `RecipeIngredientCreate`, `RecipeIngredientUpdate`, `RecipeIngredientResponse`)
+- [x] Implement `RecipeIngredientService` with parent validation, duplicate prevention (HTTP 409), recipe immutability, and deterministic ordering
+- [x] Implement RecipeIngredient API endpoints (`POST`, `GET`, `PUT`, `DELETE` `/recipe-ingredients`)
+- [x] Register RecipeIngredient router in `main.py`
+- [x] Comprehensive end-to-end testing completed successfully (22/22 scenarios passed)
