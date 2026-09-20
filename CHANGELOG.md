@@ -185,3 +185,20 @@
   - Implemented the FastAPI router in `backend/app/api/recipe_ingredients.py` with full OpenAPI annotations and registered the router at `/recipe-ingredients` in `backend/app/main.py`.
   - Executed end-to-end API verification across 22 scenarios (creation, duplicates, invalid references, validation errors, pagination, updates, immutability, and cascade isolation) with 100% pass rate.
 
+---
+
+## 2026-09-20 — Inventory Batch Module
+
+- **Feature completed:** Inventory Batch Management Module (Model, Migration, Schemas, Service & API)
+
+- **Summary of changes:**
+
+  - Implemented the `InventoryBatch` SQLAlchemy model in `backend/app/models/inventory_batch.py` mapping the `inventory_batches` table with `id`, `ingredient_id` (foreign key -> `ingredients.id` with `ON DELETE CASCADE`), `batch_number` (`String(30)`, unique, indexed), `quantity` (`Numeric(10, 2)`), `unit_cost` (`Numeric(10, 2)`), `supplier` (`String(100)`), `received_date` (`Date`), `expiry_date` (`Date`), audit timestamps, and ORM relationship to `Ingredient` with `passive_deletes=True`.
+  - Exported `InventoryBatch` in `backend/app/models/__init__.py`.
+  - Generated and applied Alembic migration `dc3068eab3e5_create_inventory_batches_table.py` creating the `inventory_batches` table with foreign key cascade, primary key, and unique index `ix_inventory_batches_batch_number` on MySQL.
+  - Implemented Pydantic v2 schemas in `backend/app/schemas/inventory_batch.py` (`InventoryBatchBase`, `InventoryBatchCreate`, `InventoryBatchUpdate`, `InventoryBatchResponse`) with positive number enforcement (`Field(gt=0)`), supplier whitespace stripping and non-empty checks, date comparison (`expiry_date >= received_date`), and immutable field exclusion on update (`ingredient_id`, `batch_number`, `received_date`).
+  - Implemented `InventoryBatchService` in `backend/app/services/inventory_batch_service.py` with automatic batch number generation (`<CODE>-<YYYYMMDD>-<SEQUENCE>`), parent `Ingredient` existence validation (HTTP 404), persisted intake date validation on partial update (HTTP 400), deterministic ordering (`ingredient_id ASC, received_date ASC, batch_number ASC`), pagination, and transactional rollback.
+  - Implemented FastAPI router in `backend/app/api/inventory_batches.py` with dependency injection (`get_db`), query validation (`skip >= 0`, `1 <= limit <= 500`), and registered the router at `/inventory-batches` in `backend/app/main.py`.
+  - Executed comprehensive runtime testing across 32 scenarios covering creation, auto-generation, schema constraints, invalid IDs, immutability, pagination, updates, and cascade isolation with 100% pass rate.
+
+

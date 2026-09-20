@@ -2,7 +2,7 @@
 
 A production-inspired Restaurant Operations Management System built to learn and demonstrate modern backend and full-stack development.
 
-> **Status:** 🚧 Under Development — Phase 1: Backend Core Modules (4 of 6 Completed — 66.7%)
+> **Status:** 🚧 Under Development — Phase 1: Backend Core Modules (5 of 6 Completed — 83.3%)
 
 ---
 
@@ -46,8 +46,9 @@ RestaurantAI aims to solve these problems through a centralized inventory and re
 - Menu Item Management (Completed ✅)
 - Recipe Management (Completed ✅)
 - Recipe Ingredients Management (Completed ✅)
-- Inventory Batch & Stock Management (Next Active ⏳)
+- Inventory Batch & Stock Management (Batch Intake Completed ✅ / Consumption ⏳)
 - Real-Time Dish Availability Engine (Planned 📋)
+
 - Production Simulation (Post-MVP)
 - Inventory Analytics & Expiry Dashboard (Post-MVP)
 
@@ -87,14 +88,14 @@ Future Scope (Optional)
 
 We are building the backend core one module at a time. After all six core modules are finished, we will execute a dedicated refactoring phase across the entire backend before starting the React frontend.
 
-- **Phase 1 (Backend Core Modules):** In Progress (4 of 6 modules completed — 66.7%)
+- **Phase 1 (Backend Core Modules):** In Progress (5 of 6 modules completed — 83.3%)
   - Backend Foundation: Completed
   - Module 1: Ingredients: Completed ✅
   - Module 2: Menu Items: Completed ✅
   - Module 3: Recipes: Completed ✅
   - Module 4: Recipe Ingredients: Completed ✅
-  - Module 5: Inventory: Next Active Milestone ⏳
-  - Module 6: Availability: Planned 📋
+  - Module 5: Inventory Batches: Completed ✅ (Remaining Inventory Scope ⏳)
+  - Module 6: Availability: Next Active Milestone ⏳
 - **Phase 2 (Backend Refactoring):** Planned 📋 *(Triggered after all 6 core modules complete — deduplication, architecture, centralized error handling, validations, query optimization, logging)*
 - **Phase 3 (Frontend):** Planned 📋 *(Triggered after backend is stable — React, TypeScript, Tailwind CSS, Axios API integration)*
 - **Phase 4 (Production Readiness):** Planned 📋 *(Testing, final documentation, deployment)*
@@ -111,7 +112,8 @@ restaurant-ai/
 │   │   │   ├── b6446b3796c3_create_ingredients_table.py
 │   │   │   ├── 6319aa944bc3_create_menu_items_table.py
 │   │   │   ├── d8e009624a08_create_recipes_table.py
-│   │   │   └── 13e9221faf22_create_recipe_ingredients_table.py
+│   │   │   ├── 13e9221faf22_create_recipe_ingredients_table.py
+│   │   │   └── dc3068eab3e5_create_inventory_batches_table.py
 │   │   └── env.py
 │   ├── alembic.ini
 │   └── app/
@@ -119,6 +121,7 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── health.py
 │       │   ├── ingredients.py
+│       │   ├── inventory_batches.py
 │       │   ├── menu_items.py
 │       │   ├── recipes.py
 │       │   └── recipe_ingredients.py
@@ -132,18 +135,21 @@ restaurant-ai/
 │       ├── models/
 │       │   ├── __init__.py
 │       │   ├── ingredient.py
+│       │   ├── inventory_batch.py
 │       │   ├── menu_item.py
 │       │   ├── recipe.py
 │       │   └── recipe_ingredient.py
 │       ├── schemas/
 │       │   ├── __init__.py
 │       │   ├── ingredient.py
+│       │   ├── inventory_batch.py
 │       │   ├── menu_item.py
 │       │   ├── recipe.py
 │       │   └── recipe_ingredient.py
 │       ├── services/
 │       │   ├── __init__.py
 │       │   ├── ingredient_service.py
+│       │   ├── inventory_batch_service.py
 │       │   ├── menu_item_service.py
 │       │   ├── recipe_service.py
 │       │   └── recipe_ingredient_service.py
@@ -204,6 +210,15 @@ restaurant-ai/
 - **REST API:** Complete REST endpoints under `/recipe-ingredients`.
 - **Testing Completed:** End-to-end testing across 22 scenarios covering creation, duplicate detection, invalid references, validation errors, pagination, updates, immutability, and cascade isolation with 100% pass rate.
 
+### 6. Phase 1 — Module 5: Inventory Batches (Completed & Tested)
+- **Purpose:** Tracks physical ingredient shipments received from suppliers as distinct inventory batches to support lot traceability, expiration tracking, and future FIFO/FEFO stock consumption.
+- **InventoryBatch Model:** SQLAlchemy 2.0 declarative model mapping `inventory_batches` table with `id`, `ingredient_id` (FK -> `ingredients.id`, cascade), `batch_number` (`String(30)`, unique, indexed), `quantity` (`Numeric(10, 2)`), `unit_cost` (`Numeric(10, 2)`), `supplier` (`String(100)`), `received_date` (`Date`), `expiry_date` (`Date`), timestamps, and ORM relationship to `Ingredient` with `passive_deletes=True`.
+- **Database Migration:** Generated and applied Alembic migration `dc3068eab3e5_create_inventory_batches_table.py` configuring foreign key cascade, primary key, and unique index on `batch_number`.
+- **Pydantic Schemas:** `InventoryBatchBase`, `InventoryBatchCreate`, `InventoryBatchUpdate`, and `InventoryBatchResponse` with strict positive number constraints, supplier whitespace normalization, date validation (`expiry_date >= received_date`), and immutable field exclusion on update.
+- **Service Layer:** `InventoryBatchService` providing automated batch number generation (`<CODE>-<YYYYMMDD>-<SEQUENCE>`), parent ingredient verification (HTTP 404), persisted date validation on partial update (HTTP 400), deterministic ordering (`ingredient_id ASC, received_date ASC, batch_number ASC`), and pagination.
+- **REST API:** Complete REST endpoints under `/inventory-batches`.
+- **Testing Completed:** Comprehensive runtime testing across 32 scenarios covering creation, auto-generation, schema constraints, invalid IDs, immutability, pagination, updates, and cascade isolation with 100% pass rate.
+
 ---
 
 # Database Schemas
@@ -257,6 +272,21 @@ restaurant-ai/
 
 *Composite Unique Constraint:* `(recipe_id, ingredient_id)` (`uq_recipe_ingredient`)
 
+### Table: `inventory_batches`
+
+| Column | Type | Constraints / Defaults | Description |
+|---|---|---|---|
+| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
+| `ingredient_id` | `Integer` | Foreign Key -> `ingredients.id`, Not Null, On Delete `CASCADE` | Reference to master ingredient |
+| `batch_number` | `String(30)` | Unique, Indexed, Not Null | System-generated tracking code (`<CODE>-<YYYYMMDD>-<SEQ>`) |
+| `quantity` | `Numeric(10, 2)` | Not Null | Available quantity remaining in batch |
+| `unit_cost` | `Numeric(10, 2)` | Not Null | Purchasing unit cost for this batch |
+| `supplier` | `String(100)` | Not Null | Vendor or supplier name |
+| `received_date` | `Date` | Not Null | Physical intake date |
+| `expiry_date` | `Date` | Not Null | Expiration date (`expiry_date >= received_date`) |
+| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
+| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
+
 ---
 
 # API Endpoints
@@ -285,8 +315,14 @@ restaurant-ai/
 | `GET` | `/recipe-ingredients/{id}` | Retrieve single recipe ingredient by ID | `200 OK` / `404 Not Found` |
 | `PUT` | `/recipe-ingredients/{id}` | Update recipe ingredient fields | `200 OK` / `400 Bad Request` / `404 Not Found` / `409 Conflict` |
 | `DELETE` | `/recipe-ingredients/{id}` | Delete recipe ingredient by ID | `200 OK` / `404 Not Found` |
+| `POST` | `/inventory-batches/` | Create an inventory batch | `201 Created` / `400 Bad Request` / `404 Not Found` |
+| `GET` | `/inventory-batches/` | Retrieve all inventory batches (paginated) | `200 OK` |
+| `GET` | `/inventory-batches/{id}` | Retrieve single inventory batch by ID | `200 OK` / `404 Not Found` |
+| `PUT` | `/inventory-batches/{id}` | Update inventory batch fields | `200 OK` / `400 Bad Request` / `404 Not Found` |
+| `DELETE` | `/inventory-batches/{id}` | Delete inventory batch by ID | `200 OK` / `404 Not Found` |
 | `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
 | `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
+
 
 ---
 

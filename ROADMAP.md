@@ -3,12 +3,12 @@
 ## Overall Progress Summary
 
 - **Current Phase:** Phase 1 — Backend Core Modules (In Progress)
-- **Phase 1 Progress:** 4 of 6 modules completed (66.7%)
+- **Phase 1 Progress:** 5 of 6 modules completed (83.3%)
   - Module 1: Ingredients ✅ Completed & Tested
   - Module 2: Menu Items ✅ Completed & Tested
   - Module 3: Recipes ✅ Completed & Tested
   - Module 4: Recipe Ingredients ✅ Completed & Tested
-  - Module 5: Inventory ⏳ Next Active Milestone
+  - Module 5: Inventory Batches ✅ Completed & Tested (Remaining Inventory Scope ⏳)
   - Module 6: Availability 📋 Planned
 - **Phase 2 (Backend Refactoring):** 📋 Planned (triggered after all 6 backend modules are completed)
 - **Phase 3 (Frontend):** 📋 Planned (triggered only after backend is stable)
@@ -67,17 +67,19 @@ We are intentionally completing the backend one domain module at a time. Each mo
 - [x] Enforce strictly positive quantities and fixed-point decimal precision
 - [x] Comprehensive end-to-end testing completed successfully (22/22 scenarios passed)
 
-### Module 5: Inventory (Active / Next Milestone ⏳)
-- [ ] Design inventory tracking schema (`inventory_batches` / stock tracking)
-- [ ] Implement `Inventory` SQLAlchemy model with batch tracking and expiry dates
-- [ ] Generate Alembic migration for inventory tables
-- [ ] Create Pydantic schemas for inventory intake, adjustments, and batch monitoring
-- [ ] Implement `InventoryService` for stock reception, deductions, and batch updates
-- [ ] Implement Inventory REST API endpoints
-- [ ] Expiry date tracking and reorder threshold alerting
-- [ ] Unit and integration testing
+### Module 5: Inventory (Batch Tracking Completed ✅ / Advanced Stock Operations Active ⏳)
+- [x] Design inventory tracking schema (`inventory_batches` table with cascade foreign key and unique index on `batch_number`)
+- [x] Implement `InventoryBatch` SQLAlchemy model with batch tracking and expiry dates
+- [x] Generate and apply Alembic migration for `inventory_batches` table (`alembic/versions/dc3068eab3e5_create_inventory_batches_table.py`)
+- [x] Create Pydantic schemas for inventory intake, adjustments, and batch monitoring (`InventoryBatchBase`, `InventoryBatchCreate`, `InventoryBatchUpdate`, `InventoryBatchResponse`)
+- [x] Implement `InventoryBatchService` for stock reception, auto-generated batch numbering, and batch updates
+- [x] Implement Inventory Batch REST API endpoints (`/inventory-batches`)
+- [x] Comprehensive runtime testing completed successfully (32/32 scenarios passed)
+- [ ] Implement inventory consumption service (FIFO / FEFO batch deduction)
+- [ ] Implement stock adjustment and waste tracking
+- [ ] Expiry date alerting and low-stock threshold monitoring
 
-### Module 6: Availability (Planned 📋)
+### Module 6: Availability (Next Active Milestone ⏳)
 - [ ] Design availability computation data schemas
 - [ ] Implement real-time availability calculation engine (checking stock for all ingredients in linked recipes)
 - [ ] Implement REST API endpoints for real-time dish availability

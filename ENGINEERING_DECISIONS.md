@@ -1001,3 +1001,96 @@ Critical domain constraints and architectural challenges required careful design
 - Exported service in [`backend/app/services/__init__.py`](backend/app/services/__init__.py).
 - Implemented FastAPI router in [`backend/app/api/recipe_ingredients.py`](backend/app/api/recipe_ingredients.py) and registered it at `/recipe-ingredients` in [`backend/app/main.py`](backend/app/main.py).
 - Executed full end-to-end API test suite across 22 scenarios (CREATE, READ, UPDATE, DELETE, validation errors, duplicate detection, and immutability) with a 100% pass rate.
+
+---
+
+## Decision 010: Batch-Level Inventory Intake Architecture with Immutable Auditing, Sequential Batch Identifiers, and Cascade Isolation
+
+### 1. Decision
+
+Implement the **`InventoryBatch`** entity to track physical stock intake at the batch level (`inventory_batches` table), maintaining [`Ingredient`](backend/app/models/ingredient.py) strictly as the shared master catalog record. Automatically generate deterministic, human-readable batch identifiers (`<INGREDIENT_CODE>-<YYYYMMDD>-<SEQUENCE>`) inside the service layer, enforce strict immutability on core intake attributes (`ingredient_id`, `batch_number`, `received_date`), configure database-level cascading deletion from `ingredients` (`ON DELETE CASCADE`), and isolate batch deletions from parent ingredients and sibling batches to provide the foundation for First-In, First-Out (FIFO) and First-Expired, First-Out (FEFO) consumption in subsequent phases.
+
+### 2. Context
+
+In commercial restaurant operations, tracking inventory solely through an aggregated counter on the ingredient record (e.g., `current_stock = 50 kg`) is inadequate for real-world food safety, accounting, and supply chain management:
+- **Price Volatility:** The purchasing unit cost of an ingredient changes frequently across suppliers and seasons (e.g., tomatoes purchased on Monday at \$2.50/kg vs Friday at \$3.10/kg). Aggregating them into a single cost obscures gross margin and cost-of-goods-sold (COGS) accounting.
+- **Perishability & Expiration:** Food ingredients have distinct expiration dates based on reception dates. A restaurant must know which specific lot expires first so kitchen staff consume older stock first (FIFO/FEFO).
+- **Traceability & Recalls:** If a supplier issues a contamination recall for a specific lot number, the restaurant must identify when that batch was received, who supplied it, how much remains, and which dishes were affected.
+- **Audit Immutability:** Once a shipment is physically received into the kitchen, its intake date, associated ingredient, and tracking identifier represent historical facts that must never be altered during subsequent stock adjustments.
+
+### 3. Why this approach?
+
+- **Separation of Master Catalog from Inventory Lots:** The `Ingredient` entity represents the commercial definition (name, standard unit, reorder threshold, default supplier), while `InventoryBatch` represents physical instances of stock received from a supplier. Keeping them decoupled prevents database schema pollution and allows an ingredient to have zero, one, or dozens of active batches.
+- **Batch-Level Tracking for FIFO/FEFO Consumption:** Storing `received_date`, `expiry_date`, `quantity`, and `unit_cost` on each batch enables upcoming consumption algorithms (Phase 1 Module 5/6) to deterministically consume stock in FIFO (oldest reception first) or FEFO (earliest expiry first) order.
+- **Service-Generated Batch Identifiers:** Rather than allowing arbitrary or duplicate client-supplied strings, [`InventoryBatchService`](backend/app/services/inventory_batch_service.py) automatically generates unique, structured batch numbers formatted as `<INGREDIENT_CODE>-<YYYYMMDD>-<SEQUENCE>` (e.g., `CHE-20260920-001`). The sequence is computed by inspecting $\max(\text{existing sequences}) + 1$ for the prefix, guaranteeing chronological ordering, readability, and global uniqueness.
+- **Immutable Intake History:** `ingredient_id`, `batch_number`, and `received_date` are strictly excluded from update schemas and popped in the service layer. A physical batch cannot be retroactively reassigned to a different ingredient or backdated; only mutable operational values (`quantity`, `unit_cost`, `supplier`, `expiry_date`) may be modified.
+- **Persisted Date Validation on Partial Updates:** While `expiry_date >= received_date` is validated on create via Pydantic, partial updates supply only `expiry_date`. The service layer compares incoming expiration dates directly against the persisted `batch.received_date` in MySQL, preventing impossible expiration dates without requiring clients to resubmit immutable fields.
+- **Asymmetric Deletion Cascades:**
+  - *Deleting an Ingredient:* Permanently removing an ingredient from the catalog automatically purges all of its child inventory batches via foreign key `ON DELETE CASCADE` and SQLAlchemy `passive_deletes=True`.
+  - *Deleting an InventoryBatch:* Deleting or adjusting a single inventory batch affects only that individual record; it never mutates or deletes the parent `Ingredient` or any other sibling batch.
+
+### 4. Alternatives Considered
+
+- **Single-Table Counter Tracking (`current_stock` only):** Relying solely on the `Ingredient.current_stock` column without batch records.
+- **Client-Provided Batch Numbers:** Allowing API clients or barcode scanners to supply arbitrary batch numbers during creation.
+- **Mutable Foreign Keys and Intake Dates:** Allowing `ingredient_id` and `received_date` to be edited in `PUT` requests.
+- **Soft Deletes with Batch Status Flags (`is_active` / `is_depleted`):** Retaining depleted zero-quantity batches indefinitely with status flags.
+
+### 5. Why Alternatives Were Not Chosen
+
+- **Single-Table Counter:** Makes FIFO/FEFO tracking impossible, destroys lot traceability, prevents granular expiration warnings, and blends purchase costs into arbitrary averages.
+- **Client-Provided Batch Numbers:** Leads to format fragmentation, duplicate collisions, and external dependency errors. Centralizing generation ensures consistent formatting and database-enforced uniqueness.
+- **Mutable Intake Metadata:** Reassigning a batch to a different ingredient or altering its reception date corrupts inventory audit trails, breaks chronological sequence logic, and violates real-world accounting constraints.
+- **Premature Soft-Delete Flags:** Depletion workflows belong to the inventory consumption lifecycle. Introducing soft-delete status columns ahead of Phase 2 refactoring adds unnecessary query-filtering boilerplate to simple CRUD endpoints.
+
+### 6. Benefits
+
+- Complete lot traceability with supplier identity, reception dates, and expiration dates.
+- Clean separation of concerns between catalog master data and operational stock instances.
+- Deterministic, human-readable batch identification suitable for kitchen display and label printing.
+- Foundation for exact-cost FIFO inventory consumption and dynamic dish availability calculation.
+- Guaranteed referential integrity with cascade cleanup on parent deletion and strict isolation on batch deletion.
+- Exact monetary and stock quantity precision using Python `Decimal` and MySQL `Numeric(10, 2)`.
+
+### 7. Limitations
+
+- Aggregated on-hand stock for an ingredient is not automatically recalculated on the `Ingredient.current_stock` column during raw batch CRUD operations; stock synchronization will be orchestrated in the inventory consumption service.
+- Highly concurrent intake of the same ingredient on the exact same millisecond relies on the database unique index to prevent duplicate sequences.
+
+### 8. When This Decision May Not Be Appropriate
+
+- Non-perishable retail inventory (e.g., books or hardware) where items do not expire and purchase costs remain fixed across lifecycles.
+- High-frequency automated manufacturing assembly lines requiring millisecond sub-batch serialization with nanosecond hardware timestamps.
+
+### 9. Interview Questions & Answers
+
+#### Q1: Why is inventory tracked in separate batches rather than just updating `current_stock` on the `Ingredient` model?
+> **Answer:** In restaurant operations, food supplies arrive in discrete shipments with fluctuating purchase prices, different suppliers, and distinct expiration dates. Tracking inventory by batches enables FIFO (First-In, First-Out) inventory depletion, prevents food waste through expiration tracking, provides lot traceability in case of food recalls, and ensures accurate financial accounting for Cost of Goods Sold (COGS).
+
+#### Q2: Why are batch numbers generated by the service layer instead of accepted from the client?
+> **Answer:** Batch numbers serve as standardized internal tracking identifiers. Generating them automatically as `<INGREDIENT_CODE>-<YYYYMMDD>-<SEQUENCE>` guarantees a predictable, human-readable format, ensures chronological ordering, prevents collisions from uncoordinated external clients, and adheres to the Single Source of Truth principle.
+
+#### Q3: Why are `ingredient_id`, `batch_number`, and `received_date` immutable in `InventoryBatchUpdate`?
+> **Answer:** These fields represent physical intake facts. Once a shipment of cheese is received on September 20th under batch `CHE-20260920-001`, changing the ingredient ID would mean altering reality (turning cheese into tomatoes), and changing the received date would invalidate the historical intake timeline and batch numbering sequence. Preserving immutability protects audit integrity.
+
+#### Q4: How does the system validate expiration dates during partial updates when `received_date` is not provided in the request?
+> **Answer:** In `InventoryBatchUpdate`, `received_date` is intentionally omitted because it is immutable. To ensure business validity without forcing the client to pass redundant data, the service layer queries the persisted database record and validates `update_data["expiry_date"] >= batch.received_date`. If invalid, it raises `HTTP 400 Bad Request`.
+
+#### Q5: What is the cascade relationship between Ingredients and Inventory Batches?
+> **Answer:** The relationship is asymmetric. The foreign key `inventory_batches.ingredient_id` specifies `ON DELETE CASCADE`. If a master ingredient is permanently purged from the system, MySQL automatically cascades and deletes all associated inventory batches. Conversely, deleting an individual inventory batch (e.g., adjusting spoiled stock) deletes only that specific batch row and leaves the master ingredient and all other batches completely untouched.
+
+### 10. Future Considerations
+
+- In Phase 1 Module 5/6, implement FIFO stock consumption: when a recipe is prepared, deduct required quantities from the oldest non-expired batch first.
+- Synchronize `Ingredient.current_stock` automatically as the sum of all active, non-expired batch quantities.
+- Add an inventory expiration alerting service that queries batches where `expiry_date <= today + threshold`.
+
+### 11. What We Implemented
+
+- Implemented `InventoryBatch` SQLAlchemy model in [`backend/app/models/inventory_batch.py`](backend/app/models/inventory_batch.py) with 10 columns, cascading foreign key, and unique index on `batch_number`.
+- Exported `InventoryBatch` in [`backend/app/models/__init__.py`](backend/app/models/__init__.py).
+- Generated and applied Alembic migration [`backend/alembic/versions/dc3068eab3e5_create_inventory_batches_table.py`](backend/alembic/versions/dc3068eab3e5_create_inventory_batches_table.py).
+- Implemented Pydantic v2 schemas in [`backend/app/schemas/inventory_batch.py`](backend/app/schemas/inventory_batch.py) (`InventoryBatchBase`, `InventoryBatchCreate`, `InventoryBatchUpdate`, `InventoryBatchResponse`).
+- Implemented `InventoryBatchService` in [`backend/app/services/inventory_batch_service.py`](backend/app/services/inventory_batch_service.py) with automatic batch numbering (`_generate_next_batch_number`), intake verification, persisted date validation, and full CRUD.
+- Implemented FastAPI router in [`backend/app/api/inventory_batches.py`](backend/app/api/inventory_batches.py) and registered it at `/inventory-batches` in [`backend/app/main.py`](backend/app/main.py).
+- Executed comprehensive runtime testing across 32 scenarios verifying CRUD, constraints, immutability, ordering, and cascade isolation with 100% pass rate.
