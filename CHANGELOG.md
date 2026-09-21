@@ -201,4 +201,22 @@
   - Implemented FastAPI router in `backend/app/api/inventory_batches.py` with dependency injection (`get_db`), query validation (`skip >= 0`, `1 <= limit <= 500`), and registered the router at `/inventory-batches` in `backend/app/main.py`.
   - Executed comprehensive runtime testing across 32 scenarios covering creation, auto-generation, schema constraints, invalid IDs, immutability, pagination, updates, and cascade isolation with 100% pass rate.
 
+---
+
+## 2026-09-21 — Inventory Transaction Module
+
+- **Feature completed:** Inventory Transaction Management Module (Model, Migration, Schemas, Service & API)
+
+- **Summary of changes:**
+
+  - Implemented `TransactionType` Python Enum in `backend/app/core/enums.py` (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`) and exported it in `backend/app/core/__init__.py`.
+  - Implemented the `InventoryTransaction` SQLAlchemy 2.0 model in `backend/app/models/inventory_transaction.py` mapping `inventory_transactions` table with `id`, `inventory_batch_id` (foreign key -> `inventory_batches.id` with `ON DELETE CASCADE`, indexed), `transaction_type` (Enum, indexed), `quantity` (`Numeric(10, 2)`), `notes` (`String(255)`, nullable), `created_at` timestamp, and database check constraint `ck_inventory_transaction_quantity_positive` (`quantity > 0`).
+  - Exported `InventoryTransaction` and `TransactionType` in `backend/app/models/__init__.py`.
+  - Generated and applied Alembic migration `65ea68c341d8_create_inventory_transactions_table.py` creating the `inventory_transactions` table with foreign key cascade, primary key, indexes, check constraint, and enum types on MySQL.
+  - Implemented Pydantic v2 schemas in `backend/app/schemas/inventory_transaction.py` (`InventoryTransactionBase`, `InventoryTransactionCreate`, `InventoryTransactionResponse`) enforcing `inventory_batch_id > 0`, `quantity > 0` with 10 digits max and 2 decimal places, notes whitespace stripping and non-empty checks, and ORM serialization (`from_attributes=True`). Omitted update schemas to enforce record immutability.
+  - Implemented `InventoryTransactionService` in `backend/app/services/inventory_transaction_service.py` with batch existence validation (HTTP 404), insufficient stock prevention (HTTP 400), atomic batch stock quantity deduction (`batch.quantity -= transaction.quantity`), transactional rollback on failure, deterministic ordering (`created_at DESC, id DESC`), and pagination.
+  - Implemented FastAPI router in `backend/app/api/inventory_transactions.py` with dependency injection (`get_db`), query validation (`skip >= 0`, `1 <= limit <= 500`), and registered the router at `/inventory-transactions` in `backend/app/main.py`.
+  - Completed end-to-end integration, migration, Swagger UI verification, and review across stock deduction, audit immutability, pagination, and error scenarios with 100% pass rate.
+
+
 

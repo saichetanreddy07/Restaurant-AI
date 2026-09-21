@@ -5,10 +5,9 @@
 ### Phase 1 — Backend Core Modules (Sequential Delivery)
 
 #### Module 5: Inventory Management (Remaining Scope)
-- [ ] Implement inventory consumption service (FIFO / FEFO batch deduction)
-- [ ] Implement stock adjustment and waste tracking
+- [ ] Implement recipe-based FIFO / FEFO automated batch consumption during order processing
 - [ ] Implement low-stock alerts and expiration monitoring
-- [ ] Integrate automatic ingredient stock level synchronization
+- [ ] Integrate automatic ingredient master stock level synchronization
 
 #### Module 6: Availability Engine
 - [ ] Design availability computation schemas (`AvailabilityResponse`)
@@ -147,4 +146,17 @@
 - [x] Implement InventoryBatch API router (`POST`, `GET`, `PUT`, `DELETE` `/inventory-batches`)
 - [x] Register InventoryBatch router in `main.py` and export model in `models/__init__.py`
 - [x] Comprehensive runtime testing completed successfully (32/32 scenarios passed)
+
+### Phase 1 — Module 5: Inventory Transactions (Movement Tracking & Stock Deductions - Completed & Tested)
+
+- [x] Design inventory transactions database schema (`inventory_transactions` table with foreign key cascade, indexes, and check constraint)
+- [x] Define standardized `TransactionType` enum (`core/enums.py`: `CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`)
+- [x] Implement `InventoryTransaction` SQLAlchemy model (`models/inventory_transaction.py`) with `Numeric(10, 2)` quantity and `passive_deletes=True`
+- [x] Generate and apply Alembic migration for `inventory_transactions` table (`alembic/versions/65ea68c341d8_create_inventory_transactions_table.py`)
+- [x] Create InventoryTransaction Pydantic schemas (`InventoryTransactionBase`, `InventoryTransactionCreate`, `InventoryTransactionResponse`) enforcing immutability and positive values
+- [x] Implement `InventoryTransactionService` with batch existence validation, stock sufficiency checking, atomic batch stock quantity deduction, and deterministic ordering (`created_at DESC, id DESC`)
+- [x] Implement InventoryTransaction API router (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{transaction_id}`)
+- [x] Register InventoryTransaction router in `main.py` and export model in `models/__init__.py`
+- [x] Comprehensive testing completed successfully (stock deduction, audit immutability, pagination, and error scenarios)
+
 

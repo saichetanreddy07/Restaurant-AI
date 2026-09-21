@@ -10,7 +10,7 @@ A production-inspired Restaurant Operations Management System built to learn and
 
 RestaurantAI is a full-stack application designed to help restaurants manage ingredients, inventory, recipes, and menus from a single system.
 
-The application focuses on solving operational problems such as inventory tracking, ingredient expiry management, recipe management, and determining which menu items can be prepared based on available inventory.
+The application focuses on solving operational problems such as inventory lot tracking, recording inventory transactions, inventory movement tracking (consumption, waste, adjustments, expiration), maintaining an immutable inventory audit trail, automatic inventory quantity updates, ingredient expiry management, recipe management, and determining which menu items can be prepared based on available inventory.
 
 The project is built with learning in mind while following software engineering practices commonly used in production systems.
 
@@ -24,8 +24,9 @@ Restaurant inventory is often managed manually or across multiple disconnected s
 - Which ingredients are about to expire?
 - Which ingredient is preventing a dish from being available?
 - How much inventory remains after preparing dishes?
+- How much stock was lost to kitchen waste, shrinkage, or expiration versus customer sales?
 
-RestaurantAI aims to solve these problems through a centralized inventory and recipe management system.
+RestaurantAI aims to solve these problems through a centralized, audit-tracked inventory and recipe management system.
 
 ---
 
@@ -46,8 +47,8 @@ RestaurantAI aims to solve these problems through a centralized inventory and re
 - Menu Item Management (Completed ✅)
 - Recipe Management (Completed ✅)
 - Recipe Ingredients Management (Completed ✅)
-- Inventory Batch & Stock Management (Batch Intake Completed ✅ / Consumption ⏳)
-- Real-Time Dish Availability Engine (Planned 📋)
+- Inventory Batch & Stock Management (Batches & Movement Tracking Completed ✅)
+- Real-Time Dish Availability Engine (Next Active Milestone ⏳)
 
 - Production Simulation (Post-MVP)
 - Inventory Analytics & Expiry Dashboard (Post-MVP)
@@ -94,7 +95,7 @@ We are building the backend core one module at a time. After all six core module
   - Module 2: Menu Items: Completed ✅
   - Module 3: Recipes: Completed ✅
   - Module 4: Recipe Ingredients: Completed ✅
-  - Module 5: Inventory Batches: Completed ✅ (Remaining Inventory Scope ⏳)
+  - Module 5: Inventory Management (Batches & Transactions): Completed ✅
   - Module 6: Availability: Next Active Milestone ⏳
 - **Phase 2 (Backend Refactoring):** Planned 📋 *(Triggered after all 6 core modules complete — deduplication, architecture, centralized error handling, validations, query optimization, logging)*
 - **Phase 3 (Frontend):** Planned 📋 *(Triggered after backend is stable — React, TypeScript, Tailwind CSS, Axios API integration)*
@@ -113,7 +114,8 @@ restaurant-ai/
 │   │   │   ├── 6319aa944bc3_create_menu_items_table.py
 │   │   │   ├── d8e009624a08_create_recipes_table.py
 │   │   │   ├── 13e9221faf22_create_recipe_ingredients_table.py
-│   │   │   └── dc3068eab3e5_create_inventory_batches_table.py
+│   │   │   ├── dc3068eab3e5_create_inventory_batches_table.py
+│   │   │   └── 65ea68c341d8_create_inventory_transactions_table.py
 │   │   └── env.py
 │   ├── alembic.ini
 │   └── app/
@@ -122,6 +124,7 @@ restaurant-ai/
 │       │   ├── health.py
 │       │   ├── ingredients.py
 │       │   ├── inventory_batches.py
+│       │   ├── inventory_transactions.py
 │       │   ├── menu_items.py
 │       │   ├── recipes.py
 │       │   └── recipe_ingredients.py
@@ -136,6 +139,7 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── ingredient.py
 │       │   ├── inventory_batch.py
+│       │   ├── inventory_transaction.py
 │       │   ├── menu_item.py
 │       │   ├── recipe.py
 │       │   └── recipe_ingredient.py
@@ -143,6 +147,7 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── ingredient.py
 │       │   ├── inventory_batch.py
+│       │   ├── inventory_transaction.py
 │       │   ├── menu_item.py
 │       │   ├── recipe.py
 │       │   └── recipe_ingredient.py
@@ -150,6 +155,7 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── ingredient_service.py
 │       │   ├── inventory_batch_service.py
+│       │   ├── inventory_transaction_service.py
 │       │   ├── menu_item_service.py
 │       │   ├── recipe_service.py
 │       │   └── recipe_ingredient_service.py
@@ -219,6 +225,16 @@ restaurant-ai/
 - **REST API:** Complete REST endpoints under `/inventory-batches`.
 - **Testing Completed:** Comprehensive runtime testing across 32 scenarios covering creation, auto-generation, schema constraints, invalid IDs, immutability, pagination, updates, and cascade isolation with 100% pass rate.
 
+### 7. Phase 1 — Module 5: Inventory Transactions (Completed & Tested)
+- **Purpose:** Records physical stock movements occurring after batch intake (consumption, kitchen waste, adjustments, and expiration write-offs), updating batch on-hand quantities atomically while maintaining an immutable audit log.
+- **InventoryTransaction Model:** SQLAlchemy 2.0 declarative model mapping `inventory_transactions` table with `id`, `inventory_batch_id` (FK -> `inventory_batches.id`, cascade, indexed), `transaction_type` (Enum, indexed), `quantity` (`Numeric(10, 2)`), `notes` (`String(255)`, nullable), `created_at` timestamp, and database check constraint `ck_inventory_transaction_quantity_positive` (`quantity > 0`).
+- **Standardized Types:** `TransactionType` enum (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`) decoupled into `backend/app/core/enums.py`.
+- **Database Migration:** Generated and applied Alembic migration `65ea68c341d8_create_inventory_transactions_table.py` configuring foreign key cascade, indexes, check constraint, and enum column on MySQL.
+- **Pydantic Schemas:** `InventoryTransactionBase`, `InventoryTransactionCreate`, and `InventoryTransactionResponse` with positive ID validation (`gt=0`), strictly positive decimal quantity validation (`gt=0`, `max_digits=10`, `decimal_places=2`), whitespace stripping on optional notes, and ORM mode. Excludes update schemas to guarantee record immutability.
+- **Service Layer:** `InventoryTransactionService` providing atomic stock deductions, parent batch verification (HTTP 404), insufficient stock prevention (HTTP 400), deterministic ordering (`created_at DESC, id DESC`), pagination, and transactional rollback.
+- **REST API:** Complete REST endpoints under `/inventory-transactions` (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{id}`).
+- **Testing Completed:** End-to-end verification covering atomic stock deduction, insufficient stock rejection, audit immutability, pagination, and OpenAPI specification with 100% pass rate.
+
 ---
 
 # Database Schemas
@@ -287,6 +303,24 @@ restaurant-ai/
 | `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
 | `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
 
+### Table: `inventory_transactions`
+
+| Column | Type | Constraints / Defaults | Description |
+|---|---|---|---|
+| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
+| `inventory_batch_id` | `Integer` | Foreign Key -> `inventory_batches.id`, Not Null, Indexed, On Delete `CASCADE` | Reference to parent inventory batch |
+| `transaction_type` | `Enum(TransactionType)` | Not Null, Indexed (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`) | Operational classification of inventory movement |
+| `quantity` | `Numeric(10, 2)` | Not Null, Check `quantity > 0` | Quantity of stock deducted in this movement |
+| `notes` | `String(255)` | Nullable | Optional descriptive notes explaining the reason |
+| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp (immutable audit date) |
+
+*Indexes:*
+- `ix_inventory_transactions_inventory_batch_id` on `inventory_batch_id`
+- `ix_inventory_transactions_transaction_type` on `transaction_type`
+
+*Check Constraint:*
+- `ck_inventory_transaction_quantity_positive`: `quantity > 0`
+
 ---
 
 # API Endpoints
@@ -320,10 +354,110 @@ restaurant-ai/
 | `GET` | `/inventory-batches/{id}` | Retrieve single inventory batch by ID | `200 OK` / `404 Not Found` |
 | `PUT` | `/inventory-batches/{id}` | Update inventory batch fields | `200 OK` / `400 Bad Request` / `404 Not Found` |
 | `DELETE` | `/inventory-batches/{id}` | Delete inventory batch by ID | `200 OK` / `404 Not Found` |
+| `POST` | `/inventory-transactions` | Record inventory transaction and deduct batch stock | `201 Created` / `400 Bad Request` / `404 Not Found` |
+| `GET` | `/inventory-transactions` | Retrieve all inventory transactions (paginated) | `200 OK` |
+| `GET` | `/inventory-transactions/{id}` | Retrieve single inventory transaction by ID | `200 OK` / `404 Not Found` |
 | `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
 | `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
 
+---
+
+## Inventory Transactions API Reference
+
+### 1. `POST /inventory-transactions`
+Record a stock movement against an active inventory batch. Deducts the specified quantity from `InventoryBatch.quantity` atomically and writes an immutable transaction log.
+
+- **Request Schema (`InventoryTransactionCreate`):**
+  - `inventory_batch_id` (`int`, required): Unique ID of the target inventory batch. Must be $> 0$.
+  - `transaction_type` (`string`, required): One of `CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`.
+  - `quantity` (`Decimal`, required): Deduction quantity. Must be $> 0$, max 10 digits, max 2 decimal places.
+  - `notes` (`string`, optional): Explanatory remarks. Max 255 chars, whitespace stripped, cannot be whitespace-only.
+
+- **Validation & Business Rules:**
+  - Target inventory batch must exist (returns `404 Not Found`).
+  - Batch on-hand quantity must be sufficient: `batch.quantity >= transaction.quantity` (returns `400 Bad Request`).
+  - Immutability: Once created, transactions cannot be updated or deleted.
+  - Atomicity: Deduction and record insertion execute in a single database transaction.
+
+- **Example Request:**
+  ```json
+  {
+    "inventory_batch_id": 1,
+    "transaction_type": "CONSUMPTION",
+    "quantity": "5.50",
+    "notes": "Used for dinner rush burger prep"
+  }
+  ```
+
+- **Response (`201 Created`):**
+  ```json
+  {
+    "id": 1,
+    "inventory_batch_id": 1,
+    "transaction_type": "CONSUMPTION",
+    "quantity": "5.50",
+    "notes": "Used for dinner rush burger prep",
+    "created_at": "2026-09-21T17:35:31"
+  }
+  ```
+
+### 2. `GET /inventory-transactions`
+Retrieve all inventory transactions with pagination.
+
+- **Query Parameters:**
+  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
+  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
+
+- **Ordering:** Deterministically ordered by `created_at DESC` and `id DESC`.
+
+- **Response (`200 OK`):**
+  ```json
+  [
+    {
+      "id": 2,
+      "inventory_batch_id": 1,
+      "transaction_type": "WASTE",
+      "quantity": "1.00",
+      "notes": "Dropped on prep line",
+      "created_at": "2026-09-21T17:36:10"
+    },
+    {
+      "id": 1,
+      "inventory_batch_id": 1,
+      "transaction_type": "CONSUMPTION",
+      "quantity": "5.50",
+      "notes": "Used for dinner rush burger prep",
+      "created_at": "2026-09-21T17:35:31"
+    }
+  ]
+  ```
+
+### 3. `GET /inventory-transactions/{transaction_id}`
+Retrieve a single transaction record by its primary key ID.
+
+- **Path Parameters:**
+  - `transaction_id` (`int`, required): Unique ID of the transaction.
+
+- **Response (`200 OK`):**
+  ```json
+  {
+    "id": 1,
+    "inventory_batch_id": 1,
+    "transaction_type": "CONSUMPTION",
+    "quantity": "5.50",
+    "notes": "Used for dinner rush burger prep",
+    "created_at": "2026-09-21T17:35:31"
+  }
+  ```
+
+- **Error Response (`404 Not Found`):**
+  ```json
+  {
+    "detail": "Inventory transaction with ID 999 not found."
+  }
+  ```
 
 ---
 
 > This project is being built incrementally. Documentation and architecture evolve alongside development.
+

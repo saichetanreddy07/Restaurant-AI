@@ -8,8 +8,8 @@
   - Module 2: Menu Items ✅ Completed & Tested
   - Module 3: Recipes ✅ Completed & Tested
   - Module 4: Recipe Ingredients ✅ Completed & Tested
-  - Module 5: Inventory Batches ✅ Completed & Tested (Remaining Inventory Scope ⏳)
-  - Module 6: Availability 📋 Planned
+  - Module 5: Inventory Management (Batches & Transactions) ✅ Completed & Tested
+  - Module 6: Availability ⏳ Next Active Milestone
 - **Phase 2 (Backend Refactoring):** 📋 Planned (triggered after all 6 backend modules are completed)
 - **Phase 3 (Frontend):** 📋 Planned (triggered only after backend is stable)
 - **Phase 4 (Production Readiness):** 📋 Planned
@@ -67,7 +67,7 @@ We are intentionally completing the backend one domain module at a time. Each mo
 - [x] Enforce strictly positive quantities and fixed-point decimal precision
 - [x] Comprehensive end-to-end testing completed successfully (22/22 scenarios passed)
 
-### Module 5: Inventory (Batch Tracking Completed ✅ / Advanced Stock Operations Active ⏳)
+### Module 5: Inventory (Batch Tracking & Transactions Completed ✅)
 - [x] Design inventory tracking schema (`inventory_batches` table with cascade foreign key and unique index on `batch_number`)
 - [x] Implement `InventoryBatch` SQLAlchemy model with batch tracking and expiry dates
 - [x] Generate and apply Alembic migration for `inventory_batches` table (`alembic/versions/dc3068eab3e5_create_inventory_batches_table.py`)
@@ -75,8 +75,14 @@ We are intentionally completing the backend one domain module at a time. Each mo
 - [x] Implement `InventoryBatchService` for stock reception, auto-generated batch numbering, and batch updates
 - [x] Implement Inventory Batch REST API endpoints (`/inventory-batches`)
 - [x] Comprehensive runtime testing completed successfully (32/32 scenarios passed)
-- [ ] Implement inventory consumption service (FIFO / FEFO batch deduction)
-- [ ] Implement stock adjustment and waste tracking
+- [x] Design inventory transactions schema (`inventory_transactions` table with foreign key cascade, indexes, and positive quantity check constraint)
+- [x] Implement `InventoryTransaction` SQLAlchemy model and `TransactionType` Enum (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`)
+- [x] Generate and apply Alembic migration for `inventory_transactions` table (`alembic/versions/65ea68c341d8_create_inventory_transactions_table.py`)
+- [x] Create Pydantic schemas for transactions enforcing immutability and positive values (`InventoryTransactionBase`, `InventoryTransactionCreate`, `InventoryTransactionResponse`)
+- [x] Implement `InventoryTransactionService` with atomic batch stock deduction, insufficient stock rejection, and immutability
+- [x] Implement Inventory Transaction REST API endpoints (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{transaction_id}`)
+- [x] Comprehensive runtime testing completed successfully across stock deductions, audit immutability, and error handling
+- [ ] Implement automated recipe-based FIFO / FEFO batch deduction during order fulfillment
 - [ ] Expiry date alerting and low-stock threshold monitoring
 
 ### Module 6: Availability (Next Active Milestone ⏳)

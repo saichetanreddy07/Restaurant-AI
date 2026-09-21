@@ -1093,4 +1093,100 @@ In commercial restaurant operations, tracking inventory solely through an aggreg
 - Implemented Pydantic v2 schemas in [`backend/app/schemas/inventory_batch.py`](backend/app/schemas/inventory_batch.py) (`InventoryBatchBase`, `InventoryBatchCreate`, `InventoryBatchUpdate`, `InventoryBatchResponse`).
 - Implemented `InventoryBatchService` in [`backend/app/services/inventory_batch_service.py`](backend/app/services/inventory_batch_service.py) with automatic batch numbering (`_generate_next_batch_number`), intake verification, persisted date validation, and full CRUD.
 - Implemented FastAPI router in [`backend/app/api/inventory_batches.py`](backend/app/api/inventory_batches.py) and registered it at `/inventory-batches` in [`backend/app/main.py`](backend/app/main.py).
-- Executed comprehensive runtime testing across 32 scenarios verifying CRUD, constraints, immutability, ordering, and cascade isolation with 100% pass rate.
+- Executed comprehensive runtime testing across 32 scenarios covering creation, auto-generation, schema constraints, invalid IDs, immutability, pagination, updates, and cascade isolation with 100% pass rate.
+
+---
+
+## Decision 011: Immutable Inventory Transaction Audit Architecture with Atomic Batch Stock Deductions and Domain-Enforced Movement Classification
+
+### 1. Decision
+
+Implement the **`InventoryTransaction`** entity to record every physical inventory movement occurring after batch intake, maintaining [`InventoryBatch`](backend/app/models/inventory_batch.py) as the source of current available stock. Enforce strict **immutability** on all transaction records (prohibiting `PUT`, `PATCH`, and `DELETE` operations at both the schema, service, and API router layers). Classify inventory movements via a strongly-typed [`TransactionType`](backend/app/core/enums.py) enum (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`). Execute stock deductions and transaction record insertions **atomically** within the same database transaction with automatic rollback on insufficient stock or failure, establishing a tamper-proof audit trail for restaurant operations.
+
+### 2. Context
+
+In restaurant operations, inventory is in continuous motion after a shipment is received:
+- **Food Preparation & Cooking (`CONSUMPTION`):** Ingredients are deducted from active inventory batches to prepare dishes ordered by customers.
+- **Kitchen Spoilage & Drops (`WASTE`):** Ingredients dropped, burned, or contaminated during kitchen prep must be logged for shrinkage analysis.
+- **Physical Inventory Recounts (`ADJUSTMENT`):** Routine kitchen cycle counts reveal discrepancies between physical counts and digital records, requiring downward stock adjustments.
+- **Shelf-Life Degradation (`EXPIRED`):** Perishable lots that reach their expiration date before consumption must be discarded and written off.
+
+Allowing staff to directly overwrite `InventoryBatch.quantity` without recording an audit event creates critical operational problems:
+- **Loss of Accountability:** If 10 kg of beef disappears, management cannot determine whether it was sold in burgers, spoiled due to refrigeration failure, thrown away due to expiration, or stolen.
+- **Audit Tampering:** If transaction records could be updated or deleted, shrinkage could be concealed by altering historical logs.
+- **Concurrency & Inconsistency:** Updating batch stock in one database query and writing a log in another can cause desynchronization if either operation fails.
+
+### 3. Why this approach?
+
+- **Strict Immutability:** Transactions represent immutable historical facts. Once a stock movement occurs, it cannot be undone or rewritten. Correction requires appending a new compensating transaction record. By excluding update and delete endpoints and schemas entirely, immutability is enforced across the entire system.
+- **Atomic Stock Deduction:** Inside [`InventoryTransactionService`](backend/app/services/inventory_transaction_service.py), deducting quantity from `InventoryBatch` and inserting the `InventoryTransaction` record occur within the same SQLAlchemy session transaction (`self.db.commit()`), with automatic rollback (`self.db.rollback()`) on any error. This guarantees zero stock desynchronization.
+- **Separation of State from History:** `InventoryBatch` stores the *current mutable state* (`quantity` remaining), enabling fast queries for dish availability and intake dates. `InventoryTransaction` stores the *chronological event log* (`created_at`, `quantity`, `transaction_type`, `notes`), providing full historical traceability.
+- **Typed Movement Classification (`TransactionType` Enum):** Using a domain enum (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`) stored as a database enum column ensures only valid business movements are persisted, eliminating ad-hoc free-text status errors.
+- **Database-Enforced Non-Negative Stock:** Enforces `batch.quantity >= transaction_in.quantity` before deduction, returning `HTTP 400 Bad Request` if stock is insufficient. Furthermore, a database-level `CheckConstraint('quantity > 0')` guarantees that invalid or zero-quantity transaction rows cannot be inserted.
+- **Cascading History Cleanup:** A foreign key constraint `inventory_batch_id` with `ON DELETE CASCADE` ensures that if an entire inventory batch is purged, its historical transaction logs are cleanly removed without leaving orphaned records.
+
+### 4. Alternatives Considered
+
+- **Direct In-Place Mutation of Batch Records:** Simply decrementing `InventoryBatch.quantity` in place without logging individual transaction events.
+- **Combined Ledger Architecture (Single Table for Intake and Deductions):** Treating the initial stock intake as a `STOCK_IN` transaction and eliminating the `quantity` column on `InventoryBatch`, computing available stock dynamically as the sum of intake minus the sum of outflow.
+- **Mutable Transaction Logs:** Allowing `PUT` and `DELETE` endpoints for transactions so supervisors can edit typo mistakes in quantities or notes.
+- **Application-Level Event Bus / Message Broker:** Publishing domain events to an external message broker (RabbitMQ/Kafka) to log transactions asynchronously.
+
+### 5. Why Alternatives Were Not Chosen
+
+- **Direct In-Place Mutation:** Destroys operational history. It is impossible to explain inventory variances, audit food waste, or calculate COGS accurately without an event log.
+- **Combined Ledger (Pure Event Sourcing):** In a relational restaurant system, computing on-hand batch quantities by aggregating all historical transaction rows on every menu availability check incurs significant query overhead and complicates expiration/FIFO batch selection. Storing current available quantity on the batch while recording transactions provides $O(1)$ stock checks alongside full auditability.
+- **Mutable Logs:** Compromises accounting integrity. In financial and inventory auditing, correcting a transaction requires posting a counter-adjustment, never deleting or altering past logs.
+- **External Message Broker:** Violates our development philosophy by introducing premature enterprise infrastructure (Kafka/RabbitMQ) for a single-service relational backend.
+
+### 6. Benefits
+
+- Complete, tamper-proof audit trail for all inventory deductions and shrinkage.
+- ACID-compliant atomic stock updates with zero drift between recorded transactions and batch quantities.
+- Immediate operational clarity: management can differentiate between sales consumption, spoilage, expiration, and shrinkage.
+- High performance: dish availability and FEFO selection query `InventoryBatch.quantity` directly in $O(1)$ time without scanning transaction logs.
+- Strong domain validation: strict positive quantity enforcement (`Field(gt=0)`, `Numeric(10, 2)`), non-empty notes trimming, and enum validation.
+
+### 7. Limitations
+
+- Only downward inventory movements are supported in this phase; positive stock adjustments (e.g., intake error corrections) will be introduced in subsequent iterations.
+- If a user enters an incorrect transaction quantity, they cannot edit the record; they must wait for future positive adjustment functionality to balance the ledger.
+
+### 8. When This Decision May Not Be Appropriate
+
+- High-throughput streaming telemetry systems (e.g., IoT sensor readings) where write volume is so high that relational ACID transactions introduce database write contention.
+- Simple retail stores with non-perishable goods that conduct only annual bulk stock reconciliations.
+
+### 9. Interview Questions & Answers
+
+#### Q1: Why are Inventory Transactions designed as immutable records without Update or Delete operations?
+> **Answer:** In supply chain and financial accounting, an inventory movement is an immutable historical event. Once 5 kg of tomatoes are consumed or discarded, that physical event cannot be un-happened. Allowing updates or deletions opens the system to audit fraud, makes shrinkage untraceable, and corrupts historical reporting. If a data entry mistake occurs, accounting best practice requires creating a new compensating adjustment transaction rather than modifying past records.
+
+#### Q2: What is the difference in responsibility between `InventoryBatch` and `InventoryTransaction`?
+> **Answer:** `InventoryBatch` maintains the current operational state of stock received from a supplier (remaining available quantity, unit cost, supplier, received date, expiry date). `InventoryTransaction` represents the ledger of events that change that state over time (consumption, waste, expiration, adjustment). This hybrid approach provides $O(1)$ reads for real-time dish availability checks while preserving a full audit trail.
+
+#### Q3: How does the service layer ensure that batch stock deduction and transaction recording do not get out of sync?
+> **Answer:** Both operations occur within the same SQLAlchemy session transaction. In `InventoryTransactionService.create_inventory_transaction()`, the batch record is fetched and validated, `batch.quantity` is decremented in memory, the new `InventoryTransaction` instance is added to the session, and a single `db.commit()` is issued. If an exception occurs, `db.rollback()` is invoked, ensuring either both changes succeed or neither does.
+
+#### Q4: Why doesn't creating an `InventoryBatch` automatically generate a `STOCK_IN` transaction?
+> **Answer:** To keep the domain model simple and avoid redundant writes. When an inventory batch is created, its initial intake quantity, cost, supplier, and received date are captured directly on the `inventory_batches` table. The transaction history begins after the batch exists to record subsequent operational movements.
+
+#### Q5: What database constraints protect data integrity in the `inventory_transactions` table?
+> **Answer:** Referential integrity is enforced via a foreign key constraint referencing `inventory_batches.id` with `ON DELETE CASCADE`. Data validity is guarded by a database check constraint `ck_inventory_transaction_quantity_positive` (`quantity > 0`), an indexed `Enum` column restricting `transaction_type`, and non-nullable `Numeric(10, 2)` decimal precision.
+
+### 10. Future Considerations
+
+- Implement positive stock adjustments to allow supervisor corrections for under-counted intake.
+- Implement automated recipe-based FIFO/FEFO batch deduction when orders are fulfilled in the Availability / POS module.
+- Add inventory analytics aggregating transactions by `transaction_type` over time to generate kitchen waste and COGS reports.
+
+### 11. What We Implemented
+
+- Implemented `InventoryTransaction` SQLAlchemy model in [`backend/app/models/inventory_transaction.py`](backend/app/models/inventory_transaction.py) with `id`, `inventory_batch_id` (FK -> `inventory_batches.id`, cascade, indexed), `transaction_type` (Enum, indexed), `quantity` (`Numeric(10, 2)`), `notes` (`String(255)`, nullable), and `created_at` timestamp.
+- Defined `TransactionType` Enum (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`) in [`backend/app/core/enums.py`](backend/app/core/enums.py) and exported in [`backend/app/core/__init__.py`](backend/app/core/__init__.py).
+- Exported `InventoryTransaction` and `TransactionType` in [`backend/app/models/__init__.py`](backend/app/models/__init__.py).
+- Generated and applied Alembic migration [`backend/alembic/versions/65ea68c341d8_create_inventory_transactions_table.py`](backend/alembic/versions/65ea68c341d8_create_inventory_transactions_table.py).
+- Implemented Pydantic v2 schemas in [`backend/app/schemas/inventory_transaction.py`](backend/app/schemas/inventory_transaction.py) (`InventoryTransactionBase`, `InventoryTransactionCreate`, `InventoryTransactionResponse`) with strict positive ID/quantity validation, whitespace stripping on optional notes, and ORM mode.
+- Implemented `InventoryTransactionService` in [`backend/app/services/inventory_transaction_service.py`](backend/app/services/inventory_transaction_service.py) with batch existence validation (HTTP 404), insufficient stock prevention (HTTP 400), atomic batch quantity deduction, deterministic ordering (`created_at DESC, id DESC`), pagination, and transactional rollback.
+- Implemented FastAPI router in [`backend/app/api/inventory_transactions.py`](backend/app/api/inventory_transactions.py) and registered it at `/inventory-transactions` in [`backend/app/main.py`](backend/app/main.py).
+- Executed comprehensive testing verifying atomic deductions, error handling, immutability, pagination, and OpenAPI contracts.
