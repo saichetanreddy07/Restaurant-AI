@@ -4,6 +4,7 @@ try:
     from app.api.health import router as health_router
     from app.api.ingredients import router as ingredients_router
     from app.api.inventory_batches import router as inventory_batches_router
+    from app.api.inventory_transactions import router as inventory_transactions_router
     from app.api.menu_items import router as menu_items_router
     from app.api.recipes import router as recipes_router
     from app.api.recipe_ingredients import router as recipe_ingredients_router
@@ -11,6 +12,7 @@ except ModuleNotFoundError:
     from backend.app.api.health import router as health_router
     from backend.app.api.ingredients import router as ingredients_router
     from backend.app.api.inventory_batches import router as inventory_batches_router
+    from backend.app.api.inventory_transactions import router as inventory_transactions_router
     from backend.app.api.menu_items import router as menu_items_router
     from backend.app.api.recipes import router as recipes_router
     from backend.app.api.recipe_ingredients import router as recipe_ingredients_router
@@ -58,6 +60,10 @@ app.include_router(
     prefix="/inventory-batches",
     tags=["Inventory Batches"],
 )
+
+# Inventory Transaction endpoints
+app.include_router(inventory_transactions_router)
+
 
 
 @app.get("/", status_code=status.HTTP_200_OK)

@@ -24,3 +24,12 @@ class MenuCategory(str, Enum):
     BEVERAGE = "beverage"
     COMBO = "combo"
     OTHER = "other"
+
+
+class TransactionType(str, Enum):
+    """Types of inventory transactions tracking stock movements."""
+
+    CONSUMPTION = "CONSUMPTION"
+    WASTE = "WASTE"
+    ADJUSTMENT = "ADJUSTMENT"
+    EXPIRED = "EXPIRED"
