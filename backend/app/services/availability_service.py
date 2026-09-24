@@ -1,14 +1,13 @@
 """Service layer for real-time inventory availability calculations."""
 
-from decimal import Decimal
 import math
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 try:
-    from app.models.ingredient import Ingredient
     from app.models.menu_item import MenuItem
     from app.models.recipe import Recipe
     from app.models.recipe_ingredient import RecipeIngredient
@@ -18,7 +17,6 @@ try:
         RecipeAvailabilityResponse,
     )
 except ModuleNotFoundError:
-    from backend.app.models.ingredient import Ingredient
     from backend.app.models.menu_item import MenuItem
     from backend.app.models.recipe import Recipe
     from backend.app.models.recipe_ingredient import RecipeIngredient
@@ -188,17 +186,29 @@ class AvailabilityService:
         )
         recipes = list(self.db.execute(recipes_query).scalars().all())
 
+        if not recipes:
+            return []
+
+        recipe_ids = [recipe.id for recipe in recipes]
+        recipe_ingredients_query = (
+            select(RecipeIngredient)
+            .options(joinedload(RecipeIngredient.ingredient))
+            .where(RecipeIngredient.recipe_id.in_(recipe_ids))
+            .order_by(RecipeIngredient.recipe_id.asc(), RecipeIngredient.id.asc())
+        )
+        all_recipe_ingredients = list(
+            self.db.execute(recipe_ingredients_query).scalars().all()
+        )
+
+        ingredients_by_recipe: dict[int, list[RecipeIngredient]] = {
+            recipe.id: [] for recipe in recipes
+        }
+        for ri in all_recipe_ingredients:
+            ingredients_by_recipe[ri.recipe_id].append(ri)
+
         results: list[RecipeAvailabilityResponse] = []
         for recipe in recipes:
-            recipe_ingredients_query = (
-                select(RecipeIngredient)
-                .options(joinedload(RecipeIngredient.ingredient))
-                .where(RecipeIngredient.recipe_id == recipe.id)
-                .order_by(RecipeIngredient.id.asc())
-            )
-            recipe_ingredients = list(
-                self.db.execute(recipe_ingredients_query).scalars().all()
-            )
+            recipe_ingredients = ingredients_by_recipe[recipe.id]
 
             if not recipe_ingredients:
                 results.append(
@@ -252,10 +262,35 @@ class AvailabilityService:
         )
         menu_items = list(self.db.execute(menu_items_query).scalars().all())
 
+        if not menu_items:
+            return []
+
+        item_ids = [item.id for item in menu_items]
+        recipes_query = select(Recipe).where(Recipe.menu_item_id.in_(item_ids))
+        recipes = list(self.db.execute(recipes_query).scalars().all())
+
+        recipe_by_menu_item: dict[int, Recipe] = {
+            recipe.menu_item_id: recipe for recipe in recipes
+        }
+
+        recipe_ids = [recipe.id for recipe in recipes]
+        ingredients_by_recipe: dict[int, list[RecipeIngredient]] = {
+            recipe.id: [] for recipe in recipes
+        }
+
+        if recipe_ids:
+            recipe_ingredients_query = (
+                select(RecipeIngredient)
+                .options(joinedload(RecipeIngredient.ingredient))
+                .where(RecipeIngredient.recipe_id.in_(recipe_ids))
+                .order_by(RecipeIngredient.recipe_id.asc(), RecipeIngredient.id.asc())
+            )
+            for ri in self.db.execute(recipe_ingredients_query).scalars().all():
+                ingredients_by_recipe[ri.recipe_id].append(ri)
+
         results: list[MenuItemAvailabilityResponse] = []
         for item in menu_items:
-            recipe_query = select(Recipe).where(Recipe.menu_item_id == item.id)
-            recipe = self.db.execute(recipe_query).scalar_one_or_none()
+            recipe = recipe_by_menu_item.get(item.id)
 
             if not recipe:
                 results.append(
@@ -271,15 +306,7 @@ class AvailabilityService:
                 )
                 continue
 
-            recipe_ingredients_query = (
-                select(RecipeIngredient)
-                .options(joinedload(RecipeIngredient.ingredient))
-                .where(RecipeIngredient.recipe_id == recipe.id)
-                .order_by(RecipeIngredient.id.asc())
-            )
-            recipe_ingredients = list(
-                self.db.execute(recipe_ingredients_query).scalars().all()
-            )
+            recipe_ingredients = ingredients_by_recipe.get(recipe.id, [])
 
             if not recipe_ingredients:
                 results.append(
@@ -346,11 +373,7 @@ class AvailabilityService:
             ingredient_name = (
                 ingredient.name if ingredient else f"Ingredient {ri.ingredient_id}"
             )
-            unit_val = (
-                ingredient.unit.value
-                if ingredient and hasattr(ingredient.unit, "value")
-                else str(ingredient.unit if ingredient else "")
-            )
+            unit_val = ingredient.unit.value if ingredient else ""
 
             # Access synchronized stock quantity directly from Ingredient.stock_quantity
             stock_qty = ingredient.stock_quantity if ingredient else 0.0

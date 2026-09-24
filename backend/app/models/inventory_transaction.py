@@ -121,5 +121,3 @@ class InventoryTransaction(Base):
             f")>"
         )
 
-
-__all__ = ["InventoryTransaction", "TransactionType"]

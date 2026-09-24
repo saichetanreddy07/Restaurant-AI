@@ -1,7 +1,6 @@
 """Pydantic schemas for automated inventory consumption operations."""
 
 from decimal import Decimal
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 

@@ -55,16 +55,8 @@ class InventoryTransactionService:
         Raises:
             HTTPException: 404 Not Found if the referenced inventory batch does
                 not exist.
-            HTTPException: 400 Bad Request if the quantity is less than or
-                equal to zero.
             HTTPException: 400 Bad Request if insufficient stock is available.
         """
-        if transaction_in.quantity <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Quantity must be greater than zero.",
-            )
-
         batch_query = select(InventoryBatch).where(
             InventoryBatch.id == transaction_in.inventory_batch_id,
         )

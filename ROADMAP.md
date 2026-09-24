@@ -1,146 +1,78 @@
-# Roadmap
+# Project Roadmap
 
-## Overall Progress Summary
-
-- **Current Phase:** Phase 1 — Backend Core Modules (In Progress)
-- **Phase 1 Progress:** 5 of 6 modules completed (83.3%)
-  - Module 1: Ingredients ✅ Completed & Tested
-  - Module 2: Menu Items ✅ Completed & Tested
-  - Module 3: Recipes ✅ Completed & Tested
-  - Module 4: Recipe Ingredients ✅ Completed & Tested
-  - Module 5: Inventory Management ✅ Completed & Tested
-  - Module 6: Availability Engine ⏳ Next Active Milestone
-- **Phase 2 (Backend Refactoring):** 📋 Planned (triggered after all 6 backend modules are completed)
-- **Phase 3 (Frontend):** 📋 Planned (triggered only after backend is stable)
-- **Phase 4 (Production Readiness):** 📋 Planned
+This roadmap tracks the high-level development phases of **RestaurantAI**. The strategy follows a disciplined, sequential approach: building and testing a robust backend first, followed by a dedicated refactoring phase, a modern React frontend, and production deployment.
 
 ---
 
-## Phase 1 — Backend Core Modules
+## Progress Overview
 
-We are intentionally completing the backend one domain module at a time. Each module includes its SQLAlchemy model, Alembic migration, Pydantic validation schemas, service layer with business logic, API router with CRUD endpoints, and comprehensive testing.
-
-### Backend Foundation (Completed)
-- [x] Setup FastAPI application and project structure
-- [x] Environment configuration via `pydantic-settings`
-- [x] SQLAlchemy 2.0 database engine and session factory (`get_db`)
-- [x] Database health check endpoint (`/health`)
-- [x] Alembic migration environment configuration
-
-### Module 1: Ingredients (Completed ✅)
-- [x] Ingredient SQLAlchemy model mapping `ingredients` table
-- [x] Decoupled measurement `Unit` enum in `app/core/enums.py` (`KG`, `G`, `L`, `ML`, `PCS`)
-- [x] Initial Alembic migration for `ingredients` table
-- [x] Pydantic schemas (`IngredientCreate`, `IngredientUpdate`, `IngredientResponse`)
-- [x] `IngredientService` CRUD operations with pagination
-- [x] REST API endpoints (`/ingredients`)
-- [x] Validation, stock bounds, and case-insensitive duplicate checking
-- [x] Tested successfully
-
-### Module 2: Menu Items (Completed ✅)
-- [x] `MenuItem` SQLAlchemy model mapping `menu_items` catalog table
-- [x] Decoupled `MenuCategory` enum in `app/core/enums.py` (`APPETIZER`, `MAIN_COURSE`, `DESSERT`, `BEVERAGE`, `SIDE`)
-- [x] Alembic migration for `menu_items` table
-- [x] Pydantic schemas (`MenuItemBase`, `MenuItemCreate`, `MenuItemUpdate`, `MenuItemResponse`)
-- [x] `MenuItemService` CRUD operations with pagination
-- [x] REST API endpoints (`/menu-items`)
-- [x] Validation, price precision, and case-insensitive duplicate checking
-- [x] Tested successfully
-
-### Module 3: Recipes (Completed ✅)
-- [x] Design recipe database schema (`recipes` table with 1:1 `menu_item_id` foreign key)
-- [x] Implement `Recipe` SQLAlchemy model (linked to `menu_items` with cascading delete and `passive_deletes=True`)
-- [x] Generate Alembic migration for `recipes` table (`alembic/versions/d8e009624a08_create_recipes_table.py`)
-- [x] Create Pydantic schemas (`RecipeBase`, `RecipeCreate`, `RecipeUpdate`, `RecipeResponse`)
-- [x] Implement `RecipeService` CRUD operations with pagination, duplicate protection, and 1:1 validation
-- [x] Implement Recipe REST API endpoints (`/recipes`)
-- [x] Input validation, title casing, and error response handling
-- [x] Comprehensive testing completed successfully (21/21 scenarios passed)
-
-### Module 4: Recipe Ingredients (Completed ✅)
-- [x] Design recipe-ingredient relationship schema (`recipe_ingredients` table with composite unique constraint)
-- [x] Implement `RecipeIngredient` association model (linking `Recipe` and `Ingredient` with `Numeric(10, 2)` quantity and cascading deletes)
-- [x] Generate and apply Alembic migration for `recipe_ingredients` table (`alembic/versions/13e9221faf22_create_recipe_ingredients_table.py`)
-- [x] Create Pydantic schemas (`RecipeIngredientBase`, `RecipeIngredientCreate`, `RecipeIngredientUpdate`, `RecipeIngredientResponse`)
-- [x] Implement `RecipeIngredientService` with parent validation, duplicate prevention, and recipe immutability
-- [x] Implement REST API endpoints for recipe ingredients (`/recipe-ingredients`)
-- [x] Enforce strictly positive quantities and fixed-point decimal precision
-- [x] Comprehensive end-to-end testing completed successfully (22/22 scenarios passed)
-
-### Module 5: Inventory Management (Completed ✅)
-- [x] Design inventory tracking schema (`inventory_batches` table with cascade foreign key and unique index on `batch_number`)
-- [x] Implement `InventoryBatch` SQLAlchemy model with batch tracking and expiry dates
-- [x] Generate and apply Alembic migration for `inventory_batches` table (`alembic/versions/dc3068eab3e5_create_inventory_batches_table.py`)
-- [x] Create Pydantic schemas for inventory intake, adjustments, and batch monitoring (`InventoryBatchBase`, `InventoryBatchCreate`, `InventoryBatchUpdate`, `InventoryBatchResponse`)
-- [x] Implement `InventoryBatchService` for stock reception, auto-generated batch numbering, and batch updates
-- [x] Implement Inventory Batch REST API endpoints (`/inventory-batches`)
-- [x] Comprehensive runtime testing completed successfully (32/32 scenarios passed)
-- [x] Design inventory transactions schema (`inventory_transactions` table with foreign key cascade, indexes, and positive quantity check constraint)
-- [x] Implement `InventoryTransaction` SQLAlchemy model and `TransactionType` Enum (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`)
-- [x] Generate and apply Alembic migration for `inventory_transactions` table (`alembic/versions/65ea68c341d8_create_inventory_transactions_table.py`)
-- [x] Create Pydantic schemas for transactions enforcing immutability and positive values (`InventoryTransactionBase`, `InventoryTransactionCreate`, `InventoryTransactionResponse`)
-- [x] Implement `InventoryTransactionService` with atomic batch stock deduction, insufficient stock rejection, and immutability
-- [x] Implement Inventory Transaction REST API endpoints (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{transaction_id}`)
-- [x] Comprehensive runtime testing completed successfully across stock deductions, audit immutability, and error handling
-- [x] Implement automatic Ingredient stock synchronization (`sync_ingredient_stock(ingredient_id)`) maintaining `InventoryBatch` as single source of truth
-- [x] Expiry date alerting and low-stock threshold monitoring (`GET /inventory-batches/low-stock`, `GET /inventory-batches/expiring`, `GET /inventory-batches/expired`)
-- [x] Implement dedicated `InventoryConsumptionService` with automated FEFO/FIFO recipe inventory consumption
-- [x] Implement inventory consumption API endpoint (`POST /inventory/consume`)
-- [x] Fix `InventoryBatchResponse` schema for depleted zero-quantity batches
-- [x] Comprehensive manual and API test suite completed successfully (16/16 scenarios passed)
-
-### Module 6: Availability Engine (Next Active Milestone ⏳)
-- [ ] Design availability computation data schemas
-- [ ] Implement real-time availability calculation engine (checking stock for all ingredients in linked recipes)
-- [ ] Implement REST API endpoints for real-time dish availability
-- [ ] Ingredient shortage detection and maximum order quantity calculation
-- [ ] Unit and integration testing
+| Phase | Milestone | Status | Description |
+|---|---|---|---|
+| **Phase 1** | Backend Core Modules | **Completed ✅** | Full implementation of all 6 operational domain modules |
+| **Phase 2** | Backend Refactoring | **Completed ✅** | Query optimization, N+1 elimination, SQL aggregation, dead code cleanup |
+| **Phase 3** | React Frontend | **Next Active ⏳** | Modern React + TypeScript + Tailwind single-page application |
+| **Phase 4** | Production Readiness | **Planned 📋** | End-to-end integration tests, containerization, deployment setup |
+| **Post-MVP** | Advanced Features | **Planned 📋** | Auth, Analytics, AI dish recommendations, ML demand forecasting |
 
 ---
 
-## Phase 2 — Backend Refactoring
+## Phase 1: Backend Core Modules (Completed ✅)
 
-*Triggered strictly after ALL six Phase 1 backend modules are completed.*
+Every core domain module has been designed, implemented, migrated via Alembic, and verified with automated test suites:
 
-- [ ] Remove duplicated code across services and routers
-- [ ] Improve architecture and service layer modularity
-- [ ] Add centralized error handling & custom domain exception handlers
-- [ ] Improve validations across all endpoints
-- [ ] Optimize services and database query performance
-- [ ] Implement structured application logging
-- [ ] Improve API consistency and standard response structures
-- [ ] Finalize backend test coverage and stability
-
----
-
-## Phase 3 — React Frontend
-
-*Triggered only after the backend is stable, refactored, and finalized.*
-
-- [ ] Setup React project with TypeScript
-- [ ] Configure Tailwind CSS styling
-- [ ] Setup Axios client with centralized API configuration
-- [ ] Ingredients Management UI
-- [ ] Menu Items Catalog UI
-- [ ] Recipes & Recipe Ingredients UI
-- [ ] Inventory Management & Batch Tracking UI
-- [ ] Real-Time Operations & Availability Dashboard UI
-- [ ] End-to-end API integration
+- [x] **Backend Foundation:** FastAPI application setup, `pydantic-settings` configuration, SQLAlchemy 2.0 database engine, session management, and `/health` check.
+- [x] **Module 1 — Ingredient Master:** Master ingredient catalog, standardized `Unit` enum, decimal financial tracking, and reorder point thresholds (`minimum_stock`).
+- [x] **Module 2 — Menu Items Catalog:** Commercial sales catalog decoupled from culinary formulas, standardized `MenuCategory` enum, and exact decimal pricing.
+- [x] **Module 3 — Recipe Management:** 1-to-1 association linking commercial menu items with culinary formulas, cascading deletes, and uniqueness constraints.
+- [x] **Module 4 — Recipe Ingredients (BOM):** Many-to-many relationship modeling quantified ingredient requirements per serving, strictly positive decimal quantities, and composite unique constraints.
+- [x] **Module 5 — Inventory Lot Tracking & Transactions:**
+  - Physical lot/batch tracking with supplier, intake date, and expiry dates.
+  - Deterministic batch code generator (`<CODE>-<YYYYMMDD>-<SEQ>`).
+  - Immutable movement audit logging (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`).
+  - Automated single-source-of-truth ingredient stock synchronization.
+  - Expiration monitoring (`/low-stock`, `/expiring`, `/expired`).
+  - Automated FEFO / FIFO multi-batch recipe consumption engine (`POST /inventory/consume`).
+- [x] **Module 6 — Real-Time Availability Engine:** Live dish availability calculation, maximum servings determination, and ingredient bottleneck/shortage detection.
 
 ---
 
-## Phase 4 — Production Readiness
+## Phase 2: Conservative Backend Refactoring (Completed ✅)
 
-- [ ] End-to-end integration and unit testing (Pytest)
-- [ ] Execute Alembic migrations on target MySQL database
-- [ ] Final documentation update
-- [ ] Deployment preparation
+Triggered immediately after completing all Phase 1 core modules to ensure high code quality, optimal query performance, and architectural cleanliness:
+
+- [x] **N+1 Query Elimination:** Optimized bulk availability endpoints (`/availability/recipes` and `/availability/menu-items`) using SQL `IN` operators and eager loading, reducing hundreds of queries down to 2 or 3 round-trips.
+- [x] **SQL Stock Aggregation:** Replaced in-memory Python batch summation with database engine aggregation (`func.coalesce(func.sum())`), drastically cutting memory overhead.
+- [x] **Dead Code & Validation Cleanup:** Removed redundant service-layer validations that duplicated Pydantic schema validation rules.
+- [x] **Expired Batches Query Filtering:** Excluded fully consumed (`quantity == 0`) historical batches from active expiration alert endpoints.
+- [x] **Dependency Hygiene:** Cleaned up unused imports across all schemas and services.
 
 ---
 
-## Future Enhancements (Post-MVP)
+## Phase 3: React Frontend (Next Active Milestone ⏳)
 
-- Authentication & Authorization
-- AI Recommendations
-- Machine Learning Forecasting
-- Production Simulation & Advanced Operations
+Build a clean, responsive web application connecting restaurant staff and managers with backend APIs:
+
+- [ ] **Project Setup:** Initialize React with TypeScript, Vite, Tailwind CSS, and Lucide React icons.
+- [ ] **API Client Layer:** Centralized Axios instance with base URL configuration, request interceptors, and typed response models.
+- [ ] **Operations & Live Availability Dashboard:** High-level metrics view showing real-time dish availability, orderable quantities, and low-stock alerts.
+- [ ] **Inventory & Batch Tracking UI:** Interactive inventory table with lot expiration indicators, batch intake modal, and manual adjustment forms.
+- [ ] **Menu & Recipe Builder:** Visual interface for managing commercial menu items, drafting recipes, and configuring ingredient bill-of-materials.
+- [ ] **Production Simulation Interface:** Interactive kitchen simulation allowing staff to fulfill orders and observe real-time FEFO inventory deductions.
+
+---
+
+## Phase 4: Production Readiness & Deployment (Planned 📋)
+
+- [ ] **Automated CI Pipeline:** GitHub Actions workflow executing linting (`flake8`, `black`), type checks, and automated `pytest` test runs.
+- [ ] **Docker Containerization:** Multi-stage `Dockerfile` and `docker-compose.yml` orchestrating the FastAPI backend, MySQL database, and React frontend.
+- [ ] **Target Migration Deployment:** Automated execution of Alembic migrations on deployment to initialize the target MySQL instance.
+- [ ] **Cloud Deployment:** Deployment to production hosting (e.g., Render, Railway, AWS ECS, or DigitalOcean).
+
+---
+
+## Post-MVP & Future Enhancements
+
+- [ ] **Authentication & Role-Based Access Control (RBAC):** JWT-based authentication with differentiated roles (Kitchen Staff, Shift Manager, Administrator).
+- [ ] **Inventory Analytics & Cost of Goods Sold (COGS):** Financial reporting tracking shrinkage, waste trends, food cost percentages, and supplier spend.
+- [ ] **AI-Powered Menu Recommendations:** Dynamic suggestions proposing daily specials based on lots nearing expiration to minimize kitchen food waste.
+- [ ] **Machine Learning Demand Forecasting:** Time-series analysis predicting ingredient consumption patterns based on historical transaction volume.

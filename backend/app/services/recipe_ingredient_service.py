@@ -48,7 +48,6 @@ class RecipeIngredientService:
             HTTPException: 404 Not Found if the referenced recipe does not exist.
             HTTPException: 404 Not Found if the referenced ingredient does not exist.
             HTTPException: 409 Conflict if the recipe-ingredient combination already exists.
-            HTTPException: 400 Bad Request if the quantity is less than or equal to zero.
         """
         recipe_query = select(Recipe).where(Recipe.id == recipe_ingredient_in.recipe_id)
         recipe = self.db.execute(recipe_query).scalar_one_or_none()
@@ -83,12 +82,6 @@ class RecipeIngredientService:
                     f"Ingredient with ID {recipe_ingredient_in.ingredient_id} is already "
                     f"associated with recipe with ID {recipe_ingredient_in.recipe_id}."
                 ),
-            )
-
-        if recipe_ingredient_in.quantity <= 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Quantity must be greater than zero.",
             )
 
         recipe_ingredient = RecipeIngredient(**recipe_ingredient_in.model_dump())
@@ -166,7 +159,6 @@ class RecipeIngredientService:
             HTTPException: 404 Not Found if the recipe-ingredient record does not exist.
             HTTPException: 404 Not Found if the updated ingredient does not exist.
             HTTPException: 409 Conflict if the updated ingredient is already associated with the recipe.
-            HTTPException: 400 Bad Request if the quantity is less than or equal to zero.
         """
         recipe_ingredient = self.get_recipe_ingredient(recipe_ingredient_id)
         update_data = recipe_ingredient_in.model_dump(exclude_unset=True)
@@ -200,14 +192,6 @@ class RecipeIngredientService:
                         f"Ingredient with ID {new_ingredient_id} is already "
                         f"associated with recipe with ID {recipe_ingredient.recipe_id}."
                     ),
-                )
-
-        if "quantity" in update_data and update_data["quantity"] is not None:
-            new_quantity = update_data["quantity"]
-            if new_quantity <= 0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Quantity must be greater than zero.",
                 )
 
         for field, value in update_data.items():

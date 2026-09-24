@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
 try:
@@ -57,14 +57,11 @@ class InventoryBatchService:
                 detail=f"Ingredient with ID {ingredient_id} not found.",
             )
 
-        batch_query = select(InventoryBatch).where(
-            InventoryBatch.ingredient_id == ingredient_id
-        )
-        batches = self.db.execute(batch_query).scalars().all()
+        total_quantity_query = select(
+            func.coalesce(func.sum(InventoryBatch.quantity), Decimal("0.00"))
+        ).where(InventoryBatch.ingredient_id == ingredient_id)
+        total_quantity = self.db.execute(total_quantity_query).scalar_one()
 
-        total_quantity = sum(
-            (batch.quantity for batch in batches), Decimal("0.00")
-        )
         ingredient.stock_quantity = float(total_quantity)
 
         try:
@@ -128,7 +125,6 @@ class InventoryBatchService:
 
         Raises:
             HTTPException: 404 Not Found if the referenced ingredient does not exist.
-            HTTPException: 400 Bad Request if expiry_date < received_date.
         """
         ingredient_query = select(Ingredient).where(
             Ingredient.id == batch_in.ingredient_id
@@ -139,12 +135,6 @@ class InventoryBatchService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Ingredient with ID {batch_in.ingredient_id} not found.",
-            )
-
-        if batch_in.expiry_date < batch_in.received_date:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Expiry date must be on or after received date.",
             )
 
         batch_number = self._generate_next_batch_number(
@@ -409,7 +399,10 @@ class InventoryBatchService:
         query = (
             select(InventoryBatch)
             .options(joinedload(InventoryBatch.ingredient))
-            .where(InventoryBatch.expiry_date < today)
+            .where(
+                InventoryBatch.expiry_date < today,
+                InventoryBatch.quantity > 0,
+            )
             .order_by(
                 InventoryBatch.expiry_date.asc(),
                 InventoryBatch.batch_number.asc(),

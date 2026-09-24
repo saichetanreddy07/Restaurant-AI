@@ -1,126 +1,132 @@
-# RestaurantAI
+# RestaurantAI 🍽️
 
-A production-inspired Restaurant Operations Management System built to learn and demonstrate modern backend and full-stack development.
+A production-inspired **Restaurant Operations & Inventory Management System** built with **FastAPI**, **SQLAlchemy 2.0**, and **MySQL**.
 
-> **Status:** 🚧 Under Development — Phase 1: Backend Core Modules (5 of 6 Completed — 83.3%)
-
----
-
-# Overview
-
-RestaurantAI is a full-stack application designed to help restaurants manage ingredients, inventory, recipes, and menus from a single system.
-
-The application focuses on solving operational problems such as inventory lot tracking, recording inventory transactions, inventory movement tracking (consumption, waste, adjustments, expiration), maintaining an immutable inventory audit trail, automatic inventory quantity updates, ingredient expiry management, recipe management, and determining which menu items can be prepared based on available inventory.
-
-The project is built with learning in mind while following software engineering practices commonly used in production systems.
+[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-red.svg)](https://www.sqlalchemy.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg?logo=mysql)](https://www.mysql.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Status: Backend Complete](https://img.shields.io/badge/Backend-Complete%20%26%20Refactored-brightgreen.svg)](#current-status)
 
 ---
 
-# Problem Statement
+## 📌 Project Overview
 
-Restaurant inventory is often managed manually or across multiple disconnected systems. This makes it difficult to answer questions like:
+**RestaurantAI** is a backend system engineered to solve fundamental operational challenges in commercial restaurant kitchens:
+- **Inventory Lot Tracking:** Physical intake tracking with batch codes, unit costs, received dates, and shelf-life expiration dates.
+- **Audit Trails:** Strict, immutable logging of all inventory movement (consumption, waste, shrinkage, adjustments).
+- **Automated Consumption (FEFO):** Multi-batch ingredient deduction prioritizing lots closest to expiration (*First-Expiring, First-Out*) to minimize food spoilage.
+- **Real-Time Dish Availability:** Instant calculations determining which menu items the kitchen can prepare right now based on on-hand stock, highlighting exact ingredient bottlenecks.
+- **Decoupled Architecture:** Strict separation between commercial sales items (Menu Items) and kitchen prep instructions (Recipes).
 
-- Which dishes can be prepared right now?
-- Which ingredients are about to expire?
-- Which ingredient is preventing a dish from being available?
-- How much inventory remains after preparing dishes?
-- How much stock was lost to kitchen waste, shrinkage, or expiration versus customer sales?
-
-RestaurantAI aims to solve these problems through a centralized, audit-tracked inventory and recipe management system.
-
----
-
-# Objectives
-
-- Learn modern backend development.
-- Learn React while building a real project.
-- Understand database design.
-- Build clean REST APIs.
-- Follow production-inspired software engineering practices.
-- Create a portfolio project that can be confidently explained during interviews.
+Built with a learning-first mindset, this project adheres to modern software engineering best practices: **layered architecture**, **type safety**, **database-level integrity constraints**, **atomic transactions**, and **comprehensive automated testing**.
 
 ---
 
-# Planned Features
+## 🏗️ Architecture Overview
 
-- Ingredient Management (Completed ✅)
-- Menu Item Management (Completed ✅)
-- Recipe Management (Completed ✅)
-- Recipe Ingredients Management (Completed ✅)
-- Inventory Batch & Stock Management (Completed ✅)
-- Real-Time Dish Availability Engine (Next Active Milestone ⏳)
+The backend is built around a **Three-Tier Layered Architecture** ensuring clear separation of concerns, high testability, and maintainability:
 
-- Production Simulation (Post-MVP)
-- Inventory Analytics & Expiry Dashboard (Post-MVP)
+```
+[ Client / React Frontend / Swagger UI ]
+                   │
+                   ▼ (HTTP / JSON REST)
+       ┌───────────────────────┐
+       │      API Routers      │  <-- Routing, HTTP Serialization, Status Codes
+       └───────────┬───────────┘
+                   │
+                   ▼ (Validated Pydantic Schemas)
+       ┌───────────────────────┐
+       │     Service Layer     │  <-- Business Logic, FEFO Engine, Validations
+       └───────────┬───────────┘
+                   │
+                   ▼ (SQLAlchemy 2.0 ORM Queries)
+       ┌───────────────────────┐
+       │   Data Access Layer   │  <-- Connection Pool, ORM Entities, Migrations
+       └───────────┬───────────┘
+                   │
+                   ▼ (SQL Queries / Constraints)
+       ┌───────────────────────┐
+       │     MySQL 8.0 DB      │  <-- Relational Storage & Data Integrity
+       └───────────────────────┘
+```
 
-Future Scope (Optional)
-
-- AI Recommendations
-- ML Forecasting
-- Authentication & Multi-Tenancy
-
----
-
-# Planned Tech Stack
-
-## Backend
-
-- Python
-- FastAPI
-- SQLAlchemy 2.0
-- MySQL
-- Alembic
-- Pydantic v2
-
-## Frontend
-
-- React
-- TypeScript
-- Axios
-- Tailwind CSS
-
-## Testing
-
-- Pytest
+For an in-depth dive into request lifecycles, database relationships, and service mechanics, see [ARCHITECTURE.md](ARCHITECTURE.md).  
+For the engineering trade-offs and rationale behind our technology choices, see [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md).
 
 ---
 
-# Current Status & Roadmap Strategy
+## 🚀 Core Features
 
-We are building the backend core one module at a time. After all six core modules are finished, we will execute a dedicated refactoring phase across the entire backend before starting the React frontend.
+### 1. Ingredient Master Catalog
+- Standardized measurement units enforced via a core `Unit` enum (`kg`, `g`, `l`, `ml`, `pcs`).
+- Exact financial cost tracking using `Numeric(10, 2)` decimal precision to avoid floating-point rounding errors.
+- Automated reorder point thresholds (`minimum_stock`) and case-insensitive duplicate protection.
 
-- **Phase 1 (Backend Core Modules):** In Progress (5 of 6 modules completed — 83.3%)
-  - Backend Foundation: Completed
-  - Module 1: Ingredients: Completed ✅
-  - Module 2: Menu Items: Completed ✅
-  - Module 3: Recipes: Completed ✅
-  - Module 4: Recipe Ingredients: Completed ✅
-  - Module 5: Inventory Management: Completed ✅
-  - Module 6: Availability Engine: Next Active Milestone ⏳
-- **Phase 2 (Backend Refactoring):** Planned 📋 *(Triggered after all 6 core modules complete — deduplication, architecture, centralized error handling, validations, query optimization, logging)*
-- **Phase 3 (Frontend):** Planned 📋 *(Triggered after backend is stable — React, TypeScript, Tailwind CSS, Axios API integration)*
-- **Phase 4 (Production Readiness):** Planned 📋 *(Testing, final documentation, deployment)*
+### 2. Menu Item Commercial Catalog
+- Represents customer-facing, sellable menu items (burgers, pizzas, beverages) with standardized `MenuCategory` enums.
+- Decoupled from kitchen recipes, allowing retail items (e.g. bottled water) to exist without culinary formulas.
+
+### 3. Culinary Recipes & Bill-of-Materials
+- Strict 1-to-1 association linking commercial menu items with kitchen formulas.
+- Explicit many-to-many relationship (`RecipeIngredient`) defining exact ingredient quantities per serving.
+- Foreign key cascading deletions with composite uniqueness constraints preventing duplicate ingredient assignments.
+
+### 4. Inventory Lot Tracking & Transaction Auditing
+- **Batch Tracking:** Physical inventory intake tracking supplier, intake date, and expiration date with deterministic batch codes (`<CODE>-<YYYYMMDD>-<SEQ>`).
+- **Immutable Transactions:** Every stock deduction is permanently audited (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`).
+- **Synchronized Ingredient Stock:** Master ingredient stock is a single-source-of-truth derived sum of all active batches, synchronized automatically via database-level SQL `COALESCE(SUM())` aggregation.
+- **Inventory Health Alerts:** Endpoints dedicated to identifying low-stock items (`/low-stock`), near-expiry batches (`/expiring`), and expired stock (`/expired`).
+
+### 5. Automated FEFO / FIFO Inventory Consumption
+- Deducts multi-ingredient stock across multiple servings via `POST /inventory/consume`.
+- Enforces strict **First-Expiring, First-Out (FEFO)** order, tie-broken by FIFO intake dates.
+- Atomic two-phase execution: validates all recipe ingredients upfront and aborts with zero partial writes if any ingredient is short.
+
+### 6. Real-Time Dish Availability Engine
+- Calculates exactly how many servings of any recipe or menu item can be prepared based on current inventory.
+- Identifies the specific bottleneck ingredient and calculates the exact shortage quantity.
+- High-efficiency batch queries eliminate N+1 database round-trips for catalog-wide lookups.
+- Guaranteed strictly read-only execution without database locks.
 
 ---
 
-# Project Structure
+## 🛠️ Tech Stack
+
+### Backend
+- **Python 3.10+** — Modern type-annotated language
+- **FastAPI** — High-performance ASGI REST web framework
+- **SQLAlchemy 2.0** — Modern Python ORM and query builder
+- **MySQL 8.0** — Relational database storage with ACID guarantees
+- **Alembic** — Version-controlled database schema migrations
+- **Pydantic v2** — High-speed Rust-powered data validation and serialization
+- **Uvicorn** — Lightning-fast ASGI production web server
+
+### Testing & Tools
+- **Pytest** — Automated unit and integration testing suite
+- **PyMySQL** — Pure Python MySQL database client
+- **Git & GitHub** — Version control
+
+### Frontend (Upcoming - Phase 3)
+- **React 18** + **TypeScript**
+- **Tailwind CSS**
+- **Axios**
+
+---
+
+## 📁 Project Structure
 
 ```text
 restaurant-ai/
 ├── backend/
-│   ├── alembic/
-│   │   ├── versions/
-│   │   │   ├── b6446b3796c3_create_ingredients_table.py
-│   │   │   ├── 6319aa944bc3_create_menu_items_table.py
-│   │   │   ├── d8e009624a08_create_recipes_table.py
-│   │   │   ├── 13e9221faf22_create_recipe_ingredients_table.py
-│   │   │   ├── dc3068eab3e5_create_inventory_batches_table.py
-│   │   │   └── 65ea68c341d8_create_inventory_transactions_table.py
-│   │   └── env.py
-│   ├── alembic.ini
+│   ├── alembic/                # Database migration scripts
+│   │   ├── versions/           # Version-controlled schema migrations
+│   │   └── env.py              # Alembic environment and model metadata
+│   ├── alembic.ini             # Alembic configuration
 │   └── app/
-│       ├── api/
-│       │   ├── __init__.py
+│       ├── api/                # Presentation Layer (FastAPI Routers)
+│       │   ├── availability.py
 │       │   ├── health.py
 │       │   ├── ingredients.py
 │       │   ├── inventory.py
@@ -129,23 +135,20 @@ restaurant-ai/
 │       │   ├── menu_items.py
 │       │   ├── recipes.py
 │       │   └── recipe_ingredients.py
-│       ├── core/
-│       │   ├── __init__.py
-│       │   ├── config.py
-│       │   └── enums.py
-│       ├── db/
-│       │   ├── __init__.py
-│       │   └── database.py
-│       ├── models/
-│       │   ├── __init__.py
+│       ├── core/               # Cross-cutting concerns (Settings & Enums)
+│       │   ├── config.py       # Pydantic Settings loaded from .env
+│       │   └── enums.py        # Domain Enums (Unit, MenuCategory, TransactionType)
+│       ├── db/                 # Database engine & session lifecycle
+│       │   └── database.py     # Connection pool & get_db dependency
+│       ├── models/             # SQLAlchemy 2.0 declarative database entities
 │       │   ├── ingredient.py
 │       │   ├── inventory_batch.py
 │       │   ├── inventory_transaction.py
 │       │   ├── menu_item.py
 │       │   ├── recipe.py
 │       │   └── recipe_ingredient.py
-│       ├── schemas/
-│       │   ├── __init__.py
+│       ├── schemas/            # Pydantic v2 request/response DTO schemas
+│       │   ├── availability.py
 │       │   ├── ingredient.py
 │       │   ├── inventory_batch.py
 │       │   ├── inventory_consumption.py
@@ -153,8 +156,8 @@ restaurant-ai/
 │       │   ├── menu_item.py
 │       │   ├── recipe.py
 │       │   └── recipe_ingredient.py
-│       ├── services/
-│       │   ├── __init__.py
+│       ├── services/           # Domain business logic & transactional coordination
+│       │   ├── availability_service.py
 │       │   ├── ingredient_service.py
 │       │   ├── inventory_batch_service.py
 │       │   ├── inventory_consumption_service.py
@@ -162,478 +165,204 @@ restaurant-ai/
 │       │   ├── menu_item_service.py
 │       │   ├── recipe_service.py
 │       │   └── recipe_ingredient_service.py
-│       ├── __init__.py
-│       └── main.py
-├── .env.example
-├── .gitignore
-├── requirements.txt
+│       └── main.py             # FastAPI entrypoint & router assembly
+├── tests/                      # Automated test suite
+│   └── test_availability.py
+├── .env.example                # Sample environment variables
+├── ARCHITECTURE.md             # System architecture documentation
+├── PROJECT_DECISIONS.md        # Technical decisions & interview rationale
+├── PROJECT_STATUS.md           # Current phase, status & completed capabilities
+├── ROADMAP.md                  # Development roadmap & milestones
+├── requirements.txt            # Python dependencies
 └── README.md
 ```
 
 ---
 
-# Features Implemented
+## 📊 Current Status
 
-### 1. Backend Foundation
-- **FastAPI Application:** Modular backend setup with layered packages (`api`, `core`, `db`, `models`, `schemas`, `services`) and automatic OpenAPI/Swagger documentation.
-- **Configuration Management:** Centralized, type-safe environment variable loading using `pydantic-settings` with `.env` and default fallback support.
-- **Database Layer:** SQLAlchemy 2.x declarative architecture (`DeclarativeBase`), engine connection with connection pooling (`pool_pre_ping=True`), `SessionLocal` factory, and request-scoped session dependency (`get_db`).
-- **Health Check API:** Dedicated endpoint validating live MySQL connectivity via `SELECT 1`.
-- **Database Migrations:** Alembic initialized and configured to bind with the existing SQLAlchemy engine and declarative metadata.
+| Component | Status | Details |
+|---|---|---|
+| **Phase 1: Backend Core Modules** | **Completed ✅** | All 6 modules fully implemented and operational |
+| **Phase 2: Backend Refactoring** | **Completed ✅** | N+1 query elimination, SQL aggregation, dead code cleanup |
+| **Phase 3: React Frontend** | **In Preparation ⏳** | Next active development phase |
+| **Phase 4: Production Deployment** | **Planned 📋** | Containerization, CI/CD, and cloud deployment |
 
-### 2. Phase 1 — Module 1: Ingredients (Completed & Tested)
-- **Ingredient Model:** SQLAlchemy 2.x declarative entity mapping the `ingredients` table.
-- **Standardized Units:** Measurement units enforced through a dedicated `Unit` Enum (`KG`, `G`, `L`, `ML`, `PCS`) decoupled into `backend/app/core/enums.py`.
-- **Financial Precision:** Unit costs tracked via `Numeric(10, 2)` mapped to Python `Decimal` to avoid floating-point inaccuracies.
-- **Pydantic Schemas:** Request and response schemas with input normalization, title casing, and validation.
-- **Service Layer:** `IngredientService` with transactional rollback, case-insensitive uniqueness checks, and pagination.
-- **REST API:** Complete CRUD endpoints under `/ingredients`.
-- **Testing:** Validated CRUD lifecycle, edge cases, and duplicate rejection.
-
-### 3. Phase 1 — Module 2: Menu Items (Product Catalog - Completed & Tested)
-- **Purpose:** Represents the restaurant's commercial product catalog (sellable items like burgers, pizzas, beverages, sides). Decoupled from recipes, inventory stocks, ingredient consumption, and suppliers to maintain clear separation of concerns.
-- **MenuItem Model:** SQLAlchemy 2.0 declarative model mapping the `menu_items` table with `id`, `name`, `category`, `price`, `created_at`, and `updated_at`.
-- **Standardized Categories:** `MenuCategory` enum (`APPETIZER`, `MAIN_COURSE`, `DESSERT`, `BEVERAGE`, `SIDE`) decoupled into `backend/app/core/enums.py`.
-- **Financial Precision:** Selling prices stored as `Numeric(10, 2)` and mapped to Python `Decimal`.
-- **Database Migration:** Generated Alembic migration `6319aa944bc3_create_menu_items_table.py` with primary key, unique index on `name`, enum constraint, and server timestamps.
-- **Pydantic Schemas:** `MenuItemBase`, `MenuItemCreate`, `MenuItemUpdate`, and `MenuItemResponse` with whitespace stripping, `.title()` name normalization, length constraints, and decimal validation.
-- **Service Layer:** `MenuItemService` providing complete CRUD functionality, case-insensitive duplicate name prevention (`func.lower()`), alphabetical ordering, and pagination (`skip`/`limit`).
-- **REST API:** Complete REST endpoints under `/menu-items`.
-- **Testing Completed:** Comprehensive unit verification covering schema validation, in-memory SQLite DDL compilation, case-insensitive duplicate rejection, and CRUD lifecycle operations.
-
-### 4. Phase 1 — Module 3: Recipes (Completed & Tested)
-- **Purpose:** Connects a commercial `MenuItem` with its culinary formula via a strict 1-to-1 relationship.
-- **Recipe Model:** SQLAlchemy 2.0 declarative model mapping `recipes` table with `id`, `name` (unique, indexed), `menu_item_id` (unique foreign key -> `menu_items.id` with `ON DELETE CASCADE`), `created_at`, and `updated_at`. Configured with `menu_item` ORM relationship using `passive_deletes=True`.
-- **Database Migration:** Generated and applied Alembic migration `d8e009624a08_create_recipes_table.py` configuring foreign key cascade, unique name index, and unique constraint on `menu_item_id`.
-- **Pydantic Schemas:** `RecipeBase`, `RecipeCreate`, `RecipeUpdate`, and `RecipeResponse` with whitespace stripping, `.title()` name normalization, positive integer constraints (`gt=0`), and ORM serialization.
-- **Service Layer:** `RecipeService` providing full CRUD operations, pagination (`skip`/`limit`), parent `MenuItem` existence checks (HTTP 404), case-insensitive duplicate name protection (HTTP 409), and 1-to-1 menu item assignment validation (HTTP 409).
-- **REST API:** Complete REST endpoints under `/recipes`.
-- **Testing Completed:** Verified across 21 test scenarios covering validation, database cascades, duplicate rejections, pagination, and OpenAPI specifications with 100% pass rate.
-
-### 5. Phase 1 — Module 4: Recipe Ingredients (Completed & Tested)
-- **Purpose:** Represents the quantified ingredient requirements to prepare one serving of a recipe, modeling a many-to-many relationship via an explicit association entity.
-- **RecipeIngredient Model:** SQLAlchemy 2.0 declarative model mapping `recipe_ingredients` table with `id`, `recipe_id` (FK -> `recipes.id`, cascade), `ingredient_id` (FK -> `ingredients.id`, cascade), `quantity` (`Numeric(10, 2)`), timestamps, and composite unique constraint `uq_recipe_ingredient` on `(recipe_id, ingredient_id)`.
-- **Database Migration:** Generated and applied Alembic migration `13e9221faf22_create_recipe_ingredients_table.py` configuring foreign key cascade constraints and composite uniqueness.
-- **Pydantic Schemas:** `RecipeIngredientBase`, `RecipeIngredientCreate`, `RecipeIngredientUpdate`, and `RecipeIngredientResponse` with positive integer ID validation (`gt=0`), strictly positive decimal quantity validation (`gt=0`, `decimal_places=2`), and recipe immutability.
-- **Service Layer:** `RecipeIngredientService` providing full CRUD operations, pagination, deterministic ordering (`recipe_id ASC, ingredient_id ASC`), parent existence validation (HTTP 404), duplicate association prevention (HTTP 409), and recipe boundary isolation.
-- **REST API:** Complete REST endpoints under `/recipe-ingredients`.
-- **Testing Completed:** End-to-end testing across 22 scenarios covering creation, duplicate detection, invalid references, validation errors, pagination, updates, immutability, and cascade isolation with 100% pass rate.
-
-### 6. Phase 1 — Module 5: Inventory Management (Completed & Tested)
-- **Purpose:** Full-lifecycle management of physical restaurant inventory, lot tracking, movement auditing, automated stock level synchronization, health alerts, and recipe-based automated consumption.
-- **Inventory Batch System:**
-  - `InventoryBatch` model mapping `inventory_batches` table with `id`, `ingredient_id` (FK -> `ingredients.id`, cascade), `batch_number` (`String(30)`, unique, indexed), `quantity` (`Numeric(10, 2)`), `unit_cost` (`Numeric(10, 2)`), `supplier` (`String(100)`), `received_date` (`Date`), `expiry_date` (`Date`), timestamps, and `passive_deletes=True`.
-  - Service-managed automatic batch number generation formatted as `<CODE>-<YYYYMMDD>-<SEQUENCE>`.
-  - Immutable intake facts (`ingredient_id`, `batch_number`, `received_date`).
-  - Depleted batches supported cleanly with `quantity == 0.00` via `InventoryBatchResponse` schema.
-  - Complete REST CRUD endpoints under `/inventory-batches`.
-- **Inventory Transactions & Movement Tracking:**
-  - `InventoryTransaction` model mapping `inventory_transactions` table with `id`, `inventory_batch_id` (FK -> `inventory_batches.id`, cascade, indexed), `transaction_type` (Enum, indexed: `CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`), `quantity` (`Numeric(10, 2)`), `notes`, and audit timestamp.
-  - Database check constraint `ck_inventory_transaction_quantity_positive` (`quantity > 0`).
-  - Strict audit immutability (no update or delete endpoints).
-  - Atomic batch stock deduction and transaction recording within single database transactions.
-  - Endpoints under `/inventory-transactions` (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{id}`).
-- **Automatic Ingredient Stock Synchronization:**
-  - Reusable `sync_ingredient_stock(ingredient_id)` method in `InventoryBatchService` establishes `InventoryBatch` as the single authoritative source of truth.
-  - Automatically recalculates and persists $\sum \text{batch.quantity}$ to `Ingredient.current_stock` after every batch creation, update, deletion, transaction, and consumption event.
-  - Resets `Ingredient.current_stock` to `0.00` when all batches are depleted or deleted.
-- **Low-Stock Alerts & Expiry Monitoring:**
-  - `GET /inventory-batches/low-stock`: Identifies ingredients where `current_stock <= minimum_stock`, sorted by lowest stock first.
-  - `GET /inventory-batches/expiring`: Identifies batches expiring within a configurable threshold (`days`, default 7), excluding already-expired stock, sorted by earliest expiry first.
-  - `GET /inventory-batches/expired`: Identifies batches where `expiry_date < today` for waste write-offs, sorted by oldest expiry first.
-- **Automated FEFO / FIFO Inventory Consumption Engine:**
-  - Dedicated `InventoryConsumptionService` orchestrating recipe ingredient deductions via `POST /inventory/consume`.
-  - Enforces strict First-Expiring, First-Out (FEFO) consumption, tie-broken by FIFO (earliest `received_date`), and deterministically ordered by `batch_number ASC`.
-  - Spans deductions across multiple batches as needed until recipe servings are fulfilled.
-  - Generates immutable `CONSUMPTION` transaction records for each batch drawn.
-  - Atomic two-phase execution: validates all ingredients and available stock upfront; aborts with complete rollback if stock is insufficient.
-  - Automatically synchronizes `Ingredient.current_stock` post-deduction.
-- **Testing Completed:** Comprehensive runtime test suites executed against live MySQL storage (32/32 batch CRUD scenarios, 20/20 transaction scenarios, and 16/16 end-to-end consumption/sync/alert scenarios with 100% pass rate).
+Detailed status and milestone notes are tracked in [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 ---
 
-# Database Schemas
+## ⚙️ Installation & Local Setup
 
-### Table: `ingredients`
+### 1. Prerequisites
+- **Python 3.10+** installed
+- **MySQL 8.0+** running locally or in Docker
+- **Git**
 
-| Column | Type | Constraints / Defaults | Description |
-|---|---|---|---|
-| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
-| `name` | `String(100)` | Unique, Indexed, Not Null | Name of the ingredient |
-| `category` | `String(100)` | Nullable | Ingredient classification (e.g. Dairy, Vegetable) |
-| `unit` | `Enum(Unit)` | Not Null (`kg`, `g`, `l`, `ml`, `pcs`) | Standardized unit of measurement |
-| `current_stock` | `Float` | Not Null, Default `0.0` | On-hand quantity |
-| `minimum_stock` | `Float` | Not Null, Default `0.0` | Reorder threshold |
-| `cost_per_unit` | `Numeric(10, 2)` | Not Null, Default `0.00` | Unit purchase/cost value |
-| `supplier` | `String(100)` | Nullable | Supplier or vendor name |
-| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
-| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
+### 2. Clone the Repository
+```bash
+git clone https://github.com/saichetanreddy07/Restaurant-AI.git
+cd Restaurant-AI
+```
 
-### Table: `menu_items`
+### 3. Create a Virtual Environment
+```bash
+# On Windows
+python -m venv .venv
+.venv\Scripts\activate
 
-| Column | Type | Constraints / Defaults | Description |
-|---|---|---|---|
-| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
-| `name` | `String(100)` | Unique, Indexed, Not Null | Unique name of the sellable menu item |
-| `category` | `Enum(MenuCategory)` | Not Null (`appetizer`, `main_course`, `dessert`, `beverage`, `side`) | Product catalog classification |
-| `price` | `Numeric(10, 2)` | Not Null, Default `0.00` | Retail selling price |
-| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
-| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
+# On macOS/Linux
+python3 -m venv .venv
+source .venv/bin/activate
+```
 
-### Table: `recipes`
+### 4. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-| Column | Type | Constraints / Defaults | Description |
-|---|---|---|---|
-| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
-| `name` | `String(100)` | Unique, Indexed, Not Null | Unique name of the recipe |
-| `menu_item_id` | `Integer` | Foreign Key -> `menu_items.id`, Unique, Not Null, On Delete `CASCADE` | 1-to-1 reference to associated menu item |
-| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
-| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
+### 5. Configure Environment Variables
+Create a `.env` file in the project root (refer to `.env.example`):
+```ini
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=restaurant_db
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+```
 
-### Table: `recipe_ingredients`
+Create the MySQL database:
+```sql
+CREATE DATABASE restaurant_db;
+```
 
-| Column | Type | Constraints / Defaults | Description |
-|---|---|---|---|
-| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
-| `recipe_id` | `Integer` | Foreign Key -> `recipes.id`, Not Null, On Delete `CASCADE` | Reference to parent recipe |
-| `ingredient_id` | `Integer` | Foreign Key -> `ingredients.id`, Not Null, On Delete `CASCADE` | Reference to master ingredient |
-| `quantity` | `Numeric(10, 2)` | Not Null | Quantity required per serving |
-| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
-| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
-
-*Composite Unique Constraint:* `(recipe_id, ingredient_id)` (`uq_recipe_ingredient`)
-
-### Table: `inventory_batches`
-
-| Column | Type | Constraints / Defaults | Description |
-|---|---|---|---|
-| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
-| `ingredient_id` | `Integer` | Foreign Key -> `ingredients.id`, Not Null, On Delete `CASCADE` | Reference to master ingredient |
-| `batch_number` | `String(30)` | Unique, Indexed, Not Null | System-generated tracking code (`<CODE>-<YYYYMMDD>-<SEQ>`) |
-| `quantity` | `Numeric(10, 2)` | Not Null | Available quantity remaining in batch |
-| `unit_cost` | `Numeric(10, 2)` | Not Null | Purchasing unit cost for this batch |
-| `supplier` | `String(100)` | Not Null | Vendor or supplier name |
-| `received_date` | `Date` | Not Null | Physical intake date |
-| `expiry_date` | `Date` | Not Null | Expiration date (`expiry_date >= received_date`) |
-| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp |
-| `updated_at` | `DateTime` | Server Default `now()`, On Update `now()`, Not Null | Record last updated timestamp |
-
-### Table: `inventory_transactions`
-
-| Column | Type | Constraints / Defaults | Description |
-|---|---|---|---|
-| `id` | `Integer` | Primary Key, Auto-increment | Unique identifier |
-| `inventory_batch_id` | `Integer` | Foreign Key -> `inventory_batches.id`, Not Null, Indexed, On Delete `CASCADE` | Reference to parent inventory batch |
-| `transaction_type` | `Enum(TransactionType)` | Not Null, Indexed (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`) | Operational classification of inventory movement |
-| `quantity` | `Numeric(10, 2)` | Not Null, Check `quantity > 0` | Quantity of stock deducted in this movement |
-| `notes` | `String(255)` | Nullable | Optional descriptive notes explaining the reason |
-| `created_at` | `DateTime` | Server Default `now()`, Not Null | Record creation timestamp (immutable audit date) |
-
-*Indexes:*
-- `ix_inventory_transactions_inventory_batch_id` on `inventory_batch_id`
-- `ix_inventory_transactions_transaction_type` on `transaction_type`
-
-*Check Constraint:*
-- `ck_inventory_transaction_quantity_positive`: `quantity > 0`
+### 6. Run Database Migrations
+Apply all schema migrations to create the database tables:
+```bash
+cd backend
+alembic upgrade head
+cd ..
+```
 
 ---
 
-# API Endpoints
+## 🏃 Running Locally
 
-| Method | Endpoint | Description | Status Code |
-|---|---|---|---|
-| `GET` | `/` | Application welcome message | `200 OK` |
-| `GET` | `/health` | Database connectivity health check | `200 OK` / `503 Service Unavailable` |
-| `POST` | `/ingredients/` | Create a new ingredient | `201 Created` / `409 Conflict` |
-| `GET` | `/ingredients/` | Retrieve all ingredients (paginated) | `200 OK` |
-| `GET` | `/ingredients/{id}` | Retrieve single ingredient by ID | `200 OK` / `404 Not Found` |
-| `PUT` | `/ingredients/{id}` | Update ingredient fields | `200 OK` / `404 Not Found` / `409 Conflict` |
-| `DELETE` | `/ingredients/{id}` | Delete ingredient by ID | `200 OK` / `404 Not Found` |
-| `POST` | `/menu-items/` | Create a new menu item | `201 Created` / `409 Conflict` |
-| `GET` | `/menu-items/` | Retrieve all menu items (paginated) | `200 OK` |
-| `GET` | `/menu-items/{id}` | Retrieve single menu item by ID | `200 OK` / `404 Not Found` |
-| `PUT` | `/menu-items/{id}` | Update menu item fields | `200 OK` / `404 Not Found` / `409 Conflict` |
-| `DELETE` | `/menu-items/{id}` | Delete menu item by ID | `200 OK` / `404 Not Found` |
-| `POST` | `/recipes/` | Create a new recipe | `201 Created` / `404 Not Found` / `409 Conflict` |
-| `GET` | `/recipes/` | Retrieve all recipes (paginated) | `200 OK` |
-| `GET` | `/recipes/{id}` | Retrieve single recipe by ID | `200 OK` / `404 Not Found` |
-| `PUT` | `/recipes/{id}` | Update recipe fields | `200 OK` / `404 Not Found` / `409 Conflict` |
-| `DELETE` | `/recipes/{id}` | Delete recipe by ID | `200 OK` / `404 Not Found` |
-| `POST` | `/recipe-ingredients/` | Create recipe-ingredient association | `201 Created` / `400 Bad Request` / `404 Not Found` / `409 Conflict` |
-| `GET` | `/recipe-ingredients/` | Retrieve all recipe ingredients (paginated) | `200 OK` |
-| `GET` | `/recipe-ingredients/{id}` | Retrieve single recipe ingredient by ID | `200 OK` / `404 Not Found` |
-| `PUT` | `/recipe-ingredients/{id}` | Update recipe ingredient fields | `200 OK` / `400 Bad Request` / `404 Not Found` / `409 Conflict` |
-| `DELETE` | `/recipe-ingredients/{id}` | Delete recipe ingredient by ID | `200 OK` / `404 Not Found` |
-| `POST` | `/inventory-batches/` | Create an inventory batch | `201 Created` / `400 Bad Request` / `404 Not Found` |
-| `GET` | `/inventory-batches/` | Retrieve all inventory batches (paginated) | `200 OK` |
-| `GET` | `/inventory-batches/low-stock` | Retrieve ingredients at or below minimum stock threshold | `200 OK` |
-| `GET` | `/inventory-batches/expiring` | Retrieve batches expiring within window (default 7 days) | `200 OK` / `400 Bad Request` |
-| `GET` | `/inventory-batches/expired` | Retrieve batches that have already expired | `200 OK` |
-| `GET` | `/inventory-batches/{id}` | Retrieve single inventory batch by ID | `200 OK` / `404 Not Found` |
-| `PUT` | `/inventory-batches/{id}` | Update inventory batch fields | `200 OK` / `400 Bad Request` / `404 Not Found` |
-| `DELETE` | `/inventory-batches/{id}` | Delete inventory batch by ID | `200 OK` / `404 Not Found` |
-| `POST` | `/inventory-transactions` | Record inventory transaction and deduct batch stock | `201 Created` / `400 Bad Request` / `404 Not Found` |
-| `GET` | `/inventory-transactions` | Retrieve all inventory transactions (paginated) | `200 OK` |
-| `GET` | `/inventory-transactions/{id}` | Retrieve single inventory transaction by ID | `200 OK` / `404 Not Found` |
-| `POST` | `/inventory/consume` | Automatically consume inventory for recipe servings via FEFO/FIFO | `200 OK` / `400 Bad Request` / `404 Not Found` / `422 Unprocessable Entity` |
-| `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
-| `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
+Start the backend development server using Uvicorn:
+
+```bash
+# From the backend directory:
+cd backend
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Once running, access:
+- **Root Welcome:** `http://127.0.0.1:8000/`
+- **Health Check:** `http://127.0.0.1:8000/health`
+- **Interactive Swagger UI:** `http://127.0.0.1:8000/docs`
+- **Alternative ReDoc UI:** `http://127.0.0.1:8000/redoc`
 
 ---
 
-## Inventory Transactions API Reference
+## 🧪 Running Tests
 
-### 1. `POST /inventory-transactions`
-Record a stock movement against an active inventory batch. Deducts the specified quantity from `InventoryBatch.quantity` atomically and writes an immutable transaction log.
+The test suite runs using `pytest` and validates business logic, availability algorithms, edge cases, and read-only guarantees:
 
-- **Request Schema (`InventoryTransactionCreate`):**
-  - `inventory_batch_id` (`int`, required): Unique ID of the target inventory batch. Must be $> 0$.
-  - `transaction_type` (`string`, required): One of `CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`.
-  - `quantity` (`Decimal`, required): Deduction quantity. Must be $> 0$, max 10 digits, max 2 decimal places.
-  - `notes` (`string`, optional): Explanatory remarks. Max 255 chars, whitespace stripped, cannot be whitespace-only.
-
-- **Validation & Business Rules:**
-  - Target inventory batch must exist (returns `404 Not Found`).
-  - Batch on-hand quantity must be sufficient: `batch.quantity >= transaction.quantity` (returns `400 Bad Request`).
-  - Immutability: Once created, transactions cannot be updated or deleted.
-  - Atomicity: Deduction and record insertion execute in a single database transaction.
-
-- **Example Request:**
-  ```json
-  {
-    "inventory_batch_id": 1,
-    "transaction_type": "CONSUMPTION",
-    "quantity": "5.50",
-    "notes": "Used for dinner rush burger prep"
-  }
-  ```
-
-- **Response (`201 Created`):**
-  ```json
-  {
-    "id": 1,
-    "inventory_batch_id": 1,
-    "transaction_type": "CONSUMPTION",
-    "quantity": "5.50",
-    "notes": "Used for dinner rush burger prep",
-    "created_at": "2026-09-21T17:35:31"
-  }
-  ```
-
-### 2. `GET /inventory-transactions`
-Retrieve all inventory transactions with pagination.
-
-- **Query Parameters:**
-  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
-  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
-
-- **Ordering:** Deterministically ordered by `created_at DESC` and `id DESC`.
-
-- **Response (`200 OK`):**
-  ```json
-  [
-    {
-      "id": 2,
-      "inventory_batch_id": 1,
-      "transaction_type": "WASTE",
-      "quantity": "1.00",
-      "notes": "Dropped on prep line",
-      "created_at": "2026-09-21T17:36:10"
-    },
-    {
-      "id": 1,
-      "inventory_batch_id": 1,
-      "transaction_type": "CONSUMPTION",
-      "quantity": "5.50",
-      "notes": "Used for dinner rush burger prep",
-      "created_at": "2026-09-21T17:35:31"
-    }
-  ]
-  ```
-
-### 3. `GET /inventory-transactions/{transaction_id}`
-Retrieve a single transaction record by its primary key ID.
-
-- **Path Parameters:**
-  - `transaction_id` (`int`, required): Unique ID of the transaction.
-
-- **Response (`200 OK`):**
-  ```json
-  {
-    "id": 1,
-    "inventory_batch_id": 1,
-    "transaction_type": "CONSUMPTION",
-    "quantity": "5.50",
-    "notes": "Used for dinner rush burger prep",
-    "created_at": "2026-09-21T17:35:31"
-  }
-  ```
-
-- **Error Response (`404 Not Found`):**
-  ```json
-  {
-    "detail": "Inventory transaction with ID 999 not found."
-  }
-  ```
+```bash
+# From project root:
+pytest tests/ -v
+```
 
 ---
 
-## Inventory Health & Monitoring API Reference
+## 📖 API Endpoints Reference
 
-### 1. `GET /inventory-batches/low-stock`
-Retrieve ingredients whose current total available stock (synchronized across all active batches) is less than or equal to their configured `minimum_stock` threshold.
+### Health & System
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/` | Application welcome message |
+| `GET` | `/health` | Live MySQL connectivity check |
 
-- **Query Parameters:**
-  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
-  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
+### Ingredients
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/ingredients/` | Create a new ingredient |
+| `GET` | `/ingredients/` | List all ingredients (paginated) |
+| `GET` | `/ingredients/{id}` | Get single ingredient by ID |
+| `PUT` | `/ingredients/{id}` | Update ingredient details |
+| `DELETE` | `/ingredients/{id}` | Delete ingredient by ID |
 
-- **Ordering:** Ordered by lowest stock first, then ingredient name ascending.
+### Menu Items
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/menu-items/` | Create a new commercial menu item |
+| `GET` | `/menu-items/` | List all menu items (paginated) |
+| `GET` | `/menu-items/{id}` | Get menu item by ID |
+| `PUT` | `/menu-items/{id}` | Update menu item details |
+| `DELETE` | `/menu-items/{id}` | Delete menu item by ID |
 
-- **Response (`200 OK`):**
-  ```json
-  [
-    {
-      "id": 1,
-      "ingredient_id": 1,
-      "name": "Beef Patty",
-      "ingredient_name": "Beef Patty",
-      "current_stock": 4.0,
-      "minimum_stock": 10.0,
-      "minimum_stock_level": 10.0,
-      "unit": "pcs"
-    }
-  ]
-  ```
+### Recipes & Recipe Ingredients
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/recipes/` | Create a culinary recipe for a menu item |
+| `GET` | `/recipes/` | List all recipes (paginated) |
+| `GET` | `/recipes/{id}` | Get recipe by ID |
+| `PUT` | `/recipes/{id}` | Update recipe details |
+| `DELETE` | `/recipes/{id}` | Delete recipe by ID |
+| `POST` | `/recipe-ingredients/` | Associate an ingredient and required quantity with a recipe |
+| `GET` | `/recipe-ingredients/` | List recipe ingredients |
+| `PUT` | `/recipe-ingredients/{id}` | Update required ingredient quantity |
+| `DELETE` | `/recipe-ingredients/{id}` | Remove ingredient from a recipe |
 
-### 2. `GET /inventory-batches/expiring`
-Retrieve inventory batches whose expiration date falls within a configurable warning window from today, excluding already-expired batches.
+### Inventory Batches & Monitoring
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/inventory-batches/` | Receive an inventory shipment batch |
+| `GET` | `/inventory-batches/` | List all inventory batches (paginated) |
+| `GET` | `/inventory-batches/{id}` | Get batch details by ID |
+| `PUT` | `/inventory-batches/{id}` | Update batch information |
+| `DELETE` | `/inventory-batches/{id}` | Delete batch record |
+| `GET` | `/inventory-batches/low-stock` | Get ingredients at or below reorder threshold |
+| `GET` | `/inventory-batches/expiring` | Get batches expiring within warning window (default 7 days) |
+| `GET` | `/inventory-batches/expired` | Get expired batches with remaining stock for write-off |
 
-- **Query Parameters:**
-  - `days` (`int`, optional, default `7`, min `1`): Number of days forward to check for upcoming expiration.
-  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
-  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
+### Inventory Transactions & Consumption
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/inventory-transactions` | Record an immutable stock deduction (`CONSUMPTION`, `WASTE`, etc.) |
+| `GET` | `/inventory-transactions` | List transaction audit logs (paginated) |
+| `GET` | `/inventory-transactions/{id}` | Get transaction record by ID |
+| `POST` | `/inventory/consume` | Automatically consume multi-batch stock for recipe servings via FEFO/FIFO |
 
-- **Ordering:** Ordered by earliest expiry date first.
-
-- **Response (`200 OK`):**
-  ```json
-  [
-    {
-      "batch_number": "BEE-20260920-001",
-      "ingredient": "Beef Patty",
-      "ingredient_name": "Beef Patty",
-      "ingredient_id": 1,
-      "quantity": "4.00",
-      "supplier": "Meat Corp",
-      "received_date": "2026-09-20",
-      "expiry_date": "2026-09-27",
-      "days_until_expiry": 3
-    }
-  ]
-  ```
-
-### 3. `GET /inventory-batches/expired`
-Retrieve inventory batches that have passed their expiration date (`expiry_date < today`) for kitchen waste auditing or removal.
-
-- **Query Parameters:**
-  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
-  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
-
-- **Ordering:** Ordered by oldest expiry date first.
-
-- **Response (`200 OK`):**
-  ```json
-  [
-    {
-      "batch_number": "MIL-20260910-001",
-      "ingredient": "Whole Milk",
-      "ingredient_name": "Whole Milk",
-      "ingredient_id": 4,
-      "quantity": "2.00",
-      "quantity_remaining": "2.00",
-      "supplier": "Dairy Land",
-      "expiry_date": "2026-09-18"
-    }
-  ]
-  ```
+### Real-Time Availability Engine
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/availability/recipes/{id}` | Check real-time availability and servings for a single recipe |
+| `GET` | `/availability/recipes` | Batch availability calculations across all recipes (optimized) |
+| `GET` | `/availability/menu-items/{id}` | Check real-time availability and servings for a menu item |
+| `GET` | `/availability/menu-items` | Batch availability calculations across all menu items (optimized) |
 
 ---
 
-## Automated FEFO / FIFO Inventory Consumption API Reference
+## 🖼️ UI Preview (Phase 3 Placeholder)
 
-### `POST /inventory/consume`
-Automatically consume physical inventory batches for all required ingredients in a recipe across specified servings using FEFO (First-Expiring, First-Out) with FIFO tie-breaking. Deducts stock across one or more batches, generates immutable `CONSUMPTION` transaction records, and synchronizes ingredient stock levels atomically.
-
-- **Request Schema (`InventoryConsumeRequest`):**
-  - `recipe_id` (`int`, required): Unique ID of the recipe. Must be $> 0$.
-  - `servings` (`int`, required): Number of servings to prepare. Must be $> 0$.
-
-- **Business & Execution Rules:**
-  - **FEFO Priority:** Batches closest to expiration are consumed first (`expiry_date ASC`).
-  - **FIFO Tie-Breaker:** Ties in expiration date are broken by oldest received date (`received_date ASC`).
-  - **Deterministic Ordering:** Remaining ties are resolved by `batch_number ASC`.
-  - **Multi-Batch Spanning:** If a batch has insufficient quantity, it is depleted to `0.00` and the remainder is deducted from the next eligible batch.
-  - **Atomic Integrity:** All recipe ingredients are validated before any deduction. If any ingredient has insufficient total stock or no batches, the operation halts immediately with `400 Bad Request` and zero partial changes.
-  - **Immutable Auditing:** An `InventoryTransaction` record is created for every individual batch deducted.
-  - **Automatic Stock Sync:** `Ingredient.current_stock` is updated automatically upon successful commit.
-
-- **Example Request:**
-  ```json
-  {
-    "recipe_id": 1,
-    "servings": 5
-  }
-  ```
-
-- **Response (`200 OK`):**
-  ```json
-  {
-    "recipe_id": 1,
-    "servings": 5,
-    "total_ingredients_consumed": 2,
-    "ingredients": [
-      {
-        "ingredient": "Burger Patty",
-        "ingredient_name": "Burger Patty",
-        "ingredient_id": 1,
-        "required_quantity": "10.00",
-        "consumed_batches": [
-          {
-            "batch_number": "BUR-20260915-001",
-            "quantity_consumed": "4.00",
-            "remaining_quantity": "0.00"
-          },
-          {
-            "batch_number": "BUR-20260920-001",
-            "quantity_consumed": "6.00",
-            "remaining_quantity": "14.00"
-          }
-        ]
-      },
-      {
-        "ingredient": "Brioche Bun",
-        "ingredient_name": "Brioche Bun",
-        "ingredient_id": 2,
-        "required_quantity": "5.00",
-        "consumed_batches": [
-          {
-            "batch_number": "BUN-20260918-001",
-            "quantity_consumed": "5.00",
-            "remaining_quantity": "10.00"
-          }
-        ]
-      }
-    ]
-  }
-  ```
-
-- **Error Responses:**
-  - `404 Not Found`: Recipe does not exist.
-  - `400 Bad Request`: Servings $\le 0$, recipe has no ingredients, missing batches for an ingredient, or insufficient total stock.
-  - `422 Unprocessable Entity`: Request body validation error (e.g. non-integer or negative servings).
+> *The React frontend single-page application is scheduled for Phase 3. Screenshots and visual walkthroughs of the kitchen operations dashboard will be showcased here upon release.*
 
 ---
 
-> This project is being built incrementally. Documentation and architecture evolve alongside development.
+## 🗺️ Roadmap & Future Scope
 
+- **Phase 3 — React Frontend:** Interactive operations dashboard, batch intake UI, live availability view, and production simulator.
+- **Phase 4 — Production Readiness:** CI/CD pipelines, Docker containerization, and cloud deployment.
+- **Post-MVP:**
+  - JWT Authentication & Role-Based Access Control (Kitchen Staff vs Admin).
+  - Food Cost Analytics & COGS reporting.
+  - Machine Learning consumption forecasting and AI-driven daily special recommendations.
 
+Full milestone tracking is documented in [ROADMAP.md](ROADMAP.md).
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).

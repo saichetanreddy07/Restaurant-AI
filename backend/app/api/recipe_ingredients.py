@@ -29,7 +29,6 @@ router = APIRouter(tags=["Recipe Ingredients"])
     description="Associate an ingredient and its required quantity with a recipe.",
     responses={
         201: {"description": "Recipe ingredient created successfully"},
-        400: {"description": "Invalid quantity"},
         404: {"description": "Recipe or ingredient not found"},
         409: {"description": "Ingredient already associated with this recipe"},
     },
@@ -120,7 +119,6 @@ def get_recipe_ingredient(
     summary="Update a recipe ingredient",
     description="Update an existing recipe-ingredient association.",
     responses={
-        400: {"description": "Invalid quantity"},
         404: {"description": "Recipe ingredient or ingredient not found"},
         409: {"description": "Ingredient already associated with this recipe"},
     },
