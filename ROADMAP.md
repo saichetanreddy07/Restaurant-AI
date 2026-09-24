@@ -8,8 +8,8 @@
   - Module 2: Menu Items ✅ Completed & Tested
   - Module 3: Recipes ✅ Completed & Tested
   - Module 4: Recipe Ingredients ✅ Completed & Tested
-  - Module 5: Inventory Management (Batches & Transactions) ✅ Completed & Tested
-  - Module 6: Availability ⏳ Next Active Milestone
+  - Module 5: Inventory Management ✅ Completed & Tested
+  - Module 6: Availability Engine ⏳ Next Active Milestone
 - **Phase 2 (Backend Refactoring):** 📋 Planned (triggered after all 6 backend modules are completed)
 - **Phase 3 (Frontend):** 📋 Planned (triggered only after backend is stable)
 - **Phase 4 (Production Readiness):** 📋 Planned
@@ -67,7 +67,7 @@ We are intentionally completing the backend one domain module at a time. Each mo
 - [x] Enforce strictly positive quantities and fixed-point decimal precision
 - [x] Comprehensive end-to-end testing completed successfully (22/22 scenarios passed)
 
-### Module 5: Inventory (Batch Tracking & Transactions Completed ✅)
+### Module 5: Inventory Management (Completed ✅)
 - [x] Design inventory tracking schema (`inventory_batches` table with cascade foreign key and unique index on `batch_number`)
 - [x] Implement `InventoryBatch` SQLAlchemy model with batch tracking and expiry dates
 - [x] Generate and apply Alembic migration for `inventory_batches` table (`alembic/versions/dc3068eab3e5_create_inventory_batches_table.py`)
@@ -82,10 +82,14 @@ We are intentionally completing the backend one domain module at a time. Each mo
 - [x] Implement `InventoryTransactionService` with atomic batch stock deduction, insufficient stock rejection, and immutability
 - [x] Implement Inventory Transaction REST API endpoints (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{transaction_id}`)
 - [x] Comprehensive runtime testing completed successfully across stock deductions, audit immutability, and error handling
-- [ ] Implement automated recipe-based FIFO / FEFO batch deduction during order fulfillment
-- [ ] Expiry date alerting and low-stock threshold monitoring
+- [x] Implement automatic Ingredient stock synchronization (`sync_ingredient_stock(ingredient_id)`) maintaining `InventoryBatch` as single source of truth
+- [x] Expiry date alerting and low-stock threshold monitoring (`GET /inventory-batches/low-stock`, `GET /inventory-batches/expiring`, `GET /inventory-batches/expired`)
+- [x] Implement dedicated `InventoryConsumptionService` with automated FEFO/FIFO recipe inventory consumption
+- [x] Implement inventory consumption API endpoint (`POST /inventory/consume`)
+- [x] Fix `InventoryBatchResponse` schema for depleted zero-quantity batches
+- [x] Comprehensive manual and API test suite completed successfully (16/16 scenarios passed)
 
-### Module 6: Availability (Next Active Milestone ⏳)
+### Module 6: Availability Engine (Next Active Milestone ⏳)
 - [ ] Design availability computation data schemas
 - [ ] Implement real-time availability calculation engine (checking stock for all ingredients in linked recipes)
 - [ ] Implement REST API endpoints for real-time dish availability

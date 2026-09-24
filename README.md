@@ -47,7 +47,7 @@ RestaurantAI aims to solve these problems through a centralized, audit-tracked i
 - Menu Item Management (Completed ✅)
 - Recipe Management (Completed ✅)
 - Recipe Ingredients Management (Completed ✅)
-- Inventory Batch & Stock Management (Batches & Movement Tracking Completed ✅)
+- Inventory Batch & Stock Management (Completed ✅)
 - Real-Time Dish Availability Engine (Next Active Milestone ⏳)
 
 - Production Simulation (Post-MVP)
@@ -95,8 +95,8 @@ We are building the backend core one module at a time. After all six core module
   - Module 2: Menu Items: Completed ✅
   - Module 3: Recipes: Completed ✅
   - Module 4: Recipe Ingredients: Completed ✅
-  - Module 5: Inventory Management (Batches & Transactions): Completed ✅
-  - Module 6: Availability: Next Active Milestone ⏳
+  - Module 5: Inventory Management: Completed ✅
+  - Module 6: Availability Engine: Next Active Milestone ⏳
 - **Phase 2 (Backend Refactoring):** Planned 📋 *(Triggered after all 6 core modules complete — deduplication, architecture, centralized error handling, validations, query optimization, logging)*
 - **Phase 3 (Frontend):** Planned 📋 *(Triggered after backend is stable — React, TypeScript, Tailwind CSS, Axios API integration)*
 - **Phase 4 (Production Readiness):** Planned 📋 *(Testing, final documentation, deployment)*
@@ -123,6 +123,7 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── health.py
 │       │   ├── ingredients.py
+│       │   ├── inventory.py
 │       │   ├── inventory_batches.py
 │       │   ├── inventory_transactions.py
 │       │   ├── menu_items.py
@@ -147,6 +148,7 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── ingredient.py
 │       │   ├── inventory_batch.py
+│       │   ├── inventory_consumption.py
 │       │   ├── inventory_transaction.py
 │       │   ├── menu_item.py
 │       │   ├── recipe.py
@@ -155,6 +157,7 @@ restaurant-ai/
 │       │   ├── __init__.py
 │       │   ├── ingredient_service.py
 │       │   ├── inventory_batch_service.py
+│       │   ├── inventory_consumption_service.py
 │       │   ├── inventory_transaction_service.py
 │       │   ├── menu_item_service.py
 │       │   ├── recipe_service.py
@@ -216,24 +219,36 @@ restaurant-ai/
 - **REST API:** Complete REST endpoints under `/recipe-ingredients`.
 - **Testing Completed:** End-to-end testing across 22 scenarios covering creation, duplicate detection, invalid references, validation errors, pagination, updates, immutability, and cascade isolation with 100% pass rate.
 
-### 6. Phase 1 — Module 5: Inventory Batches (Completed & Tested)
-- **Purpose:** Tracks physical ingredient shipments received from suppliers as distinct inventory batches to support lot traceability, expiration tracking, and future FIFO/FEFO stock consumption.
-- **InventoryBatch Model:** SQLAlchemy 2.0 declarative model mapping `inventory_batches` table with `id`, `ingredient_id` (FK -> `ingredients.id`, cascade), `batch_number` (`String(30)`, unique, indexed), `quantity` (`Numeric(10, 2)`), `unit_cost` (`Numeric(10, 2)`), `supplier` (`String(100)`), `received_date` (`Date`), `expiry_date` (`Date`), timestamps, and ORM relationship to `Ingredient` with `passive_deletes=True`.
-- **Database Migration:** Generated and applied Alembic migration `dc3068eab3e5_create_inventory_batches_table.py` configuring foreign key cascade, primary key, and unique index on `batch_number`.
-- **Pydantic Schemas:** `InventoryBatchBase`, `InventoryBatchCreate`, `InventoryBatchUpdate`, and `InventoryBatchResponse` with strict positive number constraints, supplier whitespace normalization, date validation (`expiry_date >= received_date`), and immutable field exclusion on update.
-- **Service Layer:** `InventoryBatchService` providing automated batch number generation (`<CODE>-<YYYYMMDD>-<SEQUENCE>`), parent ingredient verification (HTTP 404), persisted date validation on partial update (HTTP 400), deterministic ordering (`ingredient_id ASC, received_date ASC, batch_number ASC`), and pagination.
-- **REST API:** Complete REST endpoints under `/inventory-batches`.
-- **Testing Completed:** Comprehensive runtime testing across 32 scenarios covering creation, auto-generation, schema constraints, invalid IDs, immutability, pagination, updates, and cascade isolation with 100% pass rate.
-
-### 7. Phase 1 — Module 5: Inventory Transactions (Completed & Tested)
-- **Purpose:** Records physical stock movements occurring after batch intake (consumption, kitchen waste, adjustments, and expiration write-offs), updating batch on-hand quantities atomically while maintaining an immutable audit log.
-- **InventoryTransaction Model:** SQLAlchemy 2.0 declarative model mapping `inventory_transactions` table with `id`, `inventory_batch_id` (FK -> `inventory_batches.id`, cascade, indexed), `transaction_type` (Enum, indexed), `quantity` (`Numeric(10, 2)`), `notes` (`String(255)`, nullable), `created_at` timestamp, and database check constraint `ck_inventory_transaction_quantity_positive` (`quantity > 0`).
-- **Standardized Types:** `TransactionType` enum (`CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`) decoupled into `backend/app/core/enums.py`.
-- **Database Migration:** Generated and applied Alembic migration `65ea68c341d8_create_inventory_transactions_table.py` configuring foreign key cascade, indexes, check constraint, and enum column on MySQL.
-- **Pydantic Schemas:** `InventoryTransactionBase`, `InventoryTransactionCreate`, and `InventoryTransactionResponse` with positive ID validation (`gt=0`), strictly positive decimal quantity validation (`gt=0`, `max_digits=10`, `decimal_places=2`), whitespace stripping on optional notes, and ORM mode. Excludes update schemas to guarantee record immutability.
-- **Service Layer:** `InventoryTransactionService` providing atomic stock deductions, parent batch verification (HTTP 404), insufficient stock prevention (HTTP 400), deterministic ordering (`created_at DESC, id DESC`), pagination, and transactional rollback.
-- **REST API:** Complete REST endpoints under `/inventory-transactions` (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{id}`).
-- **Testing Completed:** End-to-end verification covering atomic stock deduction, insufficient stock rejection, audit immutability, pagination, and OpenAPI specification with 100% pass rate.
+### 6. Phase 1 — Module 5: Inventory Management (Completed & Tested)
+- **Purpose:** Full-lifecycle management of physical restaurant inventory, lot tracking, movement auditing, automated stock level synchronization, health alerts, and recipe-based automated consumption.
+- **Inventory Batch System:**
+  - `InventoryBatch` model mapping `inventory_batches` table with `id`, `ingredient_id` (FK -> `ingredients.id`, cascade), `batch_number` (`String(30)`, unique, indexed), `quantity` (`Numeric(10, 2)`), `unit_cost` (`Numeric(10, 2)`), `supplier` (`String(100)`), `received_date` (`Date`), `expiry_date` (`Date`), timestamps, and `passive_deletes=True`.
+  - Service-managed automatic batch number generation formatted as `<CODE>-<YYYYMMDD>-<SEQUENCE>`.
+  - Immutable intake facts (`ingredient_id`, `batch_number`, `received_date`).
+  - Depleted batches supported cleanly with `quantity == 0.00` via `InventoryBatchResponse` schema.
+  - Complete REST CRUD endpoints under `/inventory-batches`.
+- **Inventory Transactions & Movement Tracking:**
+  - `InventoryTransaction` model mapping `inventory_transactions` table with `id`, `inventory_batch_id` (FK -> `inventory_batches.id`, cascade, indexed), `transaction_type` (Enum, indexed: `CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`), `quantity` (`Numeric(10, 2)`), `notes`, and audit timestamp.
+  - Database check constraint `ck_inventory_transaction_quantity_positive` (`quantity > 0`).
+  - Strict audit immutability (no update or delete endpoints).
+  - Atomic batch stock deduction and transaction recording within single database transactions.
+  - Endpoints under `/inventory-transactions` (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{id}`).
+- **Automatic Ingredient Stock Synchronization:**
+  - Reusable `sync_ingredient_stock(ingredient_id)` method in `InventoryBatchService` establishes `InventoryBatch` as the single authoritative source of truth.
+  - Automatically recalculates and persists $\sum \text{batch.quantity}$ to `Ingredient.current_stock` after every batch creation, update, deletion, transaction, and consumption event.
+  - Resets `Ingredient.current_stock` to `0.00` when all batches are depleted or deleted.
+- **Low-Stock Alerts & Expiry Monitoring:**
+  - `GET /inventory-batches/low-stock`: Identifies ingredients where `current_stock <= minimum_stock`, sorted by lowest stock first.
+  - `GET /inventory-batches/expiring`: Identifies batches expiring within a configurable threshold (`days`, default 7), excluding already-expired stock, sorted by earliest expiry first.
+  - `GET /inventory-batches/expired`: Identifies batches where `expiry_date < today` for waste write-offs, sorted by oldest expiry first.
+- **Automated FEFO / FIFO Inventory Consumption Engine:**
+  - Dedicated `InventoryConsumptionService` orchestrating recipe ingredient deductions via `POST /inventory/consume`.
+  - Enforces strict First-Expiring, First-Out (FEFO) consumption, tie-broken by FIFO (earliest `received_date`), and deterministically ordered by `batch_number ASC`.
+  - Spans deductions across multiple batches as needed until recipe servings are fulfilled.
+  - Generates immutable `CONSUMPTION` transaction records for each batch drawn.
+  - Atomic two-phase execution: validates all ingredients and available stock upfront; aborts with complete rollback if stock is insufficient.
+  - Automatically synchronizes `Ingredient.current_stock` post-deduction.
+- **Testing Completed:** Comprehensive runtime test suites executed against live MySQL storage (32/32 batch CRUD scenarios, 20/20 transaction scenarios, and 16/16 end-to-end consumption/sync/alert scenarios with 100% pass rate).
 
 ---
 
@@ -351,12 +366,16 @@ restaurant-ai/
 | `DELETE` | `/recipe-ingredients/{id}` | Delete recipe ingredient by ID | `200 OK` / `404 Not Found` |
 | `POST` | `/inventory-batches/` | Create an inventory batch | `201 Created` / `400 Bad Request` / `404 Not Found` |
 | `GET` | `/inventory-batches/` | Retrieve all inventory batches (paginated) | `200 OK` |
+| `GET` | `/inventory-batches/low-stock` | Retrieve ingredients at or below minimum stock threshold | `200 OK` |
+| `GET` | `/inventory-batches/expiring` | Retrieve batches expiring within window (default 7 days) | `200 OK` / `400 Bad Request` |
+| `GET` | `/inventory-batches/expired` | Retrieve batches that have already expired | `200 OK` |
 | `GET` | `/inventory-batches/{id}` | Retrieve single inventory batch by ID | `200 OK` / `404 Not Found` |
 | `PUT` | `/inventory-batches/{id}` | Update inventory batch fields | `200 OK` / `400 Bad Request` / `404 Not Found` |
 | `DELETE` | `/inventory-batches/{id}` | Delete inventory batch by ID | `200 OK` / `404 Not Found` |
 | `POST` | `/inventory-transactions` | Record inventory transaction and deduct batch stock | `201 Created` / `400 Bad Request` / `404 Not Found` |
 | `GET` | `/inventory-transactions` | Retrieve all inventory transactions (paginated) | `200 OK` |
 | `GET` | `/inventory-transactions/{id}` | Retrieve single inventory transaction by ID | `200 OK` / `404 Not Found` |
+| `POST` | `/inventory/consume` | Automatically consume inventory for recipe servings via FEFO/FIFO | `200 OK` / `400 Bad Request` / `404 Not Found` / `422 Unprocessable Entity` |
 | `GET` | `/docs` | Interactive Swagger UI documentation | `200 OK` |
 | `GET` | `/redoc` | ReDoc API documentation | `200 OK` |
 
@@ -459,5 +478,162 @@ Retrieve a single transaction record by its primary key ID.
 
 ---
 
+## Inventory Health & Monitoring API Reference
+
+### 1. `GET /inventory-batches/low-stock`
+Retrieve ingredients whose current total available stock (synchronized across all active batches) is less than or equal to their configured `minimum_stock` threshold.
+
+- **Query Parameters:**
+  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
+  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
+
+- **Ordering:** Ordered by lowest stock first, then ingredient name ascending.
+
+- **Response (`200 OK`):**
+  ```json
+  [
+    {
+      "id": 1,
+      "ingredient_id": 1,
+      "name": "Beef Patty",
+      "ingredient_name": "Beef Patty",
+      "current_stock": 4.0,
+      "minimum_stock": 10.0,
+      "minimum_stock_level": 10.0,
+      "unit": "pcs"
+    }
+  ]
+  ```
+
+### 2. `GET /inventory-batches/expiring`
+Retrieve inventory batches whose expiration date falls within a configurable warning window from today, excluding already-expired batches.
+
+- **Query Parameters:**
+  - `days` (`int`, optional, default `7`, min `1`): Number of days forward to check for upcoming expiration.
+  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
+  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
+
+- **Ordering:** Ordered by earliest expiry date first.
+
+- **Response (`200 OK`):**
+  ```json
+  [
+    {
+      "batch_number": "BEE-20260920-001",
+      "ingredient": "Beef Patty",
+      "ingredient_name": "Beef Patty",
+      "ingredient_id": 1,
+      "quantity": "4.00",
+      "supplier": "Meat Corp",
+      "received_date": "2026-09-20",
+      "expiry_date": "2026-09-27",
+      "days_until_expiry": 3
+    }
+  ]
+  ```
+
+### 3. `GET /inventory-batches/expired`
+Retrieve inventory batches that have passed their expiration date (`expiry_date < today`) for kitchen waste auditing or removal.
+
+- **Query Parameters:**
+  - `skip` (`int`, optional, default `0`, min `0`): Records to skip.
+  - `limit` (`int`, optional, default `100`, min `1`, max `500`): Maximum records to return.
+
+- **Ordering:** Ordered by oldest expiry date first.
+
+- **Response (`200 OK`):**
+  ```json
+  [
+    {
+      "batch_number": "MIL-20260910-001",
+      "ingredient": "Whole Milk",
+      "ingredient_name": "Whole Milk",
+      "ingredient_id": 4,
+      "quantity": "2.00",
+      "quantity_remaining": "2.00",
+      "supplier": "Dairy Land",
+      "expiry_date": "2026-09-18"
+    }
+  ]
+  ```
+
+---
+
+## Automated FEFO / FIFO Inventory Consumption API Reference
+
+### `POST /inventory/consume`
+Automatically consume physical inventory batches for all required ingredients in a recipe across specified servings using FEFO (First-Expiring, First-Out) with FIFO tie-breaking. Deducts stock across one or more batches, generates immutable `CONSUMPTION` transaction records, and synchronizes ingredient stock levels atomically.
+
+- **Request Schema (`InventoryConsumeRequest`):**
+  - `recipe_id` (`int`, required): Unique ID of the recipe. Must be $> 0$.
+  - `servings` (`int`, required): Number of servings to prepare. Must be $> 0$.
+
+- **Business & Execution Rules:**
+  - **FEFO Priority:** Batches closest to expiration are consumed first (`expiry_date ASC`).
+  - **FIFO Tie-Breaker:** Ties in expiration date are broken by oldest received date (`received_date ASC`).
+  - **Deterministic Ordering:** Remaining ties are resolved by `batch_number ASC`.
+  - **Multi-Batch Spanning:** If a batch has insufficient quantity, it is depleted to `0.00` and the remainder is deducted from the next eligible batch.
+  - **Atomic Integrity:** All recipe ingredients are validated before any deduction. If any ingredient has insufficient total stock or no batches, the operation halts immediately with `400 Bad Request` and zero partial changes.
+  - **Immutable Auditing:** An `InventoryTransaction` record is created for every individual batch deducted.
+  - **Automatic Stock Sync:** `Ingredient.current_stock` is updated automatically upon successful commit.
+
+- **Example Request:**
+  ```json
+  {
+    "recipe_id": 1,
+    "servings": 5
+  }
+  ```
+
+- **Response (`200 OK`):**
+  ```json
+  {
+    "recipe_id": 1,
+    "servings": 5,
+    "total_ingredients_consumed": 2,
+    "ingredients": [
+      {
+        "ingredient": "Burger Patty",
+        "ingredient_name": "Burger Patty",
+        "ingredient_id": 1,
+        "required_quantity": "10.00",
+        "consumed_batches": [
+          {
+            "batch_number": "BUR-20260915-001",
+            "quantity_consumed": "4.00",
+            "remaining_quantity": "0.00"
+          },
+          {
+            "batch_number": "BUR-20260920-001",
+            "quantity_consumed": "6.00",
+            "remaining_quantity": "14.00"
+          }
+        ]
+      },
+      {
+        "ingredient": "Brioche Bun",
+        "ingredient_name": "Brioche Bun",
+        "ingredient_id": 2,
+        "required_quantity": "5.00",
+        "consumed_batches": [
+          {
+            "batch_number": "BUN-20260918-001",
+            "quantity_consumed": "5.00",
+            "remaining_quantity": "10.00"
+          }
+        ]
+      }
+    ]
+  }
+  ```
+
+- **Error Responses:**
+  - `404 Not Found`: Recipe does not exist.
+  - `400 Bad Request`: Servings $\le 0$, recipe has no ingredients, missing batches for an ingredient, or insufficient total stock.
+  - `422 Unprocessable Entity`: Request body validation error (e.g. non-integer or negative servings).
+
+---
+
 > This project is being built incrementally. Documentation and architecture evolve alongside development.
+
 

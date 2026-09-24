@@ -4,16 +4,13 @@
 
 ### Phase 1 — Backend Core Modules (Sequential Delivery)
 
-#### Module 5: Inventory Management (Remaining Scope)
-- [ ] Implement recipe-based FIFO / FEFO automated batch consumption during order processing
-- [ ] Implement low-stock alerts and expiration monitoring
-- [ ] Integrate automatic ingredient master stock level synchronization
-
 #### Module 6: Availability Engine
-- [ ] Design availability computation schemas (`AvailabilityResponse`)
-- [ ] Implement availability calculation service (checking stock for all ingredients in linked recipes)
-- [ ] Implement API endpoints for real-time menu item availability
-- [ ] Test dish availability calculation and ingredient shortage detection
+- [ ] Availability Engine
+- [ ] Dish availability calculation
+- [ ] Ingredient shortage detection
+- [ ] Maximum servings calculation
+- [ ] Availability API endpoints
+- [ ] Testing
 
 ---
 
@@ -55,8 +52,7 @@
 
 ## In Progress
 
-- [ ] Phase 1 — Module 6: Availability Engine (Designing availability computation schemas and calculation service)
-
+- [ ] Phase 1 — Module 6: Availability Engine (Designing availability computation schemas, dish availability calculation service, and API endpoints)
 
 ---
 
@@ -136,7 +132,7 @@
 - [x] Register RecipeIngredient router in `main.py`
 - [x] Comprehensive end-to-end testing completed successfully (22/22 scenarios passed)
 
-### Phase 1 — Module 5: Inventory Batches (Batch Tracking & Intake - Completed & Tested)
+### Phase 1 — Module 5: Inventory Management (Completed & Tested)
 
 - [x] Design inventory batch database schema (`inventory_batches` table with cascade foreign key and unique index on `batch_number`)
 - [x] Implement `InventoryBatch` SQLAlchemy model (`models/inventory_batch.py`) with 10 core fields and `passive_deletes=True`
@@ -146,9 +142,6 @@
 - [x] Implement InventoryBatch API router (`POST`, `GET`, `PUT`, `DELETE` `/inventory-batches`)
 - [x] Register InventoryBatch router in `main.py` and export model in `models/__init__.py`
 - [x] Comprehensive runtime testing completed successfully (32/32 scenarios passed)
-
-### Phase 1 — Module 5: Inventory Transactions (Movement Tracking & Stock Deductions - Completed & Tested)
-
 - [x] Design inventory transactions database schema (`inventory_transactions` table with foreign key cascade, indexes, and check constraint)
 - [x] Define standardized `TransactionType` enum (`core/enums.py`: `CONSUMPTION`, `WASTE`, `ADJUSTMENT`, `EXPIRED`)
 - [x] Implement `InventoryTransaction` SQLAlchemy model (`models/inventory_transaction.py`) with `Numeric(10, 2)` quantity and `passive_deletes=True`
@@ -157,6 +150,14 @@
 - [x] Implement `InventoryTransactionService` with batch existence validation, stock sufficiency checking, atomic batch stock quantity deduction, and deterministic ordering (`created_at DESC, id DESC`)
 - [x] Implement InventoryTransaction API router (`POST /inventory-transactions`, `GET /inventory-transactions`, `GET /inventory-transactions/{transaction_id}`)
 - [x] Register InventoryTransaction router in `main.py` and export model in `models/__init__.py`
-- [x] Comprehensive testing completed successfully (stock deduction, audit immutability, pagination, and error scenarios)
+- [x] Implement automatic Ingredient stock synchronization (`sync_ingredient_stock(ingredient_id)`) across all batch creations, updates, deletions, and transactions
+- [x] Implement low-stock alerts and expiration monitoring service queries (`get_low_stock_ingredients`, `get_expiring_batches`, `get_expired_batches`)
+- [x] Implement REST API endpoints for inventory monitoring (`GET /inventory-batches/low-stock`, `GET /inventory-batches/expiring`, `GET /inventory-batches/expired`)
+- [x] Implement dedicated `InventoryConsumptionService` with automated FEFO/FIFO recipe inventory consumption
+- [x] Implement recipe consumption API endpoint (`POST /inventory/consume`)
+- [x] Ensure atomic transactions with rollback on failure and immutable transaction creation per consumed batch
+- [x] Fix `InventoryBatchResponse` schema to support depleted batches (`quantity == 0.00`)
+- [x] Comprehensive manual and API test suite completed successfully (16/16 scenarios passed)
+
 
 

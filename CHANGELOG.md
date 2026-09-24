@@ -218,5 +218,30 @@
   - Implemented FastAPI router in `backend/app/api/inventory_transactions.py` with dependency injection (`get_db`), query validation (`skip >= 0`, `1 <= limit <= 500`), and registered the router at `/inventory-transactions` in `backend/app/main.py`.
   - Completed end-to-end integration, migration, Swagger UI verification, and review across stock deduction, audit immutability, pagination, and error scenarios with 100% pass rate.
 
+---
+
+## 2026-09-24 — Inventory Management Module (Stock Synchronization, Expiry & Low-Stock Alerts, and Automated FEFO/FIFO Consumption Engine)
+
+- **Feature completed:** Inventory Management Module Completion (Stock Sync, Health Alerts, and FEFO/FIFO Consumption Engine)
+
+- **Summary of changes:**
+
+  - **Ingredient Stock Synchronization:** Implemented `sync_ingredient_stock(ingredient_id)` in `InventoryBatchService`, establishing `InventoryBatch` as the single authoritative source of truth. Synchronized `Ingredient.current_stock` automatically across all batch insertions, updates, deletions, and transactions (falling back to `0.00` if no batches remain).
+  - **Low Stock Alerts & Expiry Monitoring:** Implemented alert queries in `InventoryBatchService` and added REST API endpoints under `/inventory-batches`:
+    - `GET /inventory-batches/low-stock`: Returns ingredients at or below their configured minimum stock threshold, sorted by lowest stock first.
+    - `GET /inventory-batches/expiring`: Returns active batches with expiration dates within a configurable window (default 7 days), excluding expired batches, sorted by earliest expiry first.
+    - `GET /inventory-batches/expired`: Returns batches that have expired (`expiry_date < today`), sorted by oldest expiry first.
+  - **Automated FEFO / FIFO Inventory Consumption Engine:** Implemented `InventoryConsumptionService` orchestrating recipe-based automated inventory deductions:
+    - Traverses recipe ingredients and calculates scaled quantities for requested servings.
+    - Enforces FEFO (First-Expiring, First-Out) batch prioritization, tie-broken by FIFO (earliest `received_date`), and deterministically ordered by `batch_number ASC`.
+    - Spans deductions across multiple batches as needed.
+    - Creates immutable `InventoryTransaction` records with `CONSUMPTION` movement type for every batch consumed.
+    - Atomically commits deductions and transaction logs, reverting via `rollback()` if any ingredient has insufficient stock or missing batches.
+    - Triggers automated ingredient stock synchronization post-deduction.
+  - **Consumption API Endpoint:** Created `POST /inventory/consume` endpoint in `backend/app/api/inventory.py` accepting `recipe_id` and `servings`, returning detailed breakdowns of consumed batches and remaining quantities.
+  - **Testing & Validation:** Executed comprehensive 16-scenario test suite verifying multi-batch consumption, FEFO prioritization, FIFO and batch number tie-breakers, 404/422/400 validation, repeatability, and MySQL database integrity.
+  - **Bug Fix:** Resolved HTTP 500 `ResponseValidationError` when querying depleted batches (`quantity == 0.00`) by updating `InventoryBatchResponse` in `backend/app/schemas/inventory_batch.py` to allow `quantity: Decimal = Field(ge=0, ...)`.
+
+
 
 

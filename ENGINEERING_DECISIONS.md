@@ -1190,3 +1190,102 @@ Allowing staff to directly overwrite `InventoryBatch.quantity` without recording
 - Implemented `InventoryTransactionService` in [`backend/app/services/inventory_transaction_service.py`](backend/app/services/inventory_transaction_service.py) with batch existence validation (HTTP 404), insufficient stock prevention (HTTP 400), atomic batch quantity deduction, deterministic ordering (`created_at DESC, id DESC`), pagination, and transactional rollback.
 - Implemented FastAPI router in [`backend/app/api/inventory_transactions.py`](backend/app/api/inventory_transactions.py) and registered it at `/inventory-transactions` in [`backend/app/main.py`](backend/app/main.py).
 - Executed comprehensive testing verifying atomic deductions, error handling, immutability, pagination, and OpenAPI contracts.
+
+---
+
+## Decision 012: Automated FEFO/FIFO Inventory Consumption Engine with Batch Source of Truth, Derived Ingredient Stock Synchronization, and Dedicated Consumption Service
+
+### 1. Decision
+
+Establish **`InventoryBatch`** as the persistent source of truth for all on-hand inventory stock and lot tracking. Model **`Ingredient.current_stock`** (`stock_quantity`) as a derived, synchronized cache that always equals the sum of all remaining `InventoryBatch.quantity` values belonging to that ingredient (and zero if no batches remain). Implement an automated **First-Expiring, First-Out (FEFO)** consumption algorithm, tie-broken by **First-In, First-Out (FIFO, earliest `received_date`)**, and ordered deterministically by `batch_number ASC`. Isolate the automated multi-batch deduction logic into a dedicated domain service ([`InventoryConsumptionService`](backend/app/services/inventory_consumption_service.py)), keeping [`InventoryBatchService`](backend/app/services/inventory_batch_service.py) and [`InventoryTransactionService`](backend/app/services/inventory_transaction_service.py) focused on their respective CRUD responsibilities. Execute multi-ingredient recipe consumption atomically within a single database transaction, generating immutable [`InventoryTransaction`](backend/app/models/inventory_transaction.py) audit records for every batch consumed, and aborting with complete rollback if any ingredient has insufficient stock or missing batches.
+
+### 2. Context
+
+In commercial restaurant kitchens, preparing a dish according to a recipe requires deducting physical stock across several distinct ingredients, each of which may be stored across multiple shipments (batches) with differing purchase dates and expiration dates.
+
+Several critical operational challenges had to be addressed:
+- **Perishability & Food Safety (FEFO vs FIFO):** Traditional warehouse FIFO (First-In, First-Out) consumes the earliest received shipment. In culinary operations, however, shipments of perishable goods may arrive out of order, or different suppliers may provide goods with different shelf lives. Consuming based strictly on intake date risks allowing earlier-expiring goods to spoil on kitchen shelves.
+- **Lot Depletion Across Multiple Batches:** A recipe order often requires more quantity than remains in an older, partially consumed batch. The consumption engine must dynamically span multiple batches, fully depleting older stock to `0.00` before drawing the remainder from subsequent batches.
+- **Stock Desynchronization & Source of Truth:** Having both `Ingredient.current_stock` and individual `InventoryBatch.quantity` columns introduces the classic dual-source-of-truth problem. If manual edits or incomplete transactions occur, aggregated ingredient counters diverge from actual lot balances, leading to phantom inventory or unexpected stockouts.
+- **Atomicity Across Multi-Ingredient Recipes:** A recipe consists of multiple ingredients (e.g., a burger requires buns, beef patties, cheese, and tomatoes). If buns and patties are available but cheese is out of stock, the entire order preparation must fail immediately. No partial inventory updates may occur, and no transaction records should be generated for the partial components.
+- **Service Responsibility Segregation:** Mixing recipe traversal, multi-batch FEFO deduction, transaction logging, and stock synchronization directly inside `InventoryBatchService` or `RecipeService` violates the Single Responsibility Principle and bloats existing CRUD modules.
+
+### 3. Why this approach?
+
+- **`InventoryBatch` as the Sole Source of Truth:** Physical inventory exists only as discrete lots in the kitchen. Designating `InventoryBatch` as the authority ensures that lot traceability, unit costs, and expiration dates remain authoritative.
+- **Automated Derived Stock Synchronization (`sync_ingredient_stock`):** Rather than letting callers manually increment or decrement `Ingredient.current_stock`, a centralized helper `sync_ingredient_stock(ingredient_id)` computes $\sum \text{batch.quantity}$ across all active batches for that ingredient and persists it to the `Ingredient` record. This helper is triggered automatically following every batch creation, update, deletion, manual transaction, and recipe consumption event.
+- **Strict FEFO Prioritization with FIFO Tie-Breaking:** Batches are sorted by:
+  1. `expiry_date ASC` (FEFO: use batches closest to expiration first)
+  2. `received_date ASC` (FIFO: if expiry dates are identical, consume the older intake first)
+  3. `batch_number ASC` (Deterministic tie-breaker: ensures predictable order across identical lots)
+- **Dedicated `InventoryConsumptionService`:** Encapsulates the complete orchestration flow: validating recipe existence and ingredient availability, calculating required quantities ($\text{ri.quantity} \times \text{servings}$), sorting eligible batches, creating consumption audit logs, and invoking stock synchronization.
+- **Atomic Two-Phase Validation and Execution:**
+  - *Phase 1 (Pre-Validation):* The service queries all ingredients and their non-empty batches (`quantity > 0`). If any ingredient lacks batches or total on-hand stock is less than required, it raises `HTTP 400 Bad Request` before altering any state.
+  - *Phase 2 (Execution & Commit):* Deductions across all batches and all ingredients occur within the active SQLAlchemy transaction. `db.commit()` commits all deductions and transaction rows simultaneously; any failure triggers `db.rollback()`.
+- **Audit Traceability via `InventoryTransaction`:** Every batch deducted during consumption generates an immutable `CONSUMPTION` transaction record detailing the exact quantity drawn, linked to the recipe name and servings.
+
+### 4. Alternatives Considered
+
+- **Pure Dynamic Stock Calculation (No Column on `Ingredient`):** Removing `current_stock` entirely and running `SELECT SUM(quantity)` queries every time ingredient stock is checked.
+- **Standard FIFO (Ignoring Expiration Dates):** Consuming batches strictly by `received_date ASC`.
+- **Embedding Consumption in `RecipeService` or `InventoryBatchService`:** Adding consumption methods to existing service classes.
+- **Asynchronous Event-Driven Consumption:** Emitting messages to a background worker to decrement inventory asynchronously.
+- **Allowing Partial Order Fulfillment:** Consuming whatever ingredients are available and reporting shortages for the rest.
+
+### 5. Why Alternatives Were Not Chosen
+
+- **Pure Dynamic Stock Calculation:** While normalized, calculating sums across hundreds of batches on every menu list, availability query, or inventory alert introduces significant SQL aggregation latency. A synchronized derived column provides $O(1)$ fast reads while guaranteeing accuracy through automated sync hooks.
+- **Standard FIFO:** Fails in food service. If a kitchen receives milk expiring in 5 days followed by milk expiring in 3 days, standard FIFO uses the 5-day milk first, causing the 3-day milk to spoil. FEFO directly addresses kitchen shrinkage and food safety standards.
+- **Embedding in Existing Services:** Bloats CRUD services with cross-domain coordination logic, coupling recipe definitions with physical batch management and violating separation of concerns.
+- **Asynchronous Consumption:** Creates race conditions where a customer or kitchen worker is informed that an item is available when another concurrent request has already claimed the physical stock. Immediate ACID transactions guarantee consistency.
+- **Partial Order Fulfillment:** In a restaurant, serving a burger without a patty or bun is unacceptable. Preparing a dish requires all ingredients to be present simultaneously.
+
+### 6. Benefits
+
+- Minimizes food waste and spoilage by ensuring older expiring stock is consumed before newer lots.
+- Eliminates dual-source-of-truth discrepancy by maintaining `InventoryBatch` as authority and automating `Ingredient` stock updates.
+- Guaranteed ACID consistency: either all ingredients for a dish are successfully consumed and logged, or zero changes take effect.
+- Full auditability: every gram or unit consumed is traceable back to a specific batch and logged in `inventory_transactions`.
+- High query performance: POS and availability checks read cached `current_stock` instantly without executing aggregate join queries across the entire batch table.
+- Clean, decoupled service architecture adhering to the Single Responsibility Principle.
+
+### 7. Limitations
+
+- Does not support ingredient substitutions (e.g., swapping olive oil for vegetable oil if one runs out).
+- Under high concurrency on the same ingredients, concurrent orders rely on database transaction isolation to prevent over-allocation; pessimistic locking (`SELECT ... FOR UPDATE`) is planned for Phase 2 optimization.
+
+### 8. When This Decision May Not Be Appropriate
+
+- Non-perishable retail inventory (e.g., clothing, hardware) where items do not expire and FIFO/LIFO accounting suffices.
+- High-throughput asynchronous e-commerce backorders where items can be sold and backordered before inventory is physically in stock.
+
+### 9. Interview Questions & Answers
+
+#### Q1: What is the difference between FIFO and FEFO, and why does RestaurantAI prioritize FEFO?
+> **Answer:** FIFO (First-In, First-Out) consumes inventory based on when it was received, whereas FEFO (First-Expired, First-Out) consumes inventory based on its expiration date. In restaurant and food service operations, ingredients are perishable. Deliveries may arrive with differing shelf lives due to supplier variations. Using FEFO ensures that items closest to expiration are used first regardless of intake date, minimizing food spoilage, reducing waste, and enforcing food safety.
+
+#### Q2: How did you solve the dual source-of-truth problem between `Ingredient.current_stock` and `InventoryBatch.quantity`?
+> **Answer:** We designated `InventoryBatch` as the single authoritative source of truth, since physical inventory exists only as real batches in the kitchen. `Ingredient.current_stock` was made a derived value. We implemented a centralized `sync_ingredient_stock(ingredient_id)` method in `InventoryBatchService` that recalculates the sum of all remaining batch quantities and updates the ingredient. This method is automatically called after every batch creation, update, deletion, transaction, and consumption event, ensuring the cached total always mirrors physical inventory.
+
+#### Q3: How is atomicity guaranteed when consuming multiple ingredients across multiple batches?
+> **Answer:** Consumption is implemented in two phases within a single SQLAlchemy session. Phase 1 pre-validates that all required ingredients exist, each has active batches, and total on-hand stock satisfies the requirement ($\text{quantity} \times \text{servings}$). If any ingredient falls short, an `HTTP 400 Bad Request` is raised immediately before modifying any records. Phase 2 executes all batch deductions and creates all corresponding `InventoryTransaction` records within the same transaction. A single `self.db.commit()` is issued; if an unexpected exception occurs, `self.db.rollback()` reverts all changes, preventing partial updates.
+
+#### Q4: Why is `InventoryConsumptionService` a separate service from `InventoryBatchService`?
+> **Answer:** Adhering to the Single Responsibility Principle, `InventoryBatchService` is responsible for CRUD operations and lifecycle management of individual batches. Automated consumption involves orchestrating multiple domain models—reading `Recipe` and `RecipeIngredient`, calculating scaling factors for servings, querying and sorting batches across multiple ingredients via FEFO/FIFO heuristics, inserting audit transactions, and triggering stock synchronization. Encapsulating this orchestration in `InventoryConsumptionService` keeps the codebase modular and maintainable.
+
+### 10. Future Considerations
+
+- In Phase 1 Module 6 (Availability Engine), reuse the synchronized `Ingredient.current_stock` and recipe ingredient quantities to calculate real-time available servings for every menu item.
+- In Phase 2 (Backend Refactoring), add pessimistic row locking (`with_for_update()`) to batch selection during consumption to prevent race conditions under high concurrent order traffic.
+- Support ingredient substitutions and sub-recipes (e.g., sauces prepared as intermediate inventory batches).
+
+### 11. What We Implemented
+
+- Implemented `sync_ingredient_stock(ingredient_id)` in [`backend/app/services/inventory_batch_service.py`](backend/app/services/inventory_batch_service.py) and integrated it into all batch CRUD endpoints and transaction creations.
+- Implemented low-stock alerts (`get_low_stock_ingredients`) and batch expiration queries (`get_expiring_batches`, `get_expired_batches`) in `InventoryBatchService` and registered REST endpoints (`/inventory-batches/low-stock`, `/inventory-batches/expiring`, `/inventory-batches/expired`).
+- Implemented `InventoryConsumptionService` in [`backend/app/services/inventory_consumption_service.py`](backend/app/services/inventory_consumption_service.py) with two-phase FEFO/FIFO consumption, audit transaction logging, atomic commit/rollback, and stock synchronization.
+- Created Pydantic v2 schemas in [`backend/app/schemas/inventory_consumption.py`](backend/app/schemas/inventory_consumption.py) (`InventoryConsumeRequest`, `ConsumedBatchResponse`, `ConsumedIngredientResponse`, `InventoryConsumeResponse`).
+- Implemented FastAPI router in [`backend/app/api/inventory.py`](backend/app/api/inventory.py) exposing `POST /inventory/consume` and registered it in [`backend/app/main.py`](backend/app/main.py).
+- Fixed `InventoryBatchResponse` schema to support depleted batches (`quantity == 0.00`) by setting `quantity: Decimal = Field(ge=0, ...)`.
+- Executed comprehensive manual and API testing across 16 scenarios covering 100% pass rate.
+
