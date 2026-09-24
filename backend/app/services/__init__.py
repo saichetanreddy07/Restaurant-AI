@@ -12,6 +12,7 @@ try:
     from app.services.menu_item_service import MenuItemService
     from app.services.recipe_service import RecipeService
     from app.services.recipe_ingredient_service import RecipeIngredientService
+    from app.services.availability_service import AvailabilityService
 except ModuleNotFoundError:
     from backend.app.services.ingredient_service import IngredientService
     from backend.app.services.inventory_batch_service import (
@@ -28,8 +29,10 @@ except ModuleNotFoundError:
     from backend.app.services.recipe_ingredient_service import (
         RecipeIngredientService,
     )
+    from backend.app.services.availability_service import AvailabilityService
 
 __all__ = [
+    "AvailabilityService",
     "IngredientService",
     "InventoryBatchService",
     "InventoryConsumptionService",
