@@ -8,11 +8,15 @@ try:
     from app.models.inventory_batch import InventoryBatch
     from app.models.inventory_transaction import InventoryTransaction
     from app.schemas.inventory_transaction import InventoryTransactionCreate
+    from app.services.inventory_batch_service import InventoryBatchService
 except ModuleNotFoundError:
     from backend.app.models.inventory_batch import InventoryBatch
     from backend.app.models.inventory_transaction import InventoryTransaction
     from backend.app.schemas.inventory_transaction import (
         InventoryTransactionCreate,
+    )
+    from backend.app.services.inventory_batch_service import (
+        InventoryBatchService,
     )
 
 
@@ -89,6 +93,7 @@ class InventoryTransactionService:
         # types. Positive stock adjustments will be implemented in a future
         # inventory replenishment phase.
         batch.quantity -= transaction_in.quantity
+        ingredient_id = batch.ingredient_id
 
         # InventoryTransaction records are immutable and serve as the audit
         # trail of inventory movement.
@@ -104,6 +109,10 @@ class InventoryTransactionService:
         except Exception:
             self.db.rollback()
             raise
+
+        batch_service = InventoryBatchService(self.db)
+        batch_service.sync_ingredient_stock(ingredient_id)
+        self.db.refresh(transaction)
 
         return transaction
 

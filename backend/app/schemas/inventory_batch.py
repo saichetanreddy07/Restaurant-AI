@@ -6,6 +6,11 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
+try:
+    from app.core.enums import Unit
+except ModuleNotFoundError:
+    from backend.app.core.enums import Unit
+
 
 class InventoryBatchBase(BaseModel):
     """Base schema containing common inventory batch attributes.
@@ -184,8 +189,83 @@ class InventoryBatchResponse(InventoryBatchBase):
 
     id: int = Field(description="Primary key unique identifier of the inventory batch.")
     batch_number: str = Field(description="Unique batch identification number.")
+    quantity: Decimal = Field(
+        ge=0,
+        max_digits=10,
+        decimal_places=2,
+        description="Current available quantity remaining in the batch.",
+    )
     created_at: datetime = Field(description="Timestamp when the batch was created.")
-    updated_at: datetime = Field(description="Timestamp when the batch was last updated.")
+    updated_at: datetime = Field(
+        description="Timestamp when the batch was last updated."
+    )
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class LowStockIngredientResponse(BaseModel):
+    """Schema for low-stock ingredient alert responses."""
+
+    id: int = Field(description="Unique primary key identifier of the ingredient.")
+    ingredient_id: int = Field(description="Alias for ingredient identifier.")
+    name: str = Field(description="Name of the ingredient.")
+    ingredient_name: str = Field(description="Alias for ingredient name.")
+    current_stock: float = Field(
+        description="Current total available stock across all batches."
+    )
+    minimum_stock: float = Field(description="Configured minimum stock threshold.")
+    minimum_stock_level: float = Field(description="Alias for minimum stock threshold.")
+    unit: Unit = Field(description="Unit of measurement.")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ExpiringBatchResponse(BaseModel):
+    """Schema for expiring inventory batch alert responses."""
+
+    batch_number: str = Field(description="Unique batch identification number.")
+    ingredient: str = Field(description="Name of the associated ingredient.")
+    ingredient_name: str = Field(description="Alias for the ingredient name.")
+    ingredient_id: int = Field(
+        description="Unique identifier of the associated ingredient."
+    )
+    quantity: Decimal = Field(
+        max_digits=10,
+        decimal_places=2,
+        description="Available quantity remaining in the batch.",
+    )
+    supplier: str = Field(description="Name of the vendor or supplier.")
+    received_date: date = Field(
+        description="Calendar date when the batch was received."
+    )
+    expiry_date: date = Field(description="Calendar expiration date of the batch.")
+    days_until_expiry: int = Field(
+        description="Number of calendar days remaining until expiration."
+    )
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ExpiredBatchResponse(BaseModel):
+    """Schema for expired inventory batch responses."""
+
+    batch_number: str = Field(description="Unique batch identification number.")
+    ingredient: str = Field(description="Name of the associated ingredient.")
+    ingredient_name: str = Field(description="Alias for the ingredient name.")
+    ingredient_id: int = Field(
+        description="Unique identifier of the associated ingredient."
+    )
+    quantity: Decimal = Field(
+        max_digits=10,
+        decimal_places=2,
+        description="Quantity remaining in the expired batch.",
+    )
+    quantity_remaining: Decimal = Field(
+        max_digits=10,
+        decimal_places=2,
+        description="Alias for quantity remaining in the expired batch.",
+    )
+    supplier: str = Field(description="Name of the vendor or supplier.")
+    expiry_date: date = Field(description="Calendar expiration date of the batch.")
+
+    model_config = ConfigDict(from_attributes=True)

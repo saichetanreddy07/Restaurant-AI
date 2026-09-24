@@ -36,6 +36,34 @@ class Ingredient(Base):
 
     updated_at: Mapped[datetime] = mapped_column(DateTime,server_default=func.now(),onupdate=func.now(),nullable=False,)
 
+    @property
+    def stock_quantity(self) -> float:
+        """Alias for current_stock representing the synchronized total inventory batch quantity."""
+        return self.current_stock
+
+    @stock_quantity.setter
+    def stock_quantity(self, value: float) -> None:
+        self.current_stock = value
+
+    @property
+    def minimum_stock_level(self) -> float:
+        """Alias for minimum_stock threshold."""
+        return self.minimum_stock
+
+    @minimum_stock_level.setter
+    def minimum_stock_level(self, value: float) -> None:
+        self.minimum_stock = value
+
+    @property
+    def ingredient_id(self) -> int:
+        """Alias for id."""
+        return self.id
+
+    @property
+    def ingredient_name(self) -> str:
+        """Alias for name."""
+        return self.name
+
     def __repr__(self) -> str:
         return (
             f"<Ingredient("

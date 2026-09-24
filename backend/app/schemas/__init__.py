@@ -25,6 +25,12 @@ try:
         RecipeIngredientResponse,
         RecipeIngredientUpdate,
     )
+    from app.schemas.inventory_consumption import (
+        ConsumedBatchResponse,
+        ConsumedIngredientResponse,
+        InventoryConsumeRequest,
+        InventoryConsumeResponse,
+    )
 except ModuleNotFoundError:
     from backend.app.schemas.ingredient import (
         IngredientBase,
@@ -50,12 +56,22 @@ except ModuleNotFoundError:
         RecipeIngredientResponse,
         RecipeIngredientUpdate,
     )
+    from backend.app.schemas.inventory_consumption import (
+        ConsumedBatchResponse,
+        ConsumedIngredientResponse,
+        InventoryConsumeRequest,
+        InventoryConsumeResponse,
+    )
 
 __all__ = [
+    "ConsumedBatchResponse",
+    "ConsumedIngredientResponse",
     "IngredientBase",
     "IngredientCreate",
     "IngredientUpdate",
     "IngredientResponse",
+    "InventoryConsumeRequest",
+    "InventoryConsumeResponse",
     "MenuItemBase",
     "MenuItemCreate",
     "MenuItemUpdate",

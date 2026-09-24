@@ -1,11 +1,12 @@
 """Service layer for managing inventory batch operations."""
 
 import re
-from datetime import date
+from datetime import date, timedelta
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 try:
     from app.models.ingredient import Ingredient
@@ -33,6 +34,45 @@ class InventoryBatchService:
             db: SQLAlchemy Session instance for database interactions.
         """
         self.db = db
+
+    def sync_ingredient_stock(self, ingredient_id: int) -> None:
+        """Synchronize Ingredient stock with total quantity across all its inventory batches.
+
+        Ingredient stock is a derived value equal to the sum of quantities across
+        all existing inventory batches belonging to this ingredient. If no batches
+        remain, stock is reset to 0.
+
+        Args:
+            ingredient_id: The unique primary key ID of the ingredient.
+
+        Raises:
+            HTTPException: 404 Not Found if the referenced ingredient does not exist.
+        """
+        ingredient_query = select(Ingredient).where(Ingredient.id == ingredient_id)
+        ingredient = self.db.execute(ingredient_query).scalar_one_or_none()
+
+        if not ingredient:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Ingredient with ID {ingredient_id} not found.",
+            )
+
+        batch_query = select(InventoryBatch).where(
+            InventoryBatch.ingredient_id == ingredient_id
+        )
+        batches = self.db.execute(batch_query).scalars().all()
+
+        total_quantity = sum(
+            (batch.quantity for batch in batches), Decimal("0.00")
+        )
+        ingredient.stock_quantity = float(total_quantity)
+
+        try:
+            self.db.commit()
+            self.db.refresh(ingredient)
+        except Exception:
+            self.db.rollback()
+            raise
 
     def _generate_next_batch_number(
         self, ingredient: Ingredient, received_date: date
@@ -122,6 +162,9 @@ class InventoryBatchService:
         except Exception:
             self.db.rollback()
             raise
+
+        self.sync_ingredient_stock(batch.ingredient_id)
+        self.db.refresh(batch)
 
         return batch
 
@@ -220,12 +263,16 @@ class InventoryBatchService:
             self.db.rollback()
             raise
 
+        self.sync_ingredient_stock(batch.ingredient_id)
+        self.db.refresh(batch)
+
         return batch
 
     def delete_inventory_batch(self, batch_id: int) -> dict[str, str]:
-        """Delete an inventory batch by its ID.
+        """Delete an inventory batch by its ID and synchronize ingredient stock.
 
-        Deleting a batch does not affect the associated Ingredient or other batches.
+        Deleting a batch does not affect the associated Ingredient or other batches,
+        but automatically updates the ingredient's total available stock quantity.
 
         Args:
             batch_id: The unique primary key ID of the inventory batch.
@@ -237,6 +284,7 @@ class InventoryBatchService:
             HTTPException: 404 Not Found if the inventory batch does not exist.
         """
         batch = self.get_inventory_batch(batch_id)
+        ingredient_id = batch.ingredient_id
         self.db.delete(batch)
 
         try:
@@ -245,6 +293,145 @@ class InventoryBatchService:
             self.db.rollback()
             raise
 
+        self.sync_ingredient_stock(ingredient_id)
+
         return {
             "message": f"Inventory batch with ID {batch_id} successfully deleted."
         }
+
+    def get_low_stock_ingredients(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[Ingredient]:
+        """Retrieve ingredients whose current stock is at or below their minimum stock level.
+
+        Ordered by current stock in ascending order (lowest stock first),
+        then by ingredient name in alphabetical order.
+
+        Args:
+            skip: Number of records to skip for pagination.
+            limit: Maximum number of records to return.
+
+        Returns:
+            list[Ingredient]: List of ingredient model instances meeting the low-stock criteria.
+        """
+        query = (
+            select(Ingredient)
+            .where(Ingredient.current_stock <= Ingredient.minimum_stock)
+            .order_by(
+                Ingredient.current_stock.asc(),
+                Ingredient.name.asc(),
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+        result = self.db.execute(query)
+        return list(result.scalars().all())
+
+    def get_expiring_batches(
+        self, days: int = 7, skip: int = 0, limit: int = 100
+    ) -> list[dict]:
+        """Retrieve inventory batches expiring within a specified number of days from today.
+
+        Batches that have already expired (expiry_date < today) are excluded.
+        Results are ordered by earliest expiry date first.
+
+        Args:
+            days: Warning window in days from today (must be greater than 0).
+            skip: Number of records to skip for pagination.
+            limit: Maximum number of records to return.
+
+        Returns:
+            list[dict]: List of expiring batch alert records.
+
+        Raises:
+            HTTPException: 400 Bad Request if days is less than or equal to 0.
+        """
+        if days <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Warning window (days) must be greater than zero.",
+            )
+
+        today = date.today()
+        target_date = today + timedelta(days=days)
+
+        query = (
+            select(InventoryBatch)
+            .options(joinedload(InventoryBatch.ingredient))
+            .where(
+                InventoryBatch.expiry_date >= today,
+                InventoryBatch.expiry_date <= target_date,
+            )
+            .order_by(
+                InventoryBatch.expiry_date.asc(),
+                InventoryBatch.batch_number.asc(),
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+
+        batches = self.db.execute(query).scalars().all()
+
+        results = []
+        for batch in batches:
+            results.append(
+                {
+                    "batch_number": batch.batch_number,
+                    "ingredient": batch.ingredient.name if batch.ingredient else "",
+                    "ingredient_name": batch.ingredient.name if batch.ingredient else "",
+                    "ingredient_id": batch.ingredient_id,
+                    "quantity": batch.quantity,
+                    "supplier": batch.supplier,
+                    "received_date": batch.received_date,
+                    "expiry_date": batch.expiry_date,
+                    "days_until_expiry": (batch.expiry_date - today).days,
+                }
+            )
+        return results
+
+    def get_expired_batches(
+        self, skip: int = 0, limit: int = 100
+    ) -> list[dict]:
+        """Retrieve all expired inventory batches (expiry_date < today).
+
+        Expired batches remain in the database for audit and tracking purposes.
+        Results are ordered by oldest expiry date first.
+
+        Args:
+            skip: Number of records to skip for pagination.
+            limit: Maximum number of records to return.
+
+        Returns:
+            list[dict]: List of expired batch records.
+        """
+        today = date.today()
+
+        query = (
+            select(InventoryBatch)
+            .options(joinedload(InventoryBatch.ingredient))
+            .where(InventoryBatch.expiry_date < today)
+            .order_by(
+                InventoryBatch.expiry_date.asc(),
+                InventoryBatch.batch_number.asc(),
+            )
+            .offset(skip)
+            .limit(limit)
+        )
+
+        batches = self.db.execute(query).scalars().all()
+
+        results = []
+        for batch in batches:
+            results.append(
+                {
+                    "batch_number": batch.batch_number,
+                    "ingredient": batch.ingredient.name if batch.ingredient else "",
+                    "ingredient_name": batch.ingredient.name if batch.ingredient else "",
+                    "ingredient_id": batch.ingredient_id,
+                    "quantity": batch.quantity,
+                    "quantity_remaining": batch.quantity,
+                    "supplier": batch.supplier,
+                    "expiry_date": batch.expiry_date,
+                }
+            )
+        return results

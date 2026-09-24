@@ -6,17 +6,23 @@ from sqlalchemy.orm import Session
 try:
     from app.db.database import get_db
     from app.schemas.inventory_batch import (
+        ExpiredBatchResponse,
+        ExpiringBatchResponse,
         InventoryBatchCreate,
         InventoryBatchResponse,
         InventoryBatchUpdate,
+        LowStockIngredientResponse,
     )
     from app.services.inventory_batch_service import InventoryBatchService
 except ModuleNotFoundError:
     from backend.app.db.database import get_db
     from backend.app.schemas.inventory_batch import (
+        ExpiredBatchResponse,
+        ExpiringBatchResponse,
         InventoryBatchCreate,
         InventoryBatchResponse,
         InventoryBatchUpdate,
+        LowStockIngredientResponse,
     )
     from backend.app.services.inventory_batch_service import InventoryBatchService
 
@@ -85,6 +91,127 @@ def get_all_inventory_batches(
     """
     service = InventoryBatchService(db)
     return service.get_all_inventory_batches(skip=skip, limit=limit)
+
+
+@router.get(
+    "/low-stock",
+    response_model=list[LowStockIngredientResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get low-stock ingredients",
+    description="Retrieve ingredients whose current stock is at or below their configured minimum stock level, ordered by lowest stock first.",
+    responses={
+        200: {"description": "List of low-stock ingredients ordered by lowest stock first"},
+    },
+)
+def get_low_stock_ingredients(
+    skip: int = Query(
+        default=0,
+        ge=0,
+        description="Number of records to skip.",
+    ),
+    limit: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+        description="Maximum number of records to return.",
+    ),
+    db: Session = Depends(get_db),
+) -> list[LowStockIngredientResponse]:
+    """Retrieve ingredients currently at or below their minimum stock threshold.
+
+    Args:
+        skip: Number of records to skip.
+        limit: Maximum number of records to return.
+        db: Database session.
+
+    Returns:
+        list[LowStockIngredientResponse]: List of low-stock ingredients.
+    """
+    service = InventoryBatchService(db)
+    return service.get_low_stock_ingredients(skip=skip, limit=limit)
+
+
+@router.get(
+    "/expiring",
+    response_model=list[ExpiringBatchResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get expiring inventory batches",
+    description="Retrieve inventory batches expiring within a specified number of days from today (default 7 days). Expired batches are excluded.",
+    responses={
+        200: {"description": "List of expiring inventory batches ordered by earliest expiry date"},
+        400: {"description": "Warning window (days) must be greater than zero"},
+    },
+)
+def get_expiring_batches(
+    days: int = Query(
+        default=7,
+        gt=0,
+        description="Warning window in days from today (must be greater than zero).",
+    ),
+    skip: int = Query(
+        default=0,
+        ge=0,
+        description="Number of records to skip.",
+    ),
+    limit: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+        description="Maximum number of records to return.",
+    ),
+    db: Session = Depends(get_db),
+) -> list[ExpiringBatchResponse]:
+    """Retrieve inventory batches expiring within the specified days window.
+
+    Args:
+        days: Number of days to look ahead (default 7, must be > 0).
+        skip: Number of records to skip.
+        limit: Maximum number of records to return.
+        db: Database session.
+
+    Returns:
+        list[ExpiringBatchResponse]: List of expiring batches.
+    """
+    service = InventoryBatchService(db)
+    return service.get_expiring_batches(days=days, skip=skip, limit=limit)
+
+
+@router.get(
+    "/expired",
+    response_model=list[ExpiredBatchResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get expired inventory batches",
+    description="Retrieve all expired inventory batches (expiry date earlier than today) ordered by oldest expiry date first.",
+    responses={
+        200: {"description": "List of expired inventory batches ordered by oldest expiry first"},
+    },
+)
+def get_expired_batches(
+    skip: int = Query(
+        default=0,
+        ge=0,
+        description="Number of records to skip.",
+    ),
+    limit: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+        description="Maximum number of records to return.",
+    ),
+    db: Session = Depends(get_db),
+) -> list[ExpiredBatchResponse]:
+    """Retrieve inventory batches that have already expired.
+
+    Args:
+        skip: Number of records to skip.
+        limit: Maximum number of records to return.
+        db: Database session.
+
+    Returns:
+        list[ExpiredBatchResponse]: List of expired batches.
+    """
+    service = InventoryBatchService(db)
+    return service.get_expired_batches(skip=skip, limit=limit)
 
 
 @router.get(
