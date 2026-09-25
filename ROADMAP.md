@@ -10,7 +10,7 @@ This roadmap tracks the high-level development phases of **RestaurantAI**. The s
 |---|---|---|---|
 | **Phase 1** | Backend Core Modules | **Completed ✅** | Full implementation of all 6 operational domain modules |
 | **Phase 2** | Backend Refactoring | **Completed ✅** | Query optimization, N+1 elimination, SQL aggregation, dead code cleanup |
-| **Phase 3** | React Frontend | **Next Active ⏳** | Modern React + TypeScript + Tailwind single-page application |
+| **Phase 3** | React Frontend | **Planned 📋** | Modern React + TypeScript + Tailwind single-page application |
 | **Phase 4** | Production Readiness | **Planned 📋** | End-to-end integration tests, containerization, deployment setup |
 | **Post-MVP** | Advanced Features | **Planned 📋** | Auth, Analytics, AI dish recommendations, ML demand forecasting |
 
@@ -48,7 +48,7 @@ Triggered immediately after completing all Phase 1 core modules to ensure high c
 
 ---
 
-## Phase 3: React Frontend (Next Active Milestone ⏳)
+## Phase 3: React Frontend (Planned 📋)
 
 Build a clean, responsive web application connecting restaurant staff and managers with backend APIs:
 

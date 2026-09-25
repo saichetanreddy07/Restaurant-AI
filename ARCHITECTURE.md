@@ -16,6 +16,8 @@ The architecture prioritizes:
 
 The system follows a classic **Three-Tier Layered Architecture** with unidirectional data flow:
 
+![Overall System Architecture](docs/overall-system-architecture.png)
+
 ```
 [ Client / React Frontend / Swagger UI ]
                    │
@@ -44,6 +46,8 @@ The system follows a classic **Three-Tier Layered Architecture** with unidirecti
 
 ## 3. Layered Architecture Components
 
+![Backend Architecture](docs/backend-architecture.png)
+
 ```
 backend/app/
 ├── api/          # Presentation Layer (FastAPI Routers)
@@ -54,12 +58,12 @@ backend/app/
 └── core/         # Cross-Cutting Concerns (Config, Domain Enums)
 ```
 
-### 1. Presentation Layer (`api/`)
+### Presentation Layer (`api/`)
 - **Role:** Handles incoming HTTP requests, route matching, path/query parameter parsing, and response status codes.
 - **Principle:** Thin controllers. Routers perform **no database queries** and **no business calculations**. They extract input, delegate directly to the service layer, and return typed Pydantic responses.
 - **Dependency Injection:** Injects database sessions per request using FastAPI's `Depends(get_db)`.
 
-### 2. Service Layer (`services/`)
+### Service Layer (`services/`)
 - **Role:** The brain of the application. Encapsulates all domain logic, cross-entity rules, inventory calculations, and transactional boundaries.
 - **Responsibilities:**
   - Case-insensitive uniqueness enforcement (e.g. `func.lower()`).
@@ -67,7 +71,7 @@ backend/app/
   - Multi-table transaction orchestration with automatic rollback on errors.
   - Stock level recalculations and derived synchronization.
 
-### 3. Schema Layer (`schemas/`)
+### Schema Layer (`schemas/`)
 - **Role:** Data Transfer Objects (DTOs) powered by Pydantic v2.
 - **Separation:**
   - `*Create`: Input payloads with strict validation rules.
@@ -75,20 +79,31 @@ backend/app/
   - `*Response`: Output payloads with `from_attributes = True` for automatic ORM model serialization.
 - **Normalization:** Automatically trims whitespace, capitalizes strings, and enforces numerical boundaries (`gt=0`, decimal places).
 
-### 4. Persistence Layer (`models/`)
+### Persistence Layer (`models/`)
 - **Role:** SQLAlchemy 2.0 declarative models mapping to relational tables.
 - **Design:** Explicit data typing (`Mapped[...]`), foreign key relationships with cascading rules, database indexes, and database-level check constraints.
 
-### 5. Database & Core Infrastructure (`db/`, `core/`)
+### Database & Core Infrastructure (`db/`, `core/`)
 - **`core/config.py`:** Type-safe settings loaded from `.env` using `pydantic-settings`.
 - **`core/enums.py`:** Centralized domain enums (`Unit`, `MenuCategory`, `TransactionType`) decoupled from ORM models to avoid circular dependencies.
 - **`db/database.py`:** SQLAlchemy engine configuration, connection pooling (`pool_pre_ping=True`), `SessionLocal` factory, and request-scoped session generator.
+
+### Backend Module Dependency Graph
+
+![Backend Module Dependency](docs/backend-module-dependency.png)
+
+Dependencies between backend modules remain strictly layered and acyclic:
+- Root entity models (`Ingredient`, `MenuItem`) have no dependencies on higher-level operations.
+- Intermediary models (`Recipe`, `RecipeIngredient`, `InventoryBatch`, `InventoryTransaction`) link root entities with relational integrity rules.
+- Operational services (`InventoryConsumptionService`, `AvailabilityService`) orchestrate lower-level repositories and entities to fulfill complex kitchen workflows.
 
 ---
 
 ## 4. End-to-End Request Lifecycle
 
 When a client makes a request to the backend, it passes through a deterministic 6-step lifecycle:
+
+![Request Lifecycle](docs/request-lifecycle.png)
 
 ```
 [1. HTTP Request]
@@ -120,10 +135,12 @@ When a client makes a request to the backend, it passes through a deterministic 
 
 ## 5. Core Domain Architectures
 
+![Database ERD](docs/database-erd.png)
+
 ### 1. Separation of Commercial Catalog and Culinary Formulas
 
 In restaurant operations, what a customer buys is fundamentally different from how the kitchen prepares it:
-- **`MenuItem`:** The commercial product in the catalog (e.g., "Cheeseburger", \$9.99). It has a selling price and category, but **no stock** and **no ingredient lists**.
+- **`MenuItem`:** The commercial product in the catalog (e.g., "Cheeseburger", $9.99). It has a selling price and category, but **no stock** and **no ingredient lists**.
 - **`Recipe`:** The culinary formula. Linked 1-to-1 with a `MenuItem`.
 - **`RecipeIngredient`:** The bill of materials. Explicit many-to-many join table linking a `Recipe` with an `Ingredient` along with the exact required quantity per serving.
 
@@ -154,8 +171,8 @@ Restaurant inventory cannot be tracked simply as a single scalar number. Fresh i
 │  (Master record: name, unit, minimum reorder stock)    │
 │  current_stock: DERIVED SUM(InventoryBatch.quantity)   │
 └───────────────────────────┬────────────────────────────┘
-                            │ 1:N
-                            ▼
+                             │ 1:N
+                             ▼
 ┌────────────────────────────────────────────────────────┐
 │                     InventoryBatch                     │
 │  (The Physical Source of Truth)                        │
@@ -163,8 +180,8 @@ Restaurant inventory cannot be tracked simply as a single scalar number. Fresh i
 │  - quantity: Available stock remaining                 │
 │  - received_date / expiry_date                         │
 └───────────────────────────┬────────────────────────────┘
-                            │ 1:N
-                            ▼
+                             │ 1:N
+                             ▼
 ┌────────────────────────────────────────────────────────┐
 │                  InventoryTransaction                  │
 │  (Immutable Audit Log)                                 │
@@ -226,6 +243,8 @@ Client calls: POST /inventory/consume (recipe_id=1, servings=5)
 ### 4. Real-Time Dish Availability Engine
 
 The Availability Engine answers: *"How many servings of this dish can the kitchen prepare right now?"*
+
+![Availability Engine Workflow](docs/availability-engine-workflow.png)
 
 $$\text{Servings Available} = \min_{i \in \text{Ingredients}} \left\lfloor \frac{\text{Ingredient.current\_stock}_i}{\text{RecipeIngredient.quantity}_i} \right\rfloor$$
 

@@ -98,6 +98,8 @@ Use **MySQL 8.0** as the primary relational database storage engine.
 - **ACID Transactions:** Full support for multi-statement atomic transactions (`COMMIT` / `ROLLBACK`).
 - **Production Alignment:** MySQL is one of the most widely deployed relational database engines in commercial software engineering.
 
+![Database ERD](docs/database-erd.png)
+
 ### Alternatives Considered
 - **MongoDB:** Schemaless document storage would permit rapid prototyping, but lacks the native relational constraints needed to enforce strict recipe-ingredient and batch-transaction relationships.
 - **PostgreSQL:** An excellent alternative with richer custom types, but MySQL was chosen due to widespread enterprise presence and straightforward hosting availability.
@@ -225,6 +227,8 @@ Implement an automated **FEFO (First-Expiring, First-Out)** consumption algorith
 - **Multi-Batch Spanning:** Transparently depletes an expiring batch and draws the remainder from the next available lot.
 - **Atomic Two-Phase Execution:** Validates that total available stock across all batches is sufficient for all ingredients before executing any deductions, guaranteeing zero partial writes on failure.
 
+![FEFO Consumption Workflow](docs/fefo-consumption-workflow.png)
+
 ### Interview Key Takeaway
 > *"In a restaurant, FIFO isn't always enough because a newer shipment might have a shorter shelf-life than an older one. FEFO guarantees that ingredients closest to spoiling are consumed first, directly minimizing food waste."*
 
@@ -275,6 +279,8 @@ Establish `InventoryBatch` as the **sole physical source of truth** for stock, a
   $$\text{Ingredient.current\_stock} = \sum \text{InventoryBatch.quantity}$$
   using SQL `COALESCE(SUM())` directly on the database engine.
 - **Automatic Execution:** Every batch creation, update, deletion, transaction, and consumption triggers `sync_ingredient_stock()` to ensure the master ingredient balance is always accurate.
+
+![Availability Engine Workflow](docs/availability-engine-workflow.png)
 
 ---
 
