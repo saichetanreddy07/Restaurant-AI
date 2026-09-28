@@ -7,7 +7,7 @@ A production-inspired **Restaurant Operations & Inventory Management System** bu
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-red.svg)](https://www.sqlalchemy.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg?logo=mysql)](https://www.mysql.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Backend Complete](https://img.shields.io/badge/Backend-Complete%20%26%20Refactored-brightgreen.svg)](PROJECT_STATUS.md)
+[![Status: Frontend Foundation Ready](https://img.shields.io/badge/Frontend-Foundation%20Ready-brightgreen.svg)](PROJECT_STATUS.md)
 
 RestaurantAI is a backend system engineered to solve fundamental operational challenges in commercial restaurant kitchens: physical inventory lot tracking, immutable stock movement auditing, automated First-Expiring, First-Out (FEFO) ingredient consumption, and real-time dish availability calculation.
 
@@ -42,15 +42,20 @@ Built with a learning-first mindset, this project adheres to modern software eng
 - **Pydantic v2** — High-speed Rust-powered data validation, request parsing, and response serialization.
 - **Uvicorn** — Production-grade ASGI web server.
 
+### Frontend (Foundation Active)
+- **React 19** + **TypeScript** — Component-driven Single-Page Application (SPA) architecture.
+- **Vite** — High-performance frontend build tooling and HMR development server.
+- **Tailwind CSS v4** — Modern utility-first styling for dashboard layouts.
+- **React Router v7** — Declarative client-side routing and nested layouts.
+- **TanStack React Query v5** — Server state caching, asynchronous query lifecycles, and synchronization.
+- **Axios** — Typed HTTP client with environment-based configuration and response interceptors.
+- **Lucide React** — Modern, consistent icon library for dashboard navigation and actions.
+
 ### Testing & Tooling
 - **Pytest** — Automated unit and integration testing suite.
 - **PyMySQL** — Pure Python MySQL client driver.
 - **Git & GitHub** — Version control and repository management.
 
-### Frontend (Planned)
-- **React 18** + **TypeScript** — Single-page application interface.
-- **Tailwind CSS** — Utility-first styling for operations dashboards.
-- **Axios** — Typed REST API integration client.
 
 ---
 
@@ -229,6 +234,23 @@ restaurant-ai/
 │       │   ├── recipe_service.py
 │       │   └── recipe_ingredient_service.py
 │       └── main.py             # FastAPI entrypoint & router assembly
+├── frontend/                   # Single-Page Application (React 19 + TypeScript + Vite)
+│   ├── src/
+│   │   ├── api/                # Axios HTTP client configuration
+│   │   │   └── client.ts
+│   │   ├── components/         # Modular layout and UI components
+│   │   │   └── layout/         # Sidebar and Navbar shell components
+│   │   ├── layouts/            # Persistent layout shells (MainLayout)
+│   │   ├── pages/              # Route view pages (PlaceholderPage)
+│   │   ├── routes/             # Client-side route declarations (AppRoutes)
+│   │   ├── types/              # Frontend TypeScript definitions
+│   │   ├── App.tsx             # Root query provider & router wrapper
+│   │   ├── index.css           # Tailwind CSS imports & base styles
+│   │   └── main.tsx            # DOM mount entrypoint
+│   ├── .env.example            # Frontend environment variable template
+│   ├── package.json            # Frontend dependencies & scripts
+│   ├── tsconfig.json           # TypeScript configuration
+│   └── vite.config.ts          # Vite build & Tailwind plugin config
 ├── docs/                       # Architecture diagrams & visual documentation
 │   ├── availability-engine-workflow.png
 │   ├── backend-architecture.png
@@ -246,6 +268,7 @@ restaurant-ai/
 │   └── test_availability.py
 ├── .env.example                # Sample environment variables
 ├── ARCHITECTURE.md             # In-depth system architecture documentation
+├── FRONTEND.md                 # Frontend design guidelines & module specifications
 ├── PROJECT_DECISIONS.md        # Technical decisions & engineering rationale
 ├── PROJECT_STATUS.md           # Implementation status & completed capabilities
 ├── ROADMAP.md                  # Development roadmap & milestones

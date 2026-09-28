@@ -20,6 +20,9 @@ This document outlines the core technical and architectural decisions made while
 12. [Decision 12: Batches as Single Source of Truth with Synchronized Ingredient Stock](#decision-12-batches-as-single-source-of-truth-with-synchronized-ingredient-stock)
 13. [Decision 13: Separation of Menu Items (Commercial) from Recipes (Culinary)](#decision-13-separation-of-menu-items-commercial-from-recipes-culinary)
 14. [Decision 14: Use Fixed-Point Decimal Arithmetic for Financials and Quantities](#decision-14-use-fixed-point-decimal-arithmetic-for-financials-and-quantities)
+15. [Decision 15: Adopt React 19, TypeScript, and Vite for the Single-Page Application (SPA)](#decision-15-adopt-react-19-typescript-and-vite-for-the-single-page-application-spa)
+16. [Decision 16: Centralized HTTP Client Layer via Axios and Server State Caching via TanStack React Query](#decision-16-centralized-http-client-layer-via-axios-and-server-state-caching-via-tanstack-react-query)
+17. [Decision 17: Utility-First Styling with Tailwind CSS and a Persistent SaaS Dashboard Shell](#decision-17-utility-first-styling-with-tailwind-css-and-a-persistent-saas-dashboard-shell)
 
 ---
 
@@ -306,6 +309,96 @@ Standard binary floating-point numbers (`float` in Python / `FLOAT` in SQL) suff
 ### Decision
 Use **`Decimal` in Python** and **`Numeric(10, 2)` in MySQL** for all monetary costs (`price`, `cost_per_unit`, `unit_cost`) and recipe ingredient quantities.
 
+### Interview Key Takeaway
+> *"In financial and inventory systems, floating-point rounding errors compound into discrepancies. Using Decimal in Python and Numeric(10, 2) in MySQL guarantees exact arithmetic for costs, inventory quantities, and recipe portions."*
+
+---
+
+## Decision 15: Adopt React 19, TypeScript, and Vite for the Single-Page Application (SPA)
+
+### Problem
+The restaurant management system requires a responsive, high-performance web interface for kitchen staff and managers to track lots, monitor live availability, and simulate production. The build tool and frontend architecture needed to provide instant developer feedback, static type checking across API contracts, and an industry-standard development experience.
+
+### Decision
+Build the client application as a **Single-Page Application (SPA)** using **React 19**, **TypeScript**, and **Vite**.
+
 ### Why It Was Chosen
-- **Exact Precision:** Guarantees penny-accurate financial totals and exact fractional ingredient measurements.
-- **Audit Compliance:** Eliminates rounding drift in food cost accounting.
+- **Vite Build Performance:** Native ES-module-based Hot Module Replacement (HMR) starts instantly and rebuilds in milliseconds compared to legacy Webpack-based setups.
+- **End-to-End Type Safety:** TypeScript guarantees strict type adherence matching backend Pydantic models, eliminating runtime shape mismatches and missing property errors.
+- **Industry Standard SPA Framework:** React provides a declarative component model, vast ecosystem support, and clear architectural patterns suitable for technical interviews.
+
+### Alternatives Considered
+- **Next.js / Remix (SSR/SSG):** Full-stack frameworks with server-side rendering add server runtime overhead and routing complexity unnecessary for an internal restaurant operations dashboard where SEO is irrelevant.
+- **Vanilla JavaScript + HTML:** Lacks component reusability, declarative reactive rendering, and type safety needed for dynamic operational views.
+
+### Advantages
+- Sub-second local startup and rapid development iteration.
+- Strongly-typed props and API data models.
+- Clean separation between backend API and client presentation layer.
+
+### Limitations
+- Client-side rendering initial bundle must load before rendering (mitigated via Vite's production tree-shaking and asset chunking).
+
+### Interview Key Takeaway
+> *"I chose React 19 with TypeScript and Vite because it provides instant development feedback via native ESM and strict type safety matching our backend Pydantic schemas, without the unnecessary server-side rendering complexity of Next.js for an internal dashboard."*
+
+---
+
+## Decision 16: Centralized HTTP Client Layer via Axios and Server State Caching via TanStack React Query
+
+### Problem
+Managing asynchronous HTTP requests, loading/error states, request deduplication, and caching manually with `useEffect` and `useState` introduces boilerplate, race conditions, memory leaks, and redundant network requests.
+
+### Decision
+Adopt **Axios** as the centralized HTTP client and **TanStack React Query v5** for server-side state and caching.
+
+### Why It Was Chosen
+- **Encapsulated Axios Client:** Centralizes base URL configuration (`VITE_API_BASE_URL`), timeout bounds, default headers, and standardized error response extraction.
+- **Server State Caching & Deduplication:** TanStack React Query handles background revalidation, query deduplication, loading/error states, and cache expiration automatically.
+- **Separation of Server State vs UI State:** Keeps remote API data in React Query cache while reserving standard React component state strictly for local UI interactions (modals, dropdowns, drawer toggles).
+
+### Alternatives Considered
+- **Native `fetch` + `useEffect`:** Requires writing custom hooks, manual caching, cancellation logic, and repetitive try/catch error state handling for every endpoint.
+- **Redux Toolkit / Zustand:** Excellent for complex local client-side state, but over-engineered for server data that is already synchronized and queried via REST endpoints.
+
+### Advantages
+- Zero boilerplate for loading and error states.
+- Clean request/response interception for consistent backend error message surfacing.
+- Automatic cache invalidation upon executing mutations.
+
+### Limitations
+- Requires understanding React Query cache lifecycle (stale time vs cache time) to tune data freshness.
+
+### Interview Key Takeaway
+> *"Separating server state from client UI state using TanStack React Query eliminated manual useEffect fetching boilerplate, race conditions, and duplicate network requests, while Axios provided a clean, environment-configured HTTP client with centralized error interception."*
+
+---
+
+## Decision 17: Utility-First Styling with Tailwind CSS and a Persistent SaaS Dashboard Shell
+
+### Problem
+Building a professional restaurant operations dashboard requires consistent spacing, clear visual hierarchy, responsiveness, and minimal visual noise, without writing and maintaining thousands of lines of custom CSS.
+
+### Decision
+Adopt **Tailwind CSS v4** paired with a **persistent, reusable application shell** (`MainLayout` with a dark sidebar and top navigation bar).
+
+### Why It Was Chosen
+- **Utility-First Speed & Consistency:** Enforces consistent spacing, typography, and color tokens directly in JSX, eliminating CSS naming collisions and dead stylesheets.
+- **Tailwind v4 Vite Integration:** `@tailwindcss/vite` provides seamless integration and lightning-fast compilation with standard `@import "tailwindcss";`.
+- **Persistent Layout Architecture:** The `MainLayout` hosts a dark sidebar (`bg-slate-900`) and top navbar while child routes render seamlessly inside `<Outlet />`, preventing visual flickering and layout remounting during route transitions.
+
+### Alternatives Considered
+- **Component Libraries (MUI / Ant Design):** High overhead, opinionated design presets that are hard to customize, and heavy runtime bundle impact.
+- **CSS Modules:** Clean and scoped, but requires context switching between CSS files and JSX and lacks standardized design constraint tokens.
+
+### Advantages
+- Compact, production-inspired SaaS aesthetic without gradients or glassmorphism.
+- Responsive mobile drawer navigation built directly into the layout shell.
+- Zero unused CSS bundled into production.
+
+### Limitations
+- Verbose class names in JSX (mitigated by extracting reusable components).
+
+### Interview Key Takeaway
+> *"Using Tailwind CSS with a persistent application shell allowed us to create a clean, responsive SaaS dashboard layout with consistent spacing and dark/light contrast, avoiding heavy component library dependencies and unused CSS bloat."*
+

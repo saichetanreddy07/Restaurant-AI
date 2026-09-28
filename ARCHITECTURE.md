@@ -280,13 +280,41 @@ The API follows standard REST HTTP semantics:
 
 ---
 
-## 8. Scalability & Future Extensibility
+## 8. Frontend Architecture & Application Shell
 
-### 1. Frontend Integration (Phase 3)
-The backend is completely stateless and ready for standard SPA consumption:
-- CORS middleware can be configured in `main.py`.
-- OpenAPI documentation (`/docs`) provides automatic schema synchronization for TypeScript interfaces.
-- Standard JSON responses map cleanly to React state and Axios API clients.
+The frontend is implemented as a modern, type-safe Single-Page Application (SPA) using React 19, TypeScript, and Vite:
+
+```
+frontend/src/
+├── api/          # Reusable HTTP client and API integration layer (Axios)
+├── components/   # Modular UI presentation components
+│   └── layout/   # Persistent shell components (Sidebar, Navbar)
+├── layouts/      # Application wrapper shells (MainLayout with route Outlet)
+├── pages/        # Route page views (PlaceholderPage foundation)
+├── routes/       # Centralized declarative routing definitions (AppRoutes)
+└── types/        # Common frontend TypeScript interfaces
+```
+
+### 1. Application Shell & Layout Strategy
+- **Persistent Shell (`MainLayout.tsx`):** Unifies navigation and content without remounting layout components across route changes.
+- **Dark Sidebar (`Sidebar.tsx`):** Semantic `NavLink` elements with active link highlighting, icons from `lucide-react`, brand badge, and responsive drawer toggling on mobile viewports.
+- **Top Navbar (`Navbar.tsx`):** Sticky header featuring global search input placeholder, notification triggers, and user profile capsule.
+- **Main Content Area:** Consistent background (`bg-slate-50`) rendering child routes via React Router v7 `<Outlet />`.
+
+### 2. Client-Server Communication & State Management
+- **Axios HTTP Client (`api/client.ts`):** Encapsulated client configured with `import.meta.env.VITE_API_BASE_URL` (defaulting to `http://localhost:8000/api/v1`), explicit timeouts, and centralized response error unwrapping.
+- **TanStack React Query v5 (`App.tsx`):** Manages server-side cache, request deduplication, and background refetching. Configured globally via `QueryClientProvider` with conservative defaults (`refetchOnWindowFocus: false`, `staleTime: 5 minutes`).
+- **Declarative Client-Side Routing (`routes/AppRoutes.tsx`):** Route configuration defining top-level navigation paths (`/`, `/ingredients`, `/menu`, `/recipes`, `/inventory`, `/availability`, `/settings`) with a fallback redirect.
+
+---
+
+## 9. Scalability & Future Extensibility
+
+### 1. Frontend Feature Integration (Phase 3.3)
+The frontend foundation is decoupled and ready for feature-by-feature domain implementation:
+- Feature-first folder structure (`src/features/<module>/`) isolating components, queries, and mutations.
+- Type synchronization against FastAPI Pydantic schema contracts.
+- Progressive enhancement with React Hook Form and Zod for client-side form validation.
 
 ### 2. Future AI & ML Integration
 The existing database schema was intentionally designed to support future AI features:
@@ -298,3 +326,4 @@ The existing database schema was intentionally designed to support future AI fea
 - **ASGI Concurrency:** Deployable with Uvicorn workers behind a reverse proxy (e.g. Nginx or Traefik).
 - **Containerization:** Clean separation of configuration via environment variables enables simple multi-stage Docker builds.
 - **Managed Database:** Connection pooling with `pool_pre_ping=True` is pre-configured to work reliably with managed cloud MySQL instances (AWS RDS, Google Cloud SQL).
+
