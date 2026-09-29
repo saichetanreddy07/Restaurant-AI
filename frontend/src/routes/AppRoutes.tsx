@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { MainLayout } from '../layouts/MainLayout'
 import { DashboardPage } from '../pages/DashboardPage'
+import IngredientsPage from "../features/ingredients/pages/IngredientsPage";
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 export const AppRoutes = () => {
@@ -8,15 +9,7 @@ export const AppRoutes = () => {
     <Routes>
       <Route element={<MainLayout />}>
         <Route path="/" element={<DashboardPage />} />
-        <Route
-          path="/ingredients"
-          element={
-            <PlaceholderPage
-              title="Ingredients"
-              description="Manage raw materials, measurement units, reorder points, and costs."
-            />
-          }
-        />
+        <Route path="/ingredients" element={<IngredientsPage />} />
         <Route
           path="/menu"
           element={
