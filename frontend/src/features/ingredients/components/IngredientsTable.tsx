@@ -1,3 +1,5 @@
+import StockStatusBadge from "./StockStatusBadge";
+
 type Ingredient = {
     id: number;
     name: string;
@@ -49,7 +51,12 @@ const IngredientsTable = ({ ingredients }: IngredientsTableProps) => {
                                         {ingredient.minimum_stock}
                                     </td>
                                     <td className="whitespace-nowrap px-6 py-4">{ingredient.supplier}</td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-slate-400">-</td>
+                                    <td className="whitespace-nowrap px-6 py-4">
+                                        <StockStatusBadge
+                                            currentStock={ingredient.current_stock}
+                                            minimumStock={ingredient.minimum_stock}
+                                        />
+                                    </td>
                                     <td className="whitespace-nowrap px-6 py-4 text-right text-slate-400">
                                         -
                                     </td>
