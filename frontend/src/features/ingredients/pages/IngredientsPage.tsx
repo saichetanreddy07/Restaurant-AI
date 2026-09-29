@@ -7,6 +7,8 @@ import IngredientsTable from "../components/IngredientsTable";
 const IngredientsPage = () => {
   const [ingredients, setIngredients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     async function loadIngredients() {
@@ -16,15 +18,21 @@ const IngredientsPage = () => {
         console.log("Ingredients:", data);
 
         setIngredients(data);
-      } catch (error) {
-        console.error("Failed to fetch ingredients:", error);
+      } catch {
+        setHasError(true);
       } finally {
         setIsLoading(false);
       }
     }
 
     loadIngredients();
-  }, []);
+  }, [retryCount]);
+
+  const handleRetry = () => {
+    setIsLoading(true);
+    setHasError(false);
+    setRetryCount((currentCount) => currentCount + 1);
+  };
 
   return (
     <div className="space-y-6">
@@ -58,6 +66,27 @@ const IngredientsPage = () => {
               <div className="h-12 animate-pulse rounded bg-slate-100" />
               <div className="h-12 animate-pulse rounded bg-slate-100" />
               <div className="h-12 animate-pulse rounded bg-slate-100" />
+            </div>
+          ) : hasError ? (
+            <div
+              role="alert"
+              className="flex min-h-80 flex-col items-center justify-center gap-4 px-6 text-center"
+            >
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  Unable to load ingredients
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Please check your connection and try again.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+              >
+                Retry
+              </button>
             </div>
           ) : (
             <IngredientsTable ingredients={ingredients} />
