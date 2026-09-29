@@ -6,6 +6,7 @@ import IngredientsTable from "../components/IngredientsTable";
 
 const IngredientsPage = () => {
   const [ingredients, setIngredients] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadIngredients() {
@@ -17,6 +18,8 @@ const IngredientsPage = () => {
         setIngredients(data);
       } catch (error) {
         console.error("Failed to fetch ingredients:", error);
+      } finally {
+        setIsLoading(false);
       }
     }
 
@@ -44,7 +47,21 @@ const IngredientsPage = () => {
           className="mt-5 min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"
           role="region"
         >
-          <IngredientsTable ingredients={ingredients} />
+          {isLoading ? (
+            <div
+              aria-busy="true"
+              aria-label="Loading ingredients"
+              className="space-y-3 p-5"
+            >
+              <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+              <div className="h-12 animate-pulse rounded bg-slate-100" />
+              <div className="h-12 animate-pulse rounded bg-slate-100" />
+              <div className="h-12 animate-pulse rounded bg-slate-100" />
+              <div className="h-12 animate-pulse rounded bg-slate-100" />
+            </div>
+          ) : (
+            <IngredientsTable ingredients={ingredients} />
+          )}
         </div>
       </section>
     </div>
