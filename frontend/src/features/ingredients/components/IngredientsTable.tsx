@@ -1,3 +1,5 @@
+import { Eye, Pencil, Trash2 } from "lucide-react";
+
 import StockStatusBadge from "./StockStatusBadge";
 
 type Ingredient = {
@@ -64,8 +66,33 @@ const IngredientsTable = ({ ingredients }: IngredientsTableProps) => {
                                             minimumStock={ingredient.minimum_stock}
                                         />
                                     </td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-right text-slate-400">
-                                        -
+                                    <td className="whitespace-nowrap px-6 py-4">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <button
+                                                type="button"
+                                                aria-label={`View ${ingredient.name}`}
+                                                title="View ingredient"
+                                                className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                                            >
+                                                <Eye aria-hidden="true" className="size-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                aria-label={`Edit ${ingredient.name}`}
+                                                title="Edit ingredient"
+                                                className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                                            >
+                                                <Pencil aria-hidden="true" className="size-4" />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                aria-label={`Delete ${ingredient.name}`}
+                                                title="Delete ingredient"
+                                                className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+                                            >
+                                                <Trash2 aria-hidden="true" className="size-4" />
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
