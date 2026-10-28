@@ -1,12 +1,43 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { X } from 'lucide-react'
 
 type AddIngredientModalProps = {
   onClose: () => void
 }
 
+type IngredientFormData = {
+  name: string
+  category: string
+  unit: string
+  current_stock: string
+  minimum_stock: string
+  cost_per_unit: string
+  supplier: string
+}
+
 const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const [formData, setFormData] = useState<IngredientFormData>({
+    name: '',
+    category: '',
+    unit: '',
+    current_stock: '',
+    minimum_stock: '',
+    cost_per_unit: '',
+    supplier: '',
+  })
+
+  const handleInputChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = event.currentTarget
+    const fieldName = name as keyof IngredientFormData
+
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      [fieldName]: value,
+    }))
+  }
 
   useEffect(() => {
     closeButtonRef.current?.focus()
@@ -56,21 +87,21 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
               <label htmlFor="ingredient-name" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Ingredient Name
               </label>
-              <input id="ingredient-name" name="name" type="text" placeholder="e.g. Tomatoes" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-name" name="name" type="text" placeholder="e.g. Tomatoes" value={formData.name} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
 
             <div>
               <label htmlFor="ingredient-category" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Category
               </label>
-              <input id="ingredient-category" name="category" type="text" placeholder="e.g. Vegetables" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-category" name="category" type="text" placeholder="e.g. Vegetables" value={formData.category} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
 
             <div>
               <label htmlFor="ingredient-unit" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Unit
               </label>
-              <select id="ingredient-unit" name="unit" defaultValue="" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20">
+              <select id="ingredient-unit" name="unit" value={formData.unit} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20">
                 <option value="" disabled>Select a unit</option>
                 <option value="KG">Kilograms (KG)</option>
                 <option value="G">Grams (G)</option>
@@ -84,28 +115,28 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
               <label htmlFor="ingredient-current-stock" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Current Stock
               </label>
-              <input id="ingredient-current-stock" name="current_stock" type="number" step="any" placeholder="e.g. 12.5" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-current-stock" name="current_stock" type="number" step="any" placeholder="e.g. 12.5" value={formData.current_stock} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
 
             <div>
               <label htmlFor="ingredient-minimum-stock" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Minimum Stock
               </label>
-              <input id="ingredient-minimum-stock" name="minimum_stock" type="number" step="any" placeholder="e.g. 5" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-minimum-stock" name="minimum_stock" type="number" step="any" placeholder="e.g. 5" value={formData.minimum_stock} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
 
             <div>
               <label htmlFor="ingredient-cost-per-unit" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Cost per Unit
               </label>
-              <input id="ingredient-cost-per-unit" name="cost_per_unit" type="number" step="any" placeholder="e.g. 2.50" className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-cost-per-unit" name="cost_per_unit" type="number" step="any" placeholder="e.g. 2.50" value={formData.cost_per_unit} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
 
             <div className="sm:col-span-2">
               <label htmlFor="ingredient-supplier" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Supplier
               </label>
-              <input id="ingredient-supplier" name="supplier" type="text" placeholder="e.g. Fresh Farms Co." className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-supplier" name="supplier" type="text" placeholder="e.g. Fresh Farms Co." value={formData.supplier} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
           </div>
         </div>
