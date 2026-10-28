@@ -2,11 +2,11 @@
 
 ## 1. Executive Summary
 
-RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, **Phase 3.1–3.2 Frontend Foundation Setup**, and the **Phase 3.5 Ingredients UI**. The ingredient follow-up work is in progress.
+RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, **Phase 3.1–3.2 Frontend Foundation Setup**, and the **Phase 3.5 Ingredients module, including Phase 3.5.8 Ingredients Follow-up**. Menu Items is the next frontend module.
 
 The backend is fully operational, thoroughly tested, and documented. All six core operational modules—Ingredients, Menu Items, Recipes, Recipe Ingredients, Inventory Lot Tracking & Transactions, and the Real-Time Availability Engine—are implemented using clean, layered REST APIs backed by MySQL and SQLAlchemy 2.0.
 
-The frontend foundation is configured with React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7, TanStack Query v5, Axios, and a production-inspired application shell (Sidebar, Navbar, Main Content Area). The Ingredients UI, backend data fetching, table, and loading, error, and empty states are implemented. Search filters the loaded ingredient list by name; View, Edit, and Delete functionality is not implemented.
+The frontend foundation is configured with React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7, TanStack Query v5, Axios, and a production-inspired application shell (Sidebar, Navbar, Main Content Area). The completed Ingredients module includes backend data fetching, a table with loading, error, and empty states, search, read-only details, and create, edit, and delete actions.
 
 The Dashboard page is present but still uses static sample data. Menu Items, Recipes, Inventory, Availability, and Settings routes still render placeholder pages.
 
@@ -18,11 +18,12 @@ The Dashboard page is present but still uses static sample data. Menu Items, Rec
   - **Phase 1: Backend Core Modules (100% Complete ✅)**
   - **Phase 2: Conservative Backend Refactoring (100% Complete ✅)**
   - **Phase 3.1 & 3.2: Frontend Foundation & Setup (100% Complete ✅)**
-  - **Phase 3.5: Ingredients UI (UI Complete ✅)**
+  - **Phase 3.5: Ingredients Module (Complete ✅)**
+  - **Phase 3.5.8: Ingredients Follow-up (Complete ✅)**
 - **Current Phase:**
-  - **Phase 3.5.8: Ingredients Follow-up (In Progress ⏳)**
-  - **Completed Milestone: 3.5.8.1 — Ingredient Search**
-  - **Current / Next Milestone: 3.5.8.2 — View Ingredient**
+  - **Phase 3.6: Menu Items (Next)**
+  - **Completed Milestones: 3.5.8.1 — Ingredient Search; 3.5.8.2 — View Ingredient; 3.5.8.3 — Edit Ingredient; 3.5.8.4 — Delete Ingredient**
+  - **Current / Next Milestone: 3.6.1 — Menu Item Types and Service**
 - **Upcoming Phases:**
   - **Phase 4: Production Readiness & Deployment (Planned 📋)**
   - **Post-MVP: Authentication, Analytics, and AI Recommendations 📋**
@@ -94,12 +95,14 @@ The Dashboard page is present but still uses static sample data. Menu Items, Rec
 - **Foundation Verification:** The initial frontend foundation passed TypeScript, ESLint, and production build verification.
 - **Current Frontend State:** The dashboard still uses static sample data. Menu Items, Recipes, Inventory, Availability, and Settings routes still use placeholder pages.
 
-### 10. Ingredients UI (Phase 3.5 UI Complete; Follow-up In Progress)
+### 10. Ingredients Module (Phase 3.5 and Phase 3.5.8 Complete)
 - **UI and Data Fetching:** Loads ingredients from the backend and displays them in the implemented table with loading, error, and empty states.
 - **Create Ingredient:** Responsive add modal with controlled form state, client-side validation, API integration, and automatic table refresh.
 - **Submission Feedback:** Resets the form after success, displays inline success and error messages, shows a loading indicator, and prevents duplicate submissions.
 - **Ingredient Search:** Filters the already loaded ingredient list by name, case-insensitively, without another API request.
-- **Unimplemented Actions:** The Actions column is present, but View, Edit, and Delete functionality is not implemented. These are tracked under Phase 3.5.8.
+- **View Ingredient:** Opens the selected ingredient in an accessible read-only details modal.
+- **Edit Ingredient:** Prefills the shared ingredient form, updates through the backend, and refreshes the table after success.
+- **Delete Ingredient:** Confirms the action, prevents duplicate requests, shows pending and error feedback, and refreshes the table after success.
 
 ---
 
@@ -112,14 +115,14 @@ The Dashboard page is present but still uses static sample data. Menu Items, Rec
 
 ---
 
-## 5. Upcoming Frontend Feature Modules (Phase 3.5.8 onward)
+## 5. Upcoming Frontend Feature Modules (Phase 3.6 onward)
 
 With the frontend foundation verified, implementation of the feature modules will proceed sequentially:
 
 - **Current Tech Stack:** React 19, TypeScript, Tailwind CSS v4, Axios, React Router v7, TanStack React Query v5, Lucide React.
 - **Sequential Feature Modules to Build:**
-  - **Phase 3.5.8 — Ingredients Follow-up:** In progress. Milestone 3.5.8.1, Ingredient Search, is complete. Current milestone is 3.5.8.2, View Ingredient; Edit and Delete follow.
-  - **Phase 3.6 — Menu Items:** Not started (0%). Begin with milestone 3.6.1, Menu Item Types and Service, after the Ingredients follow-up.
+  - **Phase 3.5.8 — Ingredients Follow-up:** Complete. Ingredient Search, View, Edit, and Delete are implemented.
+  - **Phase 3.6 — Menu Items:** Not started (0%). Current milestone is 3.6.1, Menu Item Types and Service.
   - **Phase 3.7 — Recipes & BOM UI:** Recipe formulation builder, interactive ingredient requirements per serving.
   - **Phase 3.8 — Inventory Lots & Tracking UI:** Physical batch intake form, expiration status badges, transaction history log.
   - **Phase 3.9 — Live Availability Engine UI:** Real-time dish availability view, servings capacity indicators, bottleneck warnings.
