@@ -16,6 +16,7 @@ const IngredientsPage = () => {
   const [creationSuccessMessage, setCreationSuccessMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+  const [ingredientToEdit, setIngredientToEdit] = useState<Ingredient | null>(null);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredIngredients = ingredients.filter((ingredient) =>
@@ -46,9 +47,12 @@ const IngredientsPage = () => {
     setRetryCount((currentCount) => currentCount + 1);
   };
 
-  const handleIngredientCreated = () => {
-    setCreationSuccessMessage("Ingredient created successfully.");
+  const handleIngredientSaved = (wasEditing: boolean) => {
+    setCreationSuccessMessage(
+      wasEditing ? "Ingredient updated successfully." : "Ingredient created successfully.",
+    );
     setIsAddModalOpen(false);
+    setIngredientToEdit(null);
     setIsLoading(true);
     setHasError(false);
     setRetryCount((currentCount) => currentCount + 1);
@@ -57,6 +61,11 @@ const IngredientsPage = () => {
   const handleOpenAddModal = () => {
     setCreationSuccessMessage("");
     setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditModal = (ingredient: Ingredient) => {
+    setCreationSuccessMessage("");
+    setIngredientToEdit(ingredient);
   };
 
   return (
@@ -130,6 +139,7 @@ const IngredientsPage = () => {
               ingredients={filteredIngredients}
               searchQuery={searchQuery}
               onViewIngredient={setSelectedIngredient}
+              onEditIngredient={handleOpenEditModal}
             />
           )}
         </div>
@@ -138,7 +148,14 @@ const IngredientsPage = () => {
       {isAddModalOpen && (
         <AddIngredientModal
           onClose={() => setIsAddModalOpen(false)}
-          onCreated={handleIngredientCreated}
+          onSaved={() => handleIngredientSaved(false)}
+        />
+      )}
+      {ingredientToEdit && (
+        <AddIngredientModal
+          ingredient={ingredientToEdit}
+          onClose={() => setIngredientToEdit(null)}
+          onSaved={() => handleIngredientSaved(true)}
         />
       )}
       {selectedIngredient && (

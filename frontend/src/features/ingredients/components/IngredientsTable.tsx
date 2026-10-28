@@ -7,9 +7,15 @@ type IngredientsTableProps = {
     ingredients: Ingredient[];
     searchQuery: string;
     onViewIngredient: (ingredient: Ingredient) => void;
+    onEditIngredient: (ingredient: Ingredient) => void;
 };
 
-const IngredientsTable = ({ ingredients, searchQuery, onViewIngredient }: IngredientsTableProps) => {
+const IngredientsTable = ({
+    ingredients,
+    searchQuery,
+    onViewIngredient,
+    onEditIngredient,
+}: IngredientsTableProps) => {
     const hasSearchQuery = searchQuery.trim().length > 0;
 
     return (
@@ -78,6 +84,7 @@ const IngredientsTable = ({ ingredients, searchQuery, onViewIngredient }: Ingred
                                                 type="button"
                                                 aria-label={`Edit ${ingredient.name}`}
                                                 title="Edit ingredient"
+                                                onClick={() => onEditIngredient(ingredient)}
                                                 className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                                             >
                                                 <Pencil aria-hidden="true" className="size-4" />

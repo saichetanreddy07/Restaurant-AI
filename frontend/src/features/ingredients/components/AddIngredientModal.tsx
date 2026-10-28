@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { LoaderCircle, X } from 'lucide-react'
-import { createIngredient } from '../services/ingredientService'
+import { createIngredient, updateIngredient } from '../services/ingredientService'
+import type { Ingredient } from '../types'
 
 type AddIngredientModalProps = {
   onClose: () => void
-  onCreated: () => void
+  onSaved: () => void
+  ingredient?: Ingredient
 }
 
 type IngredientFormData = {
@@ -72,10 +74,26 @@ const initialFormData: IngredientFormData = {
   supplier: '',
 }
 
-const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => {
+const AddIngredientModal = ({
+  onClose,
+  onSaved,
+  ingredient,
+}: AddIngredientModalProps) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const submissionInProgressRef = useRef(false)
-  const [formData, setFormData] = useState<IngredientFormData>(initialFormData)
+  const [formData, setFormData] = useState<IngredientFormData>(() =>
+    ingredient
+      ? {
+          name: ingredient.name,
+          category: ingredient.category || '',
+          unit: ingredient.unit,
+          current_stock: String(ingredient.current_stock),
+          minimum_stock: String(ingredient.minimum_stock),
+          cost_per_unit: String(ingredient.cost_per_unit),
+          supplier: ingredient.supplier || '',
+        }
+      : initialFormData,
+  )
   const [fieldErrors, setFieldErrors] = useState<IngredientFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -115,17 +133,25 @@ const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => 
     setSubmitError(null)
 
     try {
-      await createIngredient({
+      const payload = {
         ...formData,
         current_stock: Number(formData.current_stock || 0),
         minimum_stock: Number(formData.minimum_stock || 0),
         cost_per_unit: Number(formData.cost_per_unit || 0),
-      })
-      setFormData(initialFormData)
-      onCreated()
+      }
+
+      if (ingredient) {
+        await updateIngredient(ingredient.id, payload)
+      } else {
+        await createIngredient(payload)
+        setFormData(initialFormData)
+      }
+      onSaved()
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : 'Unable to create ingredient.',
+        error instanceof Error
+          ? error.message
+          : `Unable to ${ingredient ? 'update' : 'create'} ingredient.`,
       )
     } finally {
       submissionInProgressRef.current = false
@@ -152,21 +178,21 @@ const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => 
       role="presentation"
     >
       <section
-        aria-labelledby="add-ingredient-title"
+        aria-labelledby="ingredient-form-title"
         aria-modal="true"
         role="dialog"
         className="my-auto max-h-[calc(100vh-3rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2
-            id="add-ingredient-title"
+            id="ingredient-form-title"
             className="text-lg font-semibold text-slate-900"
           >
-            Add Ingredient
+            {ingredient ? 'Edit Ingredient' : 'Add Ingredient'}
           </h2>
           <button
             type="button"
-            aria-label="Close add ingredient modal"
+            aria-label={`Close ${ingredient ? 'edit' : 'add'} ingredient modal`}
             ref={closeButtonRef}
             onClick={onClose}
             className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
@@ -264,10 +290,10 @@ const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => 
             {isSubmitting ? (
               <span className="inline-flex items-center gap-2">
                 <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-                Creating...
+                {ingredient ? 'Saving...' : 'Creating...'}
               </span>
             ) : (
-              'Create Ingredient'
+              ingredient ? 'Save Changes' : 'Create Ingredient'
             )}
           </button>
         </div>
