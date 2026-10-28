@@ -11,6 +11,7 @@ const IngredientsPage = () => {
   const [hasError, setHasError] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [creationSuccessMessage, setCreationSuccessMessage] = useState("");
 
   useEffect(() => {
     async function loadIngredients() {
@@ -37,10 +38,16 @@ const IngredientsPage = () => {
   };
 
   const handleIngredientCreated = () => {
+    setCreationSuccessMessage("Ingredient created successfully.");
     setIsAddModalOpen(false);
     setIsLoading(true);
     setHasError(false);
     setRetryCount((currentCount) => currentCount + 1);
+  };
+
+  const handleOpenAddModal = () => {
+    setCreationSuccessMessage("");
+    setIsAddModalOpen(true);
   };
 
   return (
@@ -58,7 +65,15 @@ const IngredientsPage = () => {
         aria-label="Ingredient management"
         className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
       >
-        <IngredientsToolbar onAddIngredient={() => setIsAddModalOpen(true)} />
+        <IngredientsToolbar onAddIngredient={handleOpenAddModal} />
+        {creationSuccessMessage && (
+          <p
+            role="status"
+            className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+          >
+            {creationSuccessMessage}
+          </p>
+        )}
         <div
           aria-label="Ingredients table area"
           className="mt-5 min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"

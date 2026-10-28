@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { X } from 'lucide-react'
+import { LoaderCircle, X } from 'lucide-react'
 import { createIngredient } from '../services/ingredientService'
 
 type AddIngredientModalProps = {
@@ -74,6 +74,7 @@ const initialFormData: IngredientFormData = {
 
 const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const submissionInProgressRef = useRef(false)
   const [formData, setFormData] = useState<IngredientFormData>(initialFormData)
   const [fieldErrors, setFieldErrors] = useState<IngredientFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -93,10 +94,15 @@ const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => 
       ...currentErrors,
       [fieldName]: undefined,
     }))
+    setSubmitError(null)
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (submissionInProgressRef.current) {
+      return
+    }
+
     const errors = validateIngredientForm(formData)
     setFieldErrors(errors)
 
@@ -104,6 +110,7 @@ const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => 
       return
     }
 
+    submissionInProgressRef.current = true
     setIsSubmitting(true)
     setSubmitError(null)
 
@@ -121,6 +128,7 @@ const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => 
         error instanceof Error ? error.message : 'Unable to create ingredient.',
       )
     } finally {
+      submissionInProgressRef.current = false
       setIsSubmitting(false)
     }
   }
@@ -250,9 +258,17 @@ const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => 
           <button
             type="submit"
             disabled={isSubmitting}
+            aria-busy={isSubmitting}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? 'Creating...' : 'Create Ingredient'}
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2">
+                <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                Creating...
+              </span>
+            ) : (
+              'Create Ingredient'
+            )}
           </button>
         </div>
         </form>
