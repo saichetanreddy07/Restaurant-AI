@@ -1,19 +1,11 @@
 import { useEffect, useState } from "react";
 
 import AddIngredientModal from "../components/AddIngredientModal";
+import ViewIngredientModal from "../components/ViewIngredientModal";
 import { IngredientsToolbar } from "../components/IngredientsToolbar";
 import { getIngredients } from "../services/ingredientService";
 import IngredientsTable from "../components/IngredientsTable";
-
-type Ingredient = {
-  id: number;
-  name: string;
-  category: string;
-  unit: string;
-  current_stock: number;
-  minimum_stock: number;
-  supplier: string;
-};
+import type { Ingredient } from "../types";
 
 const IngredientsPage = () => {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -23,6 +15,7 @@ const IngredientsPage = () => {
   const [retryCount, setRetryCount] = useState(0);
   const [creationSuccessMessage, setCreationSuccessMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredIngredients = ingredients.filter((ingredient) =>
@@ -136,6 +129,7 @@ const IngredientsPage = () => {
             <IngredientsTable
               ingredients={filteredIngredients}
               searchQuery={searchQuery}
+              onViewIngredient={setSelectedIngredient}
             />
           )}
         </div>
@@ -145,6 +139,12 @@ const IngredientsPage = () => {
         <AddIngredientModal
           onClose={() => setIsAddModalOpen(false)}
           onCreated={handleIngredientCreated}
+        />
+      )}
+      {selectedIngredient && (
+        <ViewIngredientModal
+          ingredient={selectedIngredient}
+          onClose={() => setSelectedIngredient(null)}
         />
       )}
     </div>

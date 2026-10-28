@@ -1,23 +1,15 @@
 import { Eye, Pencil, Trash2 } from "lucide-react";
 
 import StockStatusBadge from "./StockStatusBadge";
-
-type Ingredient = {
-    id: number;
-    name: string;
-    category: string;
-    unit: string;
-    current_stock: number;
-    minimum_stock: number;
-    supplier: string;
-};
+import type { Ingredient } from "../types";
 
 type IngredientsTableProps = {
     ingredients: Ingredient[];
     searchQuery: string;
+    onViewIngredient: (ingredient: Ingredient) => void;
 };
 
-const IngredientsTable = ({ ingredients, searchQuery }: IngredientsTableProps) => {
+const IngredientsTable = ({ ingredients, searchQuery, onViewIngredient }: IngredientsTableProps) => {
     const hasSearchQuery = searchQuery.trim().length > 0;
 
     return (
@@ -56,7 +48,7 @@ const IngredientsTable = ({ ingredients, searchQuery }: IngredientsTableProps) =
                                     <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900">
                                         {ingredient.name}
                                     </td>
-                                    <td className="whitespace-nowrap px-6 py-4">{ingredient.category}</td>
+                                    <td className="whitespace-nowrap px-6 py-4">{ingredient.category || "—"}</td>
                                     <td className="whitespace-nowrap px-6 py-4">{ingredient.unit}</td>
                                     <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-slate-900">
                                         {ingredient.current_stock}
@@ -64,7 +56,7 @@ const IngredientsTable = ({ ingredients, searchQuery }: IngredientsTableProps) =
                                     <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-slate-900">
                                         {ingredient.minimum_stock}
                                     </td>
-                                    <td className="whitespace-nowrap px-6 py-4">{ingredient.supplier}</td>
+                                    <td className="whitespace-nowrap px-6 py-4">{ingredient.supplier || "—"}</td>
                                     <td className="whitespace-nowrap px-6 py-4">
                                         <StockStatusBadge
                                             currentStock={ingredient.current_stock}
@@ -77,6 +69,7 @@ const IngredientsTable = ({ ingredients, searchQuery }: IngredientsTableProps) =
                                                 type="button"
                                                 aria-label={`View ${ingredient.name}`}
                                                 title="View ingredient"
+                                                onClick={() => onViewIngredient(ingredient)}
                                                 className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                                             >
                                                 <Eye aria-hidden="true" className="size-4" />
