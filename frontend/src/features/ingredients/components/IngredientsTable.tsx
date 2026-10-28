@@ -14,19 +14,24 @@ type Ingredient = {
 
 type IngredientsTableProps = {
     ingredients: Ingredient[];
+    searchQuery: string;
 };
 
-const IngredientsTable = ({ ingredients }: IngredientsTableProps) => {
+const IngredientsTable = ({ ingredients, searchQuery }: IngredientsTableProps) => {
+    const hasSearchQuery = searchQuery.trim().length > 0;
+
     return (
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
             {ingredients.length === 0 ? (
                 <div className="flex min-h-72 items-center justify-center px-6 py-12 text-center">
                     <div className="max-w-sm">
                         <h2 className="text-base font-semibold text-slate-900">
-                            No ingredients found
+                            {hasSearchQuery ? "No matching ingredients" : "No ingredients found"}
                         </h2>
                         <p className="mt-2 text-sm leading-6 text-slate-500">
-                            Create your first ingredient to start managing inventory.
+                            {hasSearchQuery
+                                ? "Try a different ingredient name."
+                                : "Create your first ingredient to start managing inventory."}
                         </p>
                     </div>
                 </div>

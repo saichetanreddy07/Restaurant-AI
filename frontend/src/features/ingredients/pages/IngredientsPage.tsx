@@ -5,13 +5,29 @@ import { IngredientsToolbar } from "../components/IngredientsToolbar";
 import { getIngredients } from "../services/ingredientService";
 import IngredientsTable from "../components/IngredientsTable";
 
+type Ingredient = {
+  id: number;
+  name: string;
+  category: string;
+  unit: string;
+  current_stock: number;
+  minimum_stock: number;
+  supplier: string;
+};
+
 const IngredientsPage = () => {
-  const [ingredients, setIngredients] = useState([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [creationSuccessMessage, setCreationSuccessMessage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredIngredients = ingredients.filter((ingredient) =>
+    ingredient.name.toLowerCase().includes(normalizedSearchQuery),
+  );
 
   useEffect(() => {
     async function loadIngredients() {
@@ -65,7 +81,11 @@ const IngredientsPage = () => {
         aria-label="Ingredient management"
         className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
       >
-        <IngredientsToolbar onAddIngredient={handleOpenAddModal} />
+        <IngredientsToolbar
+          onAddIngredient={handleOpenAddModal}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
         {creationSuccessMessage && (
           <p
             role="status"
@@ -113,7 +133,10 @@ const IngredientsPage = () => {
               </button>
             </div>
           ) : (
-            <IngredientsTable ingredients={ingredients} />
+            <IngredientsTable
+              ingredients={filteredIngredients}
+              searchQuery={searchQuery}
+            />
           )}
         </div>
       </section>

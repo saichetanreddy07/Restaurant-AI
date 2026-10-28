@@ -2,9 +2,15 @@ import { Plus, Search } from 'lucide-react'
 
 type IngredientsToolbarProps = {
   onAddIngredient: () => void
+  searchQuery: string
+  onSearchChange: (searchQuery: string) => void
 }
 
-export const IngredientsToolbar = ({ onAddIngredient }: IngredientsToolbarProps) => {
+export const IngredientsToolbar = ({
+  onAddIngredient,
+  searchQuery,
+  onSearchChange,
+}: IngredientsToolbarProps) => {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <label className="relative block w-full sm:max-w-sm">
@@ -15,7 +21,8 @@ export const IngredientsToolbar = ({ onAddIngredient }: IngredientsToolbarProps)
         />
         <input
           type="search"
-          readOnly
+          value={searchQuery}
+          onChange={(event) => onSearchChange(event.currentTarget.value)}
           placeholder="Search ingredients..."
           className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-800 placeholder-slate-400 transition-colors focus:border-slate-400 focus:bg-white focus:outline-none"
         />
