@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { X } from 'lucide-react'
+import { createIngredient } from '../services/ingredientService'
 
 type AddIngredientModalProps = {
   onClose: () => void
@@ -26,6 +27,9 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
     cost_per_unit: '',
     supplier: '',
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
 
   const handleInputChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -37,6 +41,29 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
       ...currentFormData,
       [fieldName]: value,
     }))
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setIsSubmitting(true)
+    setSubmitError(null)
+    setSubmitSuccess(false)
+
+    try {
+      await createIngredient({
+        ...formData,
+        current_stock: Number(formData.current_stock || 0),
+        minimum_stock: Number(formData.minimum_stock || 0),
+        cost_per_unit: Number(formData.cost_per_unit || 0),
+      })
+      setSubmitSuccess(true)
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : 'Unable to create ingredient.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   useEffect(() => {
@@ -81,6 +108,7 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
           </button>
         </div>
 
+        <form onSubmit={handleSubmit}>
         <div className="px-5 py-6 sm:px-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -139,6 +167,16 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
               <input id="ingredient-supplier" name="supplier" type="text" placeholder="e.g. Fresh Farms Co." value={formData.supplier} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
           </div>
+          {submitError && (
+            <p role="alert" className="mt-4 text-sm text-red-700">
+              {submitError}
+            </p>
+          )}
+          {submitSuccess && (
+            <p role="status" className="mt-4 text-sm text-emerald-700">
+              Ingredient created successfully.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-4">
@@ -150,12 +188,14 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
             Cancel
           </button>
           <button
-            type="button"
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Create Ingredient
+            {isSubmitting ? 'Creating...' : 'Create Ingredient'}
           </button>
         </div>
+        </form>
       </section>
     </div>
   )
