@@ -289,10 +289,16 @@ frontend/src/
 ├── api/          # Reusable HTTP client and API integration layer (Axios)
 ├── components/   # Modular UI presentation components
 │   └── layout/   # Persistent shell components (Sidebar, Navbar)
+├── features/     # Feature-specific pages, services, and components
+│   ├── dashboard/   # Dashboard panels and static sample data
+│   └── ingredients/ # Ingredient list, create modal, and API service
 ├── layouts/      # Application wrapper shells (MainLayout with route Outlet)
-├── pages/        # Route page views (PlaceholderPage foundation)
+├── pages/        # DashboardPage and PlaceholderPage
 ├── routes/       # Centralized declarative routing definitions (AppRoutes)
-└── types/        # Common frontend TypeScript interfaces
+├── types/        # Common frontend TypeScript interfaces
+├── App.tsx       # Query provider and router wrapper
+├── index.css     # Tailwind CSS imports and base styles
+└── main.tsx      # DOM mount entrypoint
 ```
 
 ### 1. Application Shell & Layout Strategy
@@ -302,17 +308,17 @@ frontend/src/
 - **Main Content Area:** Consistent background (`bg-slate-50`) rendering child routes via React Router v7 `<Outlet />`.
 
 ### 2. Client-Server Communication & State Management
-- **Axios HTTP Client (`api/client.ts`):** Encapsulated client configured with `import.meta.env.VITE_API_BASE_URL` (defaulting to `http://localhost:8000/api/v1`), explicit timeouts, and centralized response error unwrapping.
-- **TanStack React Query v5 (`App.tsx`):** Manages server-side cache, request deduplication, and background refetching. Configured globally via `QueryClientProvider` with conservative defaults (`refetchOnWindowFocus: false`, `staleTime: 5 minutes`).
+- **Axios HTTP Client (`api/client.ts`):** Encapsulated client configured with `import.meta.env.VITE_API_BASE_URL` (defaulting to `http://localhost:8000/`), explicit timeouts, and centralized response error unwrapping.
+- **TanStack React Query v5 (`App.tsx`):** Configured globally via `QueryClientProvider` with conservative defaults (`refetchOnWindowFocus: false`, `staleTime: 5 minutes`). Current feature pages still use local `useEffect`/`useState` fetching; adopting query hooks remains planned frontend work.
 - **Declarative Client-Side Routing (`routes/AppRoutes.tsx`):** Route configuration defining top-level navigation paths (`/`, `/ingredients`, `/menu`, `/recipes`, `/inventory`, `/availability`, `/settings`) with a fallback redirect.
 
 ---
 
 ## 9. Scalability & Future Extensibility
 
-### 1. Frontend Feature Integration (Phase 3.3)
-The frontend foundation is decoupled and ready for feature-by-feature domain implementation:
-- Feature-first folder structure (`src/features/<module>/`) isolating components, queries, and mutations.
+### 1. Frontend Feature Integration (Phase 3.6 onward)
+The frontend is being extended feature by feature. The Ingredients feature currently has a backend-backed list and create flow; the other feature routes remain placeholders:
+- Feature-first folder structure (`src/features/<module>/`) is in place, with feature components and API services isolated; query/mutation hooks remain planned frontend work.
 - Type synchronization against FastAPI Pydantic schema contracts.
 - Progressive enhancement with React Hook Form and Zod for client-side form validation.
 

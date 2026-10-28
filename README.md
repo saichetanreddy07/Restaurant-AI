@@ -7,9 +7,9 @@ A production-inspired **Restaurant Operations & Inventory Management System** bu
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0+-red.svg)](https://www.sqlalchemy.org/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg?logo=mysql)](https://www.mysql.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Frontend Foundation Ready](https://img.shields.io/badge/Frontend-Foundation%20Ready-brightgreen.svg)](PROJECT_STATUS.md)
+[![Status: Frontend In Progress](https://img.shields.io/badge/Frontend-In%20Progress-yellow.svg)](PROJECT_STATUS.md)
 
-RestaurantAI is a backend system engineered to solve fundamental operational challenges in commercial restaurant kitchens: physical inventory lot tracking, immutable stock movement auditing, automated First-Expiring, First-Out (FEFO) ingredient consumption, and real-time dish availability calculation.
+RestaurantAI is a full-stack system engineered to solve fundamental operational challenges in commercial restaurant kitchens: physical inventory lot tracking, immutable stock movement auditing, automated First-Expiring, First-Out (FEFO) ingredient consumption, and real-time dish availability calculation. The React frontend is in progress. The Ingredients UI, data fetching, table, and loading, error, and empty states are implemented; ingredient search is functional, while View, Edit, and Delete are not yet implemented.
 
 Built with a learning-first mindset, this project adheres to modern software engineering best practices: layered architecture, type safety, database-level integrity constraints, atomic transactions, and comprehensive automated testing.
 
@@ -26,6 +26,7 @@ Built with a learning-first mindset, this project adheres to modern software eng
 - **Synchronized Ingredient Stock:** Master ingredient stock is a single-source-of-truth derived sum of all active batches, synchronized automatically via database-level SQL `COALESCE(SUM())` aggregation. Proactive health endpoints monitor low-stock items, near-expiry lots, and expired stock.
 - **Automated FEFO / FIFO Inventory Consumption:** Multi-batch ingredient deduction engine prioritizing lots closest to expiration (*First-Expiring, First-Out*) with FIFO tie-breaking. Two-phase execution validates stock across all recipe ingredients upfront and aborts atomically with zero partial writes if any item is short.
 - **Real-Time Dish Availability Engine:** Instant calculations determining how many servings of any recipe or menu item can be prepared based on current stock, highlighting exact ingredient bottlenecks and shortage quantities with optimized bulk queries that eliminate N+1 database round-trips.
+- **Frontend Ingredient Management:** The Ingredients page reads live ingredient data and supports creation with client-side validation, loading and error feedback, automatic list refresh, and form reset. Search filters the loaded ingredient list by name, case-insensitively. View, Edit, and Delete actions are not yet implemented. Other feature routes remain placeholders.
 
 ---
 
@@ -42,12 +43,12 @@ Built with a learning-first mindset, this project adheres to modern software eng
 - **Pydantic v2** — High-speed Rust-powered data validation, request parsing, and response serialization.
 - **Uvicorn** — Production-grade ASGI web server.
 
-### Frontend (Foundation Active)
+### Frontend (In Progress)
 - **React 19** + **TypeScript** — Component-driven Single-Page Application (SPA) architecture.
 - **Vite** — High-performance frontend build tooling and HMR development server.
 - **Tailwind CSS v4** — Modern utility-first styling for dashboard layouts.
 - **React Router v7** — Declarative client-side routing and nested layouts.
-- **TanStack React Query v5** — Server state caching, asynchronous query lifecycles, and synchronization.
+- **TanStack React Query v5** — Configured for server state caching; feature screens currently use local React state and effects, with query adoption planned.
 - **Axios** — Typed HTTP client with environment-based configuration and response interceptors.
 - **Lucide React** — Modern, consistent icon library for dashboard navigation and actions.
 
@@ -240,8 +241,11 @@ restaurant-ai/
 │   │   │   └── client.ts
 │   │   ├── components/         # Modular layout and UI components
 │   │   │   └── layout/         # Sidebar and Navbar shell components
+│   │   ├── features/           # Feature-specific pages, services, and components
+│   │   │   ├── dashboard/      # Dashboard UI and current sample data
+│   │   │   └── ingredients/    # Ingredient list, create modal, and API service
 │   │   ├── layouts/            # Persistent layout shells (MainLayout)
-│   │   ├── pages/              # Route view pages (PlaceholderPage)
+│   │   ├── pages/              # DashboardPage and PlaceholderPage
 │   │   ├── routes/             # Client-side route declarations (AppRoutes)
 │   │   ├── types/              # Frontend TypeScript definitions
 │   │   ├── App.tsx             # Root query provider & router wrapper

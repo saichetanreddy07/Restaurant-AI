@@ -2,11 +2,13 @@
 
 ## 1. Executive Summary
 
-RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, and the **Phase 3.1–3.2 Frontend Foundation Setup**. 
+RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, **Phase 3.1–3.2 Frontend Foundation Setup**, and the **Phase 3.5 Ingredients UI**. The ingredient follow-up work is in progress.
 
 The backend is fully operational, thoroughly tested, and documented. All six core operational modules—Ingredients, Menu Items, Recipes, Recipe Ingredients, Inventory Lot Tracking & Transactions, and the Real-Time Availability Engine—are implemented using clean, layered REST APIs backed by MySQL and SQLAlchemy 2.0.
 
-The frontend foundation is configured and verified with React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7, TanStack Query v5, Axios, and a production-inspired application shell (Sidebar, Navbar, Main Content Area). The project is now ready to begin frontend feature module implementation.
+The frontend foundation is configured with React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7, TanStack Query v5, Axios, and a production-inspired application shell (Sidebar, Navbar, Main Content Area). The Ingredients UI, backend data fetching, table, and loading, error, and empty states are implemented. Search filters the loaded ingredient list by name; View, Edit, and Delete functionality is not implemented.
+
+The Dashboard page is present but still uses static sample data. Menu Items, Recipes, Inventory, Availability, and Settings routes still render placeholder pages.
 
 ---
 
@@ -16,8 +18,11 @@ The frontend foundation is configured and verified with React 19, TypeScript, Vi
   - **Phase 1: Backend Core Modules (100% Complete ✅)**
   - **Phase 2: Conservative Backend Refactoring (100% Complete ✅)**
   - **Phase 3.1 & 3.2: Frontend Foundation & Setup (100% Complete ✅)**
+  - **Phase 3.5: Ingredients UI (UI Complete ✅)**
 - **Current Phase:**
-  - **Phase 3.3: Frontend Core Feature Modules (In Progress ⏳)**
+  - **Phase 3.5.8: Ingredients Follow-up (In Progress ⏳)**
+  - **Completed Milestone: 3.5.8.1 — Ingredient Search**
+  - **Current / Next Milestone: 3.5.8.2 — View Ingredient**
 - **Upcoming Phases:**
   - **Phase 4: Production Readiness & Deployment (Planned 📋)**
   - **Post-MVP: Authentication, Analytics, and AI Recommendations 📋**
@@ -86,7 +91,15 @@ The frontend foundation is configured and verified with React 19, TypeScript, Vi
 - **API Client Layer:** Centralized Axios client with `VITE_API_BASE_URL` environment configuration and response error interception.
 - **Server State Management:** TanStack React Query v5 initialized with standard caching defaults (`QueryClientProvider`).
 - **Application Shell Layout:** Reusable, modern SaaS layout featuring a dark sidebar (`bg-slate-900`), top navigation bar with search and profile badges, and responsive drawer handling.
-- **Clean Baseline:** Zero leftover demo code, demo buttons, counters, or unused starter assets; 100% clean TypeScript build (`tsc -b`) and ESLint verification.
+- **Foundation Verification:** The initial frontend foundation passed TypeScript, ESLint, and production build verification.
+- **Current Frontend State:** The dashboard still uses static sample data. Menu Items, Recipes, Inventory, Availability, and Settings routes still use placeholder pages.
+
+### 10. Ingredients UI (Phase 3.5 UI Complete; Follow-up In Progress)
+- **UI and Data Fetching:** Loads ingredients from the backend and displays them in the implemented table with loading, error, and empty states.
+- **Create Ingredient:** Responsive add modal with controlled form state, client-side validation, API integration, and automatic table refresh.
+- **Submission Feedback:** Resets the form after success, displays inline success and error messages, shows a loading indicator, and prevents duplicate submissions.
+- **Ingredient Search:** Filters the already loaded ingredient list by name, case-insensitively, without another API request.
+- **Unimplemented Actions:** The Actions column is present, but View, Edit, and Delete functionality is not implemented. These are tracked under Phase 3.5.8.
 
 ---
 
@@ -99,18 +112,18 @@ The frontend foundation is configured and verified with React 19, TypeScript, Vi
 
 ---
 
-## 5. Upcoming Frontend Feature Modules (Phase 3.3)
+## 5. Upcoming Frontend Feature Modules (Phase 3.5.8 onward)
 
 With the frontend foundation verified, implementation of the feature modules will proceed sequentially:
 
 - **Current Tech Stack:** React 19, TypeScript, Tailwind CSS v4, Axios, React Router v7, TanStack React Query v5, Lucide React.
 - **Sequential Feature Modules to Build:**
-  - **Module 1 — Ingredients UI:** Master catalog table, add/edit ingredient modal, reorder threshold alerts.
-  - **Module 2 — Menu Items UI:** Commercial catalog view, category filtering, price management.
-  - **Module 3 — Recipes & BOM UI:** Recipe formulation builder, interactive ingredient requirements per serving.
-  - **Module 4 — Inventory Lots & Tracking UI:** Physical batch intake form, expiration status badges, transaction history log.
-  - **Module 5 — Live Availability Engine UI:** Real-time dish availability view, servings capacity indicators, bottleneck warnings.
-  - **Module 6 — Operations Dashboard & Production Simulator:** Metrics cards (low stock, expiring batches) and interactive FEFO order fulfillment simulation.
+  - **Phase 3.5.8 — Ingredients Follow-up:** In progress. Milestone 3.5.8.1, Ingredient Search, is complete. Current milestone is 3.5.8.2, View Ingredient; Edit and Delete follow.
+  - **Phase 3.6 — Menu Items:** Not started (0%). Begin with milestone 3.6.1, Menu Item Types and Service, after the Ingredients follow-up.
+  - **Phase 3.7 — Recipes & BOM UI:** Recipe formulation builder, interactive ingredient requirements per serving.
+  - **Phase 3.8 — Inventory Lots & Tracking UI:** Physical batch intake form, expiration status badges, transaction history log.
+  - **Phase 3.9 — Live Availability Engine UI:** Real-time dish availability view, servings capacity indicators, bottleneck warnings.
+  - **Phase 3.10 — Operations Dashboard & Production Simulator:** Live metrics and inventory alerts, followed by interactive FEFO order fulfillment simulation.
 
 
 ---
