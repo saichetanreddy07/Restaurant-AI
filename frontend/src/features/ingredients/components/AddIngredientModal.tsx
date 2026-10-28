@@ -4,6 +4,7 @@ import { createIngredient } from '../services/ingredientService'
 
 type AddIngredientModalProps = {
   onClose: () => void
+  onCreated: () => void
 }
 
 type IngredientFormData = {
@@ -16,17 +17,19 @@ type IngredientFormData = {
   supplier: string
 }
 
-const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
+const initialFormData: IngredientFormData = {
+  name: '',
+  category: '',
+  unit: '',
+  current_stock: '',
+  minimum_stock: '',
+  cost_per_unit: '',
+  supplier: '',
+}
+
+const AddIngredientModal = ({ onClose, onCreated }: AddIngredientModalProps) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const [formData, setFormData] = useState<IngredientFormData>({
-    name: '',
-    category: '',
-    unit: '',
-    current_stock: '',
-    minimum_stock: '',
-    cost_per_unit: '',
-    supplier: '',
-  })
+  const [formData, setFormData] = useState<IngredientFormData>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState(false)
@@ -56,7 +59,8 @@ const AddIngredientModal = ({ onClose }: AddIngredientModalProps) => {
         minimum_stock: Number(formData.minimum_stock || 0),
         cost_per_unit: Number(formData.cost_per_unit || 0),
       })
-      setSubmitSuccess(true)
+      setFormData(initialFormData)
+      onCreated()
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : 'Unable to create ingredient.',

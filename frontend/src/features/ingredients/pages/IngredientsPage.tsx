@@ -36,6 +36,13 @@ const IngredientsPage = () => {
     setRetryCount((currentCount) => currentCount + 1);
   };
 
+  const handleIngredientCreated = () => {
+    setIsAddModalOpen(false);
+    setIsLoading(true);
+    setHasError(false);
+    setRetryCount((currentCount) => currentCount + 1);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -97,7 +104,10 @@ const IngredientsPage = () => {
       </section>
 
       {isAddModalOpen && (
-        <AddIngredientModal onClose={() => setIsAddModalOpen(false)} />
+        <AddIngredientModal
+          onClose={() => setIsAddModalOpen(false)}
+          onCreated={handleIngredientCreated}
+        />
       )}
     </div>
   );
