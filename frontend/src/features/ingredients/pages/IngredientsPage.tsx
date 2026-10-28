@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AddIngredientModal from "../components/AddIngredientModal";
 import ViewIngredientModal from "../components/ViewIngredientModal";
 import { IngredientsToolbar } from "../components/IngredientsToolbar";
-import { getIngredients } from "../services/ingredientService";
+import { deleteIngredient, getIngredients } from "../services/ingredientService";
 import IngredientsTable from "../components/IngredientsTable";
 import type { Ingredient } from "../types";
 
@@ -17,6 +17,9 @@ const IngredientsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
   const [ingredientToEdit, setIngredientToEdit] = useState<Ingredient | null>(null);
+  const [deletingIngredientId, setDeletingIngredientId] = useState<number | null>(null);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState("");
+  const deletionInProgressRef = useRef(false);
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredIngredients = ingredients.filter((ingredient) =>
@@ -68,6 +71,40 @@ const IngredientsPage = () => {
     setIngredientToEdit(ingredient);
   };
 
+  const handleDeleteIngredient = async (ingredient: Ingredient) => {
+    if (deletionInProgressRef.current) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      `Delete ${ingredient.name}? This action cannot be undone.`,
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    deletionInProgressRef.current = true;
+    setDeletingIngredientId(ingredient.id);
+    setDeleteErrorMessage("");
+    setCreationSuccessMessage("");
+
+    try {
+      await deleteIngredient(ingredient.id);
+      setCreationSuccessMessage("Ingredient deleted successfully.");
+      setIsLoading(true);
+      setHasError(false);
+      setRetryCount((currentCount) => currentCount + 1);
+    } catch (error) {
+      setDeleteErrorMessage(
+        error instanceof Error ? error.message : "Unable to delete ingredient.",
+      );
+    } finally {
+      deletionInProgressRef.current = false;
+      setDeletingIngredientId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -94,6 +131,14 @@ const IngredientsPage = () => {
             className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
           >
             {creationSuccessMessage}
+          </p>
+        )}
+        {deleteErrorMessage && (
+          <p
+            role="alert"
+            className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800"
+          >
+            {deleteErrorMessage}
           </p>
         )}
         <div
@@ -140,6 +185,8 @@ const IngredientsPage = () => {
               searchQuery={searchQuery}
               onViewIngredient={setSelectedIngredient}
               onEditIngredient={handleOpenEditModal}
+              onDeleteIngredient={handleDeleteIngredient}
+              deletingIngredientId={deletingIngredientId}
             />
           )}
         </div>

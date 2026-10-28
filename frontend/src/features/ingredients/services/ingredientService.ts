@@ -32,3 +32,9 @@ export async function updateIngredient(
 
     return response.data;
 }
+
+export async function deleteIngredient(ingredientId: number) {
+    const response = await apiClient.delete(`/ingredients/${ingredientId}`);
+
+    return response.data;
+}

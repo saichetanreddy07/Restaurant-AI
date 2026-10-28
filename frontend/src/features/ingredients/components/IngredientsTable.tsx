@@ -1,4 +1,4 @@
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 
 import StockStatusBadge from "./StockStatusBadge";
 import type { Ingredient } from "../types";
@@ -8,6 +8,8 @@ type IngredientsTableProps = {
     searchQuery: string;
     onViewIngredient: (ingredient: Ingredient) => void;
     onEditIngredient: (ingredient: Ingredient) => void;
+    onDeleteIngredient: (ingredient: Ingredient) => void;
+    deletingIngredientId: number | null;
 };
 
 const IngredientsTable = ({
@@ -15,6 +17,8 @@ const IngredientsTable = ({
     searchQuery,
     onViewIngredient,
     onEditIngredient,
+    onDeleteIngredient,
+    deletingIngredientId,
 }: IngredientsTableProps) => {
     const hasSearchQuery = searchQuery.trim().length > 0;
 
@@ -93,9 +97,16 @@ const IngredientsTable = ({
                                                 type="button"
                                                 aria-label={`Delete ${ingredient.name}`}
                                                 title="Delete ingredient"
+                                                aria-busy={deletingIngredientId === ingredient.id}
+                                                disabled={deletingIngredientId !== null}
+                                                onClick={() => onDeleteIngredient(ingredient)}
                                                 className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
                                             >
-                                                <Trash2 aria-hidden="true" className="size-4" />
+                                                {deletingIngredientId === ingredient.id ? (
+                                                    <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                                                ) : (
+                                                    <Trash2 aria-hidden="true" className="size-4" />
+                                                )}
                                             </button>
                                         </div>
                                     </td>
