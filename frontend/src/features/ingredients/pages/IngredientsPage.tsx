@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import AddIngredientModal from "../components/AddIngredientModal";
 import { IngredientsToolbar } from "../components/IngredientsToolbar";
 import { getIngredients } from "../services/ingredientService";
 import IngredientsTable from "../components/IngredientsTable";
@@ -8,6 +9,7 @@ const IngredientsPage = () => {
   const [ingredients, setIngredients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ const IngredientsPage = () => {
         aria-label="Ingredient management"
         className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
       >
-        <IngredientsToolbar />
+        <IngredientsToolbar onAddIngredient={() => setIsAddModalOpen(true)} />
         <div
           aria-label="Ingredients table area"
           className="mt-5 min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"
@@ -93,6 +95,10 @@ const IngredientsPage = () => {
           )}
         </div>
       </section>
+
+      {isAddModalOpen && (
+        <AddIngredientModal onClose={() => setIsAddModalOpen(false)} />
+      )}
     </div>
   );
 };

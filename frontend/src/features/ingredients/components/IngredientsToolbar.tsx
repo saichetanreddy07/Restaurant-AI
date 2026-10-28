@@ -1,6 +1,10 @@
 import { Plus, Search } from 'lucide-react'
 
-export const IngredientsToolbar = () => {
+type IngredientsToolbarProps = {
+  onAddIngredient: () => void
+}
+
+export const IngredientsToolbar = ({ onAddIngredient }: IngredientsToolbarProps) => {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <label className="relative block w-full sm:max-w-sm">
@@ -19,6 +23,7 @@ export const IngredientsToolbar = () => {
 
       <button
         type="button"
+        onClick={onAddIngredient}
         className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
       >
         <Plus aria-hidden="true" className="size-4" />
