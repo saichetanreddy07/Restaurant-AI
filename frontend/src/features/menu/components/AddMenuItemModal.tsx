@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { LoaderCircle, X } from 'lucide-react'
-import { createMenuItem } from '../services/menuItemService'
-import { menuCategories, type MenuCategory, type MenuItemPayload } from '../types'
+import { createMenuItem, updateMenuItem } from '../services/menuItemService'
+import {
+  menuCategories,
+  type MenuCategory,
+  type MenuItem,
+  type MenuItemPayload,
+} from '../types'
 
 type AddMenuItemModalProps = {
   onClose: () => void
-  onSaved: () => void
+  onSaved: (wasEditing: boolean) => void
+  menuItem?: MenuItem
 }
 
 type MenuItemFormData = {
@@ -50,10 +56,18 @@ const validateMenuItemForm = (
   return errors
 }
 
-const AddMenuItemModal = ({ onClose, onSaved }: AddMenuItemModalProps) => {
+const AddMenuItemModal = ({ onClose, onSaved, menuItem }: AddMenuItemModalProps) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const submissionInProgressRef = useRef(false)
-  const [formData, setFormData] = useState<MenuItemFormData>(initialFormData)
+  const [formData, setFormData] = useState<MenuItemFormData>(() =>
+    menuItem
+      ? {
+          name: menuItem.name,
+          category: menuItem.category,
+          price: String(menuItem.price),
+        }
+      : initialFormData,
+  )
   const [fieldErrors, setFieldErrors] = useState<MenuItemFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -98,12 +112,18 @@ const AddMenuItemModal = ({ onClose, onSaved }: AddMenuItemModalProps) => {
     }
 
     try {
-      await createMenuItem(payload)
-      setFormData(initialFormData)
-      onSaved()
+      if (menuItem) {
+        await updateMenuItem(menuItem.id, payload)
+      } else {
+        await createMenuItem(payload)
+        setFormData(initialFormData)
+      }
+      onSaved(Boolean(menuItem))
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : 'Unable to create menu item.',
+        error instanceof Error
+          ? error.message
+          : `Unable to ${menuItem ? 'update' : 'create'} menu item.`,
       )
     } finally {
       submissionInProgressRef.current = false
@@ -137,11 +157,11 @@ const AddMenuItemModal = ({ onClose, onSaved }: AddMenuItemModalProps) => {
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 id="menu-item-form-title" className="text-lg font-semibold text-slate-900">
-            Add Menu Item
+            {menuItem ? 'Edit Menu Item' : 'Add Menu Item'}
           </h2>
           <button
             type="button"
-            aria-label="Close add menu item dialog"
+            aria-label={`Close ${menuItem ? 'edit' : 'add'} menu item dialog`}
             ref={closeButtonRef}
             onClick={onClose}
             disabled={isSubmitting}
@@ -252,10 +272,10 @@ const AddMenuItemModal = ({ onClose, onSaved }: AddMenuItemModalProps) => {
               {isSubmitting ? (
                 <span className="inline-flex items-center gap-2">
                   <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-                  Creating...
+                  {menuItem ? 'Saving...' : 'Creating...'}
                 </span>
               ) : (
-                'Create Menu Item'
+                menuItem ? 'Save Changes' : 'Create Menu Item'
               )}
             </button>
           </div>

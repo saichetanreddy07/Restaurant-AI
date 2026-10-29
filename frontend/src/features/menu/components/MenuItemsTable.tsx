@@ -1,16 +1,18 @@
-import { Eye } from 'lucide-react'
+import { Eye, Pencil } from 'lucide-react'
 import type { MenuItem } from '../types'
 
 type MenuItemsTableProps = {
   menuItems: MenuItem[]
   hasActiveFilters: boolean
   onViewMenuItem: (menuItem: MenuItem) => void
+  onEditMenuItem: (menuItem: MenuItem) => void
 }
 
 const MenuItemsTable = ({
   menuItems,
   hasActiveFilters,
   onViewMenuItem,
+  onEditMenuItem,
 }: MenuItemsTableProps) => {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -59,6 +61,15 @@ const MenuItemsTable = ({
                       className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                     >
                       <Eye aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Edit ${menuItem.name}`}
+                      title="Edit menu item"
+                      onClick={() => onEditMenuItem(menuItem)}
+                      className="ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                    >
+                      <Pencil aria-hidden="true" className="size-4" />
                     </button>
                   </td>
                 </tr>

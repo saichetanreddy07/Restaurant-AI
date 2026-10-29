@@ -12,6 +12,7 @@ const MenuItemsPage = () => {
   const [loadError, setLoadError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [menuItemToEdit, setMenuItemToEdit] = useState<MenuItem | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<MenuCategory | ''>('')
@@ -66,12 +67,24 @@ const MenuItemsPage = () => {
 
   const handleOpenAddModal = () => {
     setSuccessMessage('')
+    setMenuItemToEdit(null)
     setIsAddModalOpen(true)
   }
 
-  const handleMenuItemCreated = () => {
+  const handleOpenEditModal = (menuItem: MenuItem) => {
+    setSuccessMessage('')
     setIsAddModalOpen(false)
-    setSuccessMessage('Menu item created successfully.')
+    setMenuItemToEdit(menuItem)
+  }
+
+  const handleMenuItemSaved = (wasEditing: boolean) => {
+    setIsAddModalOpen(false)
+    setMenuItemToEdit(null)
+    setSuccessMessage(
+      wasEditing
+        ? 'Menu item updated successfully.'
+        : 'Menu item created successfully.',
+    )
     setIsLoading(true)
     setRetryCount((currentCount) => currentCount + 1)
   }
@@ -159,6 +172,7 @@ const MenuItemsPage = () => {
               menuItems={filteredMenuItems}
               hasActiveFilters={hasActiveFilters}
               onViewMenuItem={setSelectedMenuItem}
+              onEditMenuItem={handleOpenEditModal}
             />
           )}
         </div>
@@ -167,7 +181,14 @@ const MenuItemsPage = () => {
       {isAddModalOpen && (
         <AddMenuItemModal
           onClose={() => setIsAddModalOpen(false)}
-          onSaved={handleMenuItemCreated}
+          onSaved={handleMenuItemSaved}
+        />
+      )}
+      {menuItemToEdit && (
+        <AddMenuItemModal
+          menuItem={menuItemToEdit}
+          onClose={() => setMenuItemToEdit(null)}
+          onSaved={handleMenuItemSaved}
         />
       )}
       {selectedMenuItem && (
