@@ -1,11 +1,17 @@
+import { Eye } from 'lucide-react'
 import type { MenuItem } from '../types'
 
 type MenuItemsTableProps = {
   menuItems: MenuItem[]
   hasActiveFilters: boolean
+  onViewMenuItem: (menuItem: MenuItem) => void
 }
 
-const MenuItemsTable = ({ menuItems, hasActiveFilters }: MenuItemsTableProps) => {
+const MenuItemsTable = ({
+  menuItems,
+  hasActiveFilters,
+  onViewMenuItem,
+}: MenuItemsTableProps) => {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       {menuItems.length === 0 ? (
@@ -23,12 +29,13 @@ const MenuItemsTable = ({ menuItems, hasActiveFilters }: MenuItemsTableProps) =>
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[680px] border-collapse text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th scope="col" className="px-6 py-3.5">Menu Item</th>
                 <th scope="col" className="px-6 py-3.5">Category</th>
                 <th scope="col" className="px-6 py-3.5 text-right">Price</th>
+                <th scope="col" className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-700">
@@ -42,6 +49,17 @@ const MenuItemsTable = ({ menuItems, hasActiveFilters }: MenuItemsTableProps) =>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-slate-900">
                     {menuItem.price}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                    <button
+                      type="button"
+                      aria-label={`View ${menuItem.name}`}
+                      title="View menu item"
+                      onClick={() => onViewMenuItem(menuItem)}
+                      className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                    >
+                      <Eye aria-hidden="true" className="size-4" />
+                    </button>
                   </td>
                 </tr>
               ))}

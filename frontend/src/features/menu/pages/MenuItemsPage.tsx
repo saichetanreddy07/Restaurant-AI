@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import AddMenuItemModal from '../components/AddMenuItemModal'
 import MenuItemsToolbar from '../components/MenuItemsToolbar'
+import ViewMenuItemModal from '../components/ViewMenuItemModal'
 import { getMenuItems } from '../services/menuItemService'
 import type { MenuCategory, MenuItem } from '../types'
 import MenuItemsTable from '../components/MenuItemsTable'
@@ -14,6 +15,7 @@ const MenuItemsPage = () => {
   const [successMessage, setSuccessMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<MenuCategory | ''>('')
+  const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null)
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase()
   const filteredMenuItems = menuItems.filter((menuItem) => {
@@ -156,6 +158,7 @@ const MenuItemsPage = () => {
             <MenuItemsTable
               menuItems={filteredMenuItems}
               hasActiveFilters={hasActiveFilters}
+              onViewMenuItem={setSelectedMenuItem}
             />
           )}
         </div>
@@ -165,6 +168,12 @@ const MenuItemsPage = () => {
         <AddMenuItemModal
           onClose={() => setIsAddModalOpen(false)}
           onSaved={handleMenuItemCreated}
+        />
+      )}
+      {selectedMenuItem && (
+        <ViewMenuItemModal
+          menuItem={selectedMenuItem}
+          onClose={() => setSelectedMenuItem(null)}
         />
       )}
     </div>
