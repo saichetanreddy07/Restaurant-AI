@@ -10,7 +10,7 @@ This roadmap tracks the high-level development phases of **RestaurantAI**. The s
 |---|---|---|---|
 | **Phase 1** | Backend Core Modules | **Completed ✅** | Full implementation of all 6 operational domain modules |
 | **Phase 2** | Backend Refactoring | **Completed ✅** | Query optimization, N+1 elimination, SQL aggregation, dead code cleanup |
-| **Phase 3** | React Frontend | **In Progress ⏳** | Frontend foundation and the complete Ingredients module are finished; current milestone is 3.6.1 Menu Item Types and Service |
+| **Phase 3** | React Frontend | **In Progress ⏳** | Ingredients and Menu Items modules are complete; current milestone is 3.7.1 Recipe and BOM Services |
 | **Phase 4** | Production Readiness | **Planned 📋** | End-to-end integration tests, containerization, deployment setup |
 | **Post-MVP** | Advanced Features | **Planned 📋** | Auth, Analytics, AI dish recommendations, ML demand forecasting |
 
@@ -61,9 +61,17 @@ Build a clean, responsive single-page application connecting restaurant staff an
   - [x] **3.5.8.2 — View Ingredient:** Displays selected ingredient details in a read-only modal.
   - [x] **3.5.8.3 — Edit Ingredient:** Updates the selected ingredient and refreshes the table.
   - [x] **3.5.8.4 — Delete Ingredient:** Confirms and deletes the selected ingredient, then refreshes the table.
-- [ ] **Module 2 — Menu Items UI:** Commercial catalog view, category filtering, pricing management.
-  - **Current milestone:** 3.6.1 — Menu Item Types and Service (Phase 3.6 in progress).
+- [x] **Phase 3.6 — Menu Items (100% Complete):** Typed API services; responsive catalog list with loading, empty, and error states; create, read, update, and delete; local name search and category filtering; and final UI polish.
+  - [x] **3.6.1 — Menu Item Types and Service**
+  - [x] **3.6.2 — Menu Item List**
+  - [x] **3.6.3 — Create Menu Item**
+  - [x] **3.6.4 — Category Filtering and Search**
+  - [x] **3.6.5 — View Menu Item**
+  - [x] **3.6.6 — Update Menu Item**
+  - [x] **3.6.7 — Delete Menu Item**
+  - [x] **3.6.8 — Menu Items Polish**
 - [ ] **Module 3 — Recipe Formulation & BOM UI:** Visual recipe builder and ingredient portion management.
+  - **Current milestone:** 3.7.1 — Recipe and BOM Services.
 - [ ] **Module 4 — Inventory Lots & Tracking UI:** Interactive inventory table with lot expiration indicators, batch intake modal, and transaction audit viewer.
 - [ ] **Module 5 — Live Availability Engine UI:** Real-time dish availability view, servings capacity indicators, and bottleneck shortage inspection.
 - [ ] **Module 6 — Operations Dashboard & Production Simulator:** Dashboard UI is present with static sample data; live metrics, inventory alerts, and interactive kitchen order fulfillment simulation (`POST /inventory/consume`) remain unimplemented.

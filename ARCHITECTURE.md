@@ -316,8 +316,8 @@ frontend/src/
 
 ## 9. Scalability & Future Extensibility
 
-### 1. Frontend Feature Integration (Phase 3.6 onward)
-The frontend is being extended feature by feature. The Ingredients feature currently has a backend-backed list and create flow; the other feature routes remain placeholders:
+### 1. Frontend Feature Integration (Phase 3.7 onward)
+The frontend is being extended feature by feature. Ingredients and Menu Items now have backend-backed catalog interfaces with typed services and their completed CRUD workflows. Recipes, Inventory, and Availability remain planned feature integrations; the Dashboard still uses static sample data:
 - Feature-first folder structure (`src/features/<module>/`) is in place, with feature components and API services isolated; query/mutation hooks remain planned frontend work.
 - Type synchronization against FastAPI Pydantic schema contracts.
 - Progressive enhancement with React Hook Form and Zod for client-side form validation.
