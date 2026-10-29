@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { MainLayout } from '../layouts/MainLayout'
 import { DashboardPage } from '../pages/DashboardPage'
 import IngredientsPage from "../features/ingredients/pages/IngredientsPage";
+import MenuItemsPage from '../features/menu/pages/MenuItemsPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 export const AppRoutes = () => {
@@ -10,15 +11,7 @@ export const AppRoutes = () => {
       <Route element={<MainLayout />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/ingredients" element={<IngredientsPage />} />
-        <Route
-          path="/menu"
-          element={
-            <PlaceholderPage
-              title="Menu Items"
-              description="Configure commercial menu items, categories, and selling prices."
-            />
-          }
-        />
+        <Route path="/menu" element={<MenuItemsPage />} />
         <Route
           path="/recipes"
           element={
