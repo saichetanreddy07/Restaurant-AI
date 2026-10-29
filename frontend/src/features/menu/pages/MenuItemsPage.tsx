@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import AddMenuItemModal from '../components/AddMenuItemModal'
+import MenuItemsToolbar from '../components/MenuItemsToolbar'
 import { getMenuItems } from '../services/menuItemService'
-import type { MenuItem } from '../types'
+import type { MenuCategory, MenuItem } from '../types'
 import MenuItemsTable from '../components/MenuItemsTable'
 
 const MenuItemsPage = () => {
@@ -11,6 +12,17 @@ const MenuItemsPage = () => {
   const [retryCount, setRetryCount] = useState(0)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<MenuCategory | ''>('')
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase()
+  const filteredMenuItems = menuItems.filter((menuItem) => {
+    const matchesName = menuItem.name.toLowerCase().includes(normalizedSearchQuery)
+    const matchesCategory = !categoryFilter || menuItem.category === categoryFilter
+
+    return matchesName && matchesCategory
+  })
+  const hasActiveFilters = Boolean(normalizedSearchQuery || categoryFilter)
 
   useEffect(() => {
     let isCurrentRequest = true
@@ -94,6 +106,16 @@ const MenuItemsPage = () => {
             {successMessage}
           </p>
         )}
+        <MenuItemsToolbar
+          searchQuery={searchQuery}
+          categoryFilter={categoryFilter}
+          onSearchChange={setSearchQuery}
+          onCategoryChange={setCategoryFilter}
+          onClearFilters={() => {
+            setSearchQuery('')
+            setCategoryFilter('')
+          }}
+        />
         <div
           aria-label="Menu items table area"
           className="min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"
@@ -131,7 +153,10 @@ const MenuItemsPage = () => {
               </button>
             </div>
           ) : (
-            <MenuItemsTable menuItems={menuItems} />
+            <MenuItemsTable
+              menuItems={filteredMenuItems}
+              hasActiveFilters={hasActiveFilters}
+            />
           )}
         </div>
       </section>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { LoaderCircle, X } from 'lucide-react'
 import { createMenuItem } from '../services/menuItemService'
-import type { MenuCategory, MenuItemPayload } from '../types'
+import { menuCategories, type MenuCategory, type MenuItemPayload } from '../types'
 
 type AddMenuItemModalProps = {
   onClose: () => void
@@ -15,21 +15,6 @@ type MenuItemFormData = {
 }
 
 type MenuItemFormErrors = Partial<Record<keyof MenuItemFormData, string>>
-
-const categories: { value: MenuCategory; label: string }[] = [
-  { value: 'burger', label: 'Burger' },
-  { value: 'pizza', label: 'Pizza' },
-  { value: 'pasta', label: 'Pasta' },
-  { value: 'sandwich', label: 'Sandwich' },
-  { value: 'wrap', label: 'Wrap' },
-  { value: 'rice', label: 'Rice' },
-  { value: 'salad', label: 'Salad' },
-  { value: 'starter', label: 'Starter' },
-  { value: 'dessert', label: 'Dessert' },
-  { value: 'beverage', label: 'Beverage' },
-  { value: 'combo', label: 'Combo' },
-  { value: 'other', label: 'Other' },
-]
 
 const initialFormData: MenuItemFormData = {
   name: '',
@@ -205,7 +190,7 @@ const AddMenuItemModal = ({ onClose, onSaved }: AddMenuItemModalProps) => {
                 className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
               >
                 <option value="" disabled>Select a category</option>
-                {categories.map((category) => (
+                {menuCategories.map((category) => (
                   <option key={category.value} value={category.value}>
                     {category.label}
                   </option>

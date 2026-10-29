@@ -2,19 +2,22 @@ import type { MenuItem } from '../types'
 
 type MenuItemsTableProps = {
   menuItems: MenuItem[]
+  hasActiveFilters: boolean
 }
 
-const MenuItemsTable = ({ menuItems }: MenuItemsTableProps) => {
+const MenuItemsTable = ({ menuItems, hasActiveFilters }: MenuItemsTableProps) => {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       {menuItems.length === 0 ? (
         <div className="flex min-h-72 items-center justify-center px-6 py-12 text-center">
           <div className="max-w-sm">
             <h2 className="text-base font-semibold text-slate-900">
-              No menu items found
+              {hasActiveFilters ? 'No matching menu items' : 'No menu items found'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Menu items will appear here when they are available in the catalog.
+              {hasActiveFilters
+                ? 'Try changing your search or category filter.'
+                : 'Menu items will appear here when they are available in the catalog.'}
             </p>
           </div>
         </div>
