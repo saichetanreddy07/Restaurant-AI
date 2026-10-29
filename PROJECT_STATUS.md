@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary
 
-RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, **Phase 3.1–3.2 Frontend Foundation Setup**, and the **Phase 3.5 Ingredients module, including Phase 3.5.8 Ingredients Follow-up**. Menu Items is the next frontend module.
+RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, **Phase 3.1–3.2 Frontend Foundation Setup**, and **Phase 3.5 (Ingredients), including all Phase 3.5.8 follow-up milestones**. Phase 3.6 (Menu Items) is now in progress, starting with Milestone 3.6.1.
 
 The backend is fully operational, thoroughly tested, and documented. All six core operational modules—Ingredients, Menu Items, Recipes, Recipe Ingredients, Inventory Lot Tracking & Transactions, and the Real-Time Availability Engine—are implemented using clean, layered REST APIs backed by MySQL and SQLAlchemy 2.0.
 
@@ -18,12 +18,12 @@ The Dashboard page is present but still uses static sample data. Menu Items, Rec
   - **Phase 1: Backend Core Modules (100% Complete ✅)**
   - **Phase 2: Conservative Backend Refactoring (100% Complete ✅)**
   - **Phase 3.1 & 3.2: Frontend Foundation & Setup (100% Complete ✅)**
-  - **Phase 3.5: Ingredients Module (Complete ✅)**
-  - **Phase 3.5.8: Ingredients Follow-up (Complete ✅)**
+  - **Phase 3.5: Ingredients Module (100% Complete ✅)**
+  - **Phase 3.5.8: Ingredients Follow-up (100% Complete ✅)**
 - **Current Phase:**
-  - **Phase 3.6: Menu Items (Next)**
+  - **Phase 3.6: Menu Items (In Progress; 0% complete)**
   - **Completed Milestones: 3.5.8.1 — Ingredient Search; 3.5.8.2 — View Ingredient; 3.5.8.3 — Edit Ingredient; 3.5.8.4 — Delete Ingredient**
-  - **Current / Next Milestone: 3.6.1 — Menu Item Types and Service**
+  - **Current Milestone: 3.6.1 — Menu Item Types and Service**
 - **Upcoming Phases:**
   - **Phase 4: Production Readiness & Deployment (Planned 📋)**
   - **Post-MVP: Authentication, Analytics, and AI Recommendations 📋**
@@ -121,8 +121,9 @@ With the frontend foundation verified, implementation of the feature modules wil
 
 - **Current Tech Stack:** React 19, TypeScript, Tailwind CSS v4, Axios, React Router v7, TanStack React Query v5, Lucide React.
 - **Sequential Feature Modules to Build:**
-  - **Phase 3.5.8 — Ingredients Follow-up:** Complete. Ingredient Search, View, Edit, and Delete are implemented.
-  - **Phase 3.6 — Menu Items:** Not started (0%). Current milestone is 3.6.1, Menu Item Types and Service.
+  - **Phase 3.5 — Ingredients:** Complete. Create, list, search, view, edit, and delete are implemented.
+  - **Phase 3.5.8 — Ingredients Follow-up:** Complete. Milestones 3.5.8.1–3.5.8.4 (Search, View, Edit, and Delete) are complete.
+  - **Phase 3.6 — Menu Items:** In progress (0%). Current milestone is 3.6.1, Menu Item Types and Service.
   - **Phase 3.7 — Recipes & BOM UI:** Recipe formulation builder, interactive ingredient requirements per serving.
   - **Phase 3.8 — Inventory Lots & Tracking UI:** Physical batch intake form, expiration status badges, transaction history log.
   - **Phase 3.9 — Live Availability Engine UI:** Real-time dish availability view, servings capacity indicators, bottleneck warnings.

@@ -55,14 +55,14 @@ Build a clean, responsive single-page application connecting restaurant staff an
 - [x] **Project Setup & Tooling:** Initialize React 19 with TypeScript, Vite, Tailwind CSS v4, and Lucide React icons.
 - [x] **Frontend Architecture & Scalable Shell:** Dark sidebar, top navigation bar, reusable `MainLayout` shell with React Router v7 outlet, zero starter code.
 - [x] **API Client & Server State Foundation:** Centralized Axios instance (`apiClient`) with environment configuration (`VITE_API_BASE_URL`), standard timeout, unified error interceptor, and TanStack React Query (`QueryClientProvider`) application wrapping.
-- [x] **Module 1 — Ingredients UI (Phase 3.5, Complete):** Backend-backed data fetching, ingredient table, loading/error/empty states, validated create/edit form, feedback, loading states, duplicate submission prevention, form reset, and automatic list refresh. Search, read-only View, Edit, and Delete are implemented.
-- [x] **Phase 3.5.8 — Ingredients Follow-up:** Search, View, Edit, and Delete are complete.
+- [x] **Phase 3.5 — Ingredients UI (100% Complete):** Backend-backed data fetching, ingredient table, loading/error/empty states, validated create/edit form, feedback, loading states, duplicate submission prevention, form reset, and automatic list refresh. Search, read-only View, Edit, and Delete are implemented.
+- [x] **Phase 3.5.8 — Ingredients Follow-up (100% Complete):** Search, View, Edit, and Delete are complete.
   - [x] **3.5.8.1 — Ingredient Search:** Filters the loaded ingredient list by name.
   - [x] **3.5.8.2 — View Ingredient:** Displays selected ingredient details in a read-only modal.
   - [x] **3.5.8.3 — Edit Ingredient:** Updates the selected ingredient and refreshes the table.
   - [x] **3.5.8.4 — Delete Ingredient:** Confirms and deletes the selected ingredient, then refreshes the table.
 - [ ] **Module 2 — Menu Items UI:** Commercial catalog view, category filtering, pricing management.
-  - **Current milestone:** 3.6.1 — Menu Item Types and Service.
+  - **Current milestone:** 3.6.1 — Menu Item Types and Service (Phase 3.6 in progress).
 - [ ] **Module 3 — Recipe Formulation & BOM UI:** Visual recipe builder and ingredient portion management.
 - [ ] **Module 4 — Inventory Lots & Tracking UI:** Interactive inventory table with lot expiration indicators, batch intake modal, and transaction audit viewer.
 - [ ] **Module 5 — Live Availability Engine UI:** Real-time dish availability view, servings capacity indicators, and bottleneck shortage inspection.
