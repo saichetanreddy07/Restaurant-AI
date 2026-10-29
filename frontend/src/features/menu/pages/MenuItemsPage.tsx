@@ -70,12 +70,14 @@ const MenuItemsPage = () => {
 
   const handleOpenAddModal = () => {
     setSuccessMessage('')
+    setDeleteError('')
     setMenuItemToEdit(null)
     setIsAddModalOpen(true)
   }
 
   const handleOpenEditModal = (menuItem: MenuItem) => {
     setSuccessMessage('')
+    setDeleteError('')
     setIsAddModalOpen(false)
     setMenuItemToEdit(menuItem)
   }
@@ -83,6 +85,7 @@ const MenuItemsPage = () => {
   const handleMenuItemSaved = (wasEditing: boolean) => {
     setIsAddModalOpen(false)
     setMenuItemToEdit(null)
+    setDeleteError('')
     setSuccessMessage(
       wasEditing
         ? 'Menu item updated successfully.'

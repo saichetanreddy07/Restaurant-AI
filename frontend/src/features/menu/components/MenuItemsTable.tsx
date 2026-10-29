@@ -36,6 +36,7 @@ const MenuItemsTable = ({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+            <caption className="sr-only">Menu item catalog with categories, prices, and actions</caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th scope="col" className="px-6 py-3.5">Menu Item</th>
@@ -56,7 +57,8 @@ const MenuItemsTable = ({
                   <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-slate-900">
                     {menuItem.price}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <div className="flex items-center justify-end gap-1">
                     <button
                       type="button"
                       aria-label={`View ${menuItem.name}`}
@@ -71,7 +73,7 @@ const MenuItemsTable = ({
                       aria-label={`Edit ${menuItem.name}`}
                       title="Edit menu item"
                       onClick={() => onEditMenuItem(menuItem)}
-                      className="ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                      className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                     >
                       <Pencil aria-hidden="true" className="size-4" />
                     </button>
@@ -82,7 +84,7 @@ const MenuItemsTable = ({
                       aria-busy={deletingMenuItemId === menuItem.id}
                       disabled={deletingMenuItemId !== null}
                       onClick={() => onDeleteMenuItem(menuItem)}
-                      className="ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {deletingMenuItemId === menuItem.id ? (
                         <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
@@ -90,6 +92,7 @@ const MenuItemsTable = ({
                         <Trash2 aria-hidden="true" className="size-4" />
                       )}
                     </button>
+                    </div>
                   </td>
                 </tr>
               ))}

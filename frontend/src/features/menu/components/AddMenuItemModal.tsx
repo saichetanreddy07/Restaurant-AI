@@ -153,7 +153,7 @@ const AddMenuItemModal = ({ onClose, onSaved, menuItem }: AddMenuItemModalProps)
         aria-labelledby="menu-item-form-title"
         aria-modal="true"
         role="dialog"
-        className="my-auto w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl"
+        className="my-auto max-h-[calc(100vh-3rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 id="menu-item-form-title" className="text-lg font-semibold text-slate-900">

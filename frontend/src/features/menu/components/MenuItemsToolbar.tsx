@@ -16,10 +16,10 @@ const MenuItemsToolbar = ({
   onCategoryChange,
   onClearFilters,
 }: MenuItemsToolbarProps) => {
-  const hasActiveFilters = Boolean(searchQuery || categoryFilter)
+  const hasActiveFilters = Boolean(searchQuery.trim() || categoryFilter)
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
       <label className="relative block flex-1">
         <span className="sr-only">Search menu items</span>
         <Search
