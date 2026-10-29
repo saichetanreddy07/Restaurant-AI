@@ -226,11 +226,11 @@ const AddIngredientModal = ({
               </label>
               <select id="ingredient-unit" name="unit" value={formData.unit} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.unit)} aria-describedby={fieldErrors.unit ? 'ingredient-unit-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20">
                 <option value="" disabled>Select a unit</option>
-                <option value="KG">Kilograms (KG)</option>
-                <option value="G">Grams (G)</option>
-                <option value="L">Liters (L)</option>
-                <option value="ML">Milliliters (ML)</option>
-                <option value="PCS">Pieces (PCS)</option>
+                <option value="kg">Kilograms</option>
+                <option value="g">Grams</option>
+                <option value="l">Liters</option>
+                <option value="ml">Milliliters</option>
+                <option value="pcs">Pieces</option>
               </select>
               {fieldErrors.unit && <p id="ingredient-unit-error" className="mt-1 text-sm text-red-700">{fieldErrors.unit}</p>}
             </div>
@@ -267,7 +267,7 @@ const AddIngredientModal = ({
             </div>
           </div>
           {submitError && (
-            <p role="alert" className="mt-4 text-sm text-red-700">
+            <p role="alert" className="mt-4 whitespace-pre-line text-sm text-red-700">
               {submitError}
             </p>
           )}
