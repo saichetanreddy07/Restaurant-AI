@@ -1,4 +1,4 @@
-import { Eye, Pencil } from 'lucide-react'
+import { Eye, LoaderCircle, Pencil, Trash2 } from 'lucide-react'
 import type { MenuItem } from '../types'
 
 type MenuItemsTableProps = {
@@ -6,6 +6,8 @@ type MenuItemsTableProps = {
   hasActiveFilters: boolean
   onViewMenuItem: (menuItem: MenuItem) => void
   onEditMenuItem: (menuItem: MenuItem) => void
+  onDeleteMenuItem: (menuItem: MenuItem) => void
+  deletingMenuItemId: number | null
 }
 
 const MenuItemsTable = ({
@@ -13,6 +15,8 @@ const MenuItemsTable = ({
   hasActiveFilters,
   onViewMenuItem,
   onEditMenuItem,
+  onDeleteMenuItem,
+  deletingMenuItemId,
 }: MenuItemsTableProps) => {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -70,6 +74,21 @@ const MenuItemsTable = ({
                       className="ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
                     >
                       <Pencil aria-hidden="true" className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${menuItem.name}`}
+                      title="Delete menu item"
+                      aria-busy={deletingMenuItemId === menuItem.id}
+                      disabled={deletingMenuItemId !== null}
+                      onClick={() => onDeleteMenuItem(menuItem)}
+                      className="ml-1 inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingMenuItemId === menuItem.id ? (
+                        <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                      ) : (
+                        <Trash2 aria-hidden="true" className="size-4" />
+                      )}
                     </button>
                   </td>
                 </tr>

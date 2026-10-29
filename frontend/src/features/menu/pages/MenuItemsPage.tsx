@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AddMenuItemModal from '../components/AddMenuItemModal'
 import MenuItemsToolbar from '../components/MenuItemsToolbar'
 import ViewMenuItemModal from '../components/ViewMenuItemModal'
-import { getMenuItems } from '../services/menuItemService'
+import { deleteMenuItem, getMenuItems } from '../services/menuItemService'
 import type { MenuCategory, MenuItem } from '../types'
 import MenuItemsTable from '../components/MenuItemsTable'
 
@@ -17,6 +17,9 @@ const MenuItemsPage = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<MenuCategory | ''>('')
   const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null)
+  const [deletingMenuItemId, setDeletingMenuItemId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const deletionInProgressRef = useRef(false)
 
   const normalizedSearchQuery = searchQuery.trim().toLowerCase()
   const filteredMenuItems = menuItems.filter((menuItem) => {
@@ -89,6 +92,39 @@ const MenuItemsPage = () => {
     setRetryCount((currentCount) => currentCount + 1)
   }
 
+  const handleDeleteMenuItem = async (menuItem: MenuItem) => {
+    if (deletionInProgressRef.current) {
+      return
+    }
+
+    const shouldDelete = window.confirm(
+      `Delete ${menuItem.name}? This action cannot be undone.`,
+    )
+
+    if (!shouldDelete) {
+      return
+    }
+
+    deletionInProgressRef.current = true
+    setDeletingMenuItemId(menuItem.id)
+    setDeleteError('')
+    setSuccessMessage('')
+
+    try {
+      await deleteMenuItem(menuItem.id)
+      setSuccessMessage('Menu item deleted successfully.')
+      setIsLoading(true)
+      setRetryCount((currentCount) => currentCount + 1)
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Unable to delete menu item.',
+      )
+    } finally {
+      deletionInProgressRef.current = false
+      setDeletingMenuItemId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -119,6 +155,14 @@ const MenuItemsPage = () => {
             className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
           >
             {successMessage}
+          </p>
+        )}
+        {deleteError && (
+          <p
+            role="alert"
+            className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800"
+          >
+            {deleteError}
           </p>
         )}
         <MenuItemsToolbar
@@ -173,6 +217,8 @@ const MenuItemsPage = () => {
               hasActiveFilters={hasActiveFilters}
               onViewMenuItem={setSelectedMenuItem}
               onEditMenuItem={handleOpenEditModal}
+              onDeleteMenuItem={handleDeleteMenuItem}
+              deletingMenuItemId={deletingMenuItemId}
             />
           )}
         </div>
