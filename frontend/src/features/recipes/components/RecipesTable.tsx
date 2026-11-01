@@ -5,10 +5,11 @@ import type { Recipe } from '../types'
 type RecipesTableProps = {
   recipes: Recipe[]
   menuItems: MenuItem[]
+  hasActiveFilters: boolean
   onAddIngredient: (recipe: Recipe) => void
 }
 
-const RecipesTable = ({ recipes, menuItems, onAddIngredient }: RecipesTableProps) => {
+const RecipesTable = ({ recipes, menuItems, hasActiveFilters, onAddIngredient }: RecipesTableProps) => {
   const menuItemNames = new Map(
     menuItems.map((menuItem) => [menuItem.id, menuItem.name]),
   )
@@ -19,10 +20,12 @@ const RecipesTable = ({ recipes, menuItems, onAddIngredient }: RecipesTableProps
         <div className="flex min-h-72 items-center justify-center px-6 py-12 text-center">
           <div className="max-w-sm">
             <h2 className="text-base font-semibold text-slate-900">
-              No recipes found
+              {hasActiveFilters ? 'No matching recipes' : 'No recipes found'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Recipes will appear here when they are available in the catalog.
+              {hasActiveFilters
+                ? 'Try changing your search or clearing the filters.'
+                : 'Recipes will appear here when they are available in the catalog.'}
             </p>
           </div>
         </div>

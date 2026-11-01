@@ -6,6 +6,7 @@ import type { MenuItem } from '../../menu/types'
 import { getRecipes } from '../services/recipeService'
 import type { Recipe } from '../types'
 import RecipesTable from '../components/RecipesTable'
+import RecipesToolbar from '../components/RecipesToolbar'
 
 const RecipesPage = () => {
   const [recipes, setRecipes] = useState<Recipe[]>([])
@@ -16,10 +17,30 @@ const RecipesPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [recipeForIngredients, setRecipeForIngredients] = useState<Recipe | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [menuItemFilter, setMenuItemFilter] = useState('')
 
   const availableMenuItems = menuItems.filter(
     (menuItem) => !recipes.some((recipe) => recipe.menu_item_id === menuItem.id),
   )
+  const recipeMenuItems = menuItems.filter((menuItem) =>
+    recipes.some((recipe) => recipe.menu_item_id === menuItem.id),
+  )
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase()
+  const filteredRecipes = recipes.filter((recipe) => {
+    const menuItemName = menuItems.find(
+      (menuItem) => menuItem.id === recipe.menu_item_id,
+    )?.name ?? ''
+    const matchesSearch =
+      !normalizedSearchQuery ||
+      recipe.name.toLocaleLowerCase().includes(normalizedSearchQuery) ||
+      menuItemName.toLocaleLowerCase().includes(normalizedSearchQuery)
+    const matchesMenuItem =
+      !menuItemFilter || String(recipe.menu_item_id) === menuItemFilter
+
+    return matchesSearch && matchesMenuItem
+  })
+  const hasActiveFilters = Boolean(normalizedSearchQuery || menuItemFilter)
 
   useEffect(() => {
     let isCurrentRequest = true
@@ -114,6 +135,19 @@ const RecipesPage = () => {
             {successMessage}
           </p>
         )}
+        {!isLoading && !loadError && (
+          <RecipesToolbar
+            menuItems={recipeMenuItems}
+            searchQuery={searchQuery}
+            menuItemFilter={menuItemFilter}
+            onSearchChange={setSearchQuery}
+            onMenuItemChange={setMenuItemFilter}
+            onClearFilters={() => {
+              setSearchQuery('')
+              setMenuItemFilter('')
+            }}
+          />
+        )}
         <div
           aria-label="Recipes table area"
           className="min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"
@@ -152,8 +186,9 @@ const RecipesPage = () => {
             </div>
           ) : (
             <RecipesTable
-              recipes={recipes}
+              recipes={filteredRecipes}
               menuItems={menuItems}
+              hasActiveFilters={hasActiveFilters}
               onAddIngredient={setRecipeForIngredients}
             />
           )}
