@@ -1,46 +1,40 @@
-import { ChefHat, Leaf, Package, UtensilsCrossed } from 'lucide-react'
+import { ChefHat, Leaf, UtensilsCrossed } from 'lucide-react'
 import type { DashboardStat } from '../types/dashboard'
+import type { DashboardSummary } from '../services/dashboardService'
 
-export const dashboardStats: DashboardStat[] = [
-  {
-    id: 'total-ingredients',
-    title: 'Total Ingredients',
-    value: '48',
-    description: 'Tracked ingredients in inventory',
-    icon: Leaf,
-    status: 'neutral',
-    trend: 'up',
-    trendPercentage: '12%',
-  },
-  {
-    id: 'menu-items',
-    title: 'Menu Items',
-    value: '16',
-    description: 'Available menu offerings',
-    icon: UtensilsCrossed,
-    status: 'success',
-    trend: 'up',
-    trendPercentage: '7%',
-  },
-  {
-    id: 'active-recipes',
-    title: 'Active Recipes',
-    value: '16',
-    description: 'Recipes ready for production',
-    icon: ChefHat,
-    status: 'success',
-    trend: 'up',
-    trendPercentage: '0%',
-    trendStatus: 'neutral',
-  },
-  {
-    id: 'inventory-value',
-    title: 'Inventory Value',
-    value: '₹24,320',
-    description: 'Current inventory valuation',
-    icon: Package,
-    status: 'neutral',
-    trend: 'up',
-    trendPercentage: '18%',
-  },
-]
+export function createDashboardStats(summary: DashboardSummary): DashboardStat[] {
+  return [
+    {
+      id: 'total-ingredients',
+      title: 'Total Ingredients',
+      value: String(summary.ingredientCount),
+      description: 'Ingredients in the catalog',
+      icon: Leaf,
+      status: 'neutral',
+    },
+    {
+      id: 'menu-items',
+      title: 'Menu Items',
+      value: String(summary.menuItemCount),
+      description: 'Items in the menu catalog',
+      icon: UtensilsCrossed,
+      status: 'success',
+    },
+    {
+      id: 'active-recipes',
+      title: 'Recipes',
+      value: String(summary.recipeCount),
+      description: 'Recipes in the catalog',
+      icon: ChefHat,
+      status: 'success',
+    },
+    {
+      id: 'available-menu-items',
+      title: 'Ready Menu Items',
+      value: String(summary.availableMenuItemCount),
+      description: 'Can currently be prepared',
+      icon: UtensilsCrossed,
+      status: 'neutral',
+    },
+  ]
+}
