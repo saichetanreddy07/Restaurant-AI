@@ -1,4 +1,5 @@
 import apiClient from "../../../api/client";
+import type { Ingredient } from "../types";
 
 export type IngredientPayload = {
     name: string;
@@ -10,8 +11,11 @@ export type IngredientPayload = {
     supplier: string;
 };
 
-export async function getIngredients(skip = 0, limit = 100) {
-    const response = await apiClient.get("/ingredients/", {
+export async function getIngredients(
+    skip = 0,
+    limit = 100,
+): Promise<Ingredient[]> {
+    const response = await apiClient.get<Ingredient[]>("/ingredients/", {
         params: { skip, limit },
     });
 
