@@ -4,6 +4,7 @@ import { DashboardPage } from '../pages/DashboardPage'
 import IngredientsPage from "../features/ingredients/pages/IngredientsPage";
 import MenuItemsPage from '../features/menu/pages/MenuItemsPage'
 import RecipesPage from '../features/recipes/pages/RecipesPage'
+import InventoryPage from '../features/inventory/pages/InventoryPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 export const AppRoutes = () => {
@@ -14,15 +15,7 @@ export const AppRoutes = () => {
         <Route path="/ingredients" element={<IngredientsPage />} />
         <Route path="/menu" element={<MenuItemsPage />} />
         <Route path="/recipes" element={<RecipesPage />} />
-        <Route
-          path="/inventory"
-          element={
-            <PlaceholderPage
-              title="Inventory Lots & Transactions"
-              description="Track intake batches, expiration dates, and immutable transaction logs."
-            />
-          }
-        />
+        <Route path="/inventory" element={<InventoryPage />} />
         <Route
           path="/availability"
           element={
