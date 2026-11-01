@@ -2,13 +2,13 @@
 
 ## 1. Executive Summary
 
-RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, **Phase 3.1–3.2 Frontend Foundation Setup**, **Phase 3.5 (Ingredients)**, and **Phase 3.6 (Menu Items)**. Phase 3.7 (Recipes & BOM UI) is now in progress, starting with Milestone 3.7.1.
+RestaurantAI has completed **Phase 1 (Backend Core Modules)**, **Phase 2 (Conservative Backend Refactoring)**, **Phase 3.1–3.2 Frontend Foundation Setup**, **Phase 3.5 (Ingredients)**, **Phase 3.6 (Menu Items)**, and **Phase 3.7 (Recipes & BOM UI)**. Phase 3.8 (Inventory) is now in progress, starting with Milestone 3.8.1.
 
 The backend is fully operational, thoroughly tested, and documented. All six core operational modules—Ingredients, Menu Items, Recipes, Recipe Ingredients, Inventory Lot Tracking & Transactions, and the Real-Time Availability Engine—are implemented using clean, layered REST APIs backed by MySQL and SQLAlchemy 2.0.
 
 The frontend foundation is configured with React 19, TypeScript, Vite, Tailwind CSS v4, React Router v7, TanStack Query v5, Axios, and a production-inspired application shell (Sidebar, Navbar, Main Content Area). The completed Ingredients module includes backend data fetching, a table with loading, error, and empty states, search, read-only details, and create, edit, and delete actions.
 
-The Ingredients and Menu Items frontend modules are complete. The Dashboard page still uses static sample data, while Recipes, Inventory, Availability, and Settings routes remain placeholders.
+The Ingredients, Menu Items, and Recipes frontend modules are complete. The Dashboard page still uses static sample data, while Inventory, Availability, and Settings routes remain placeholders.
 
 ---
 
@@ -21,11 +21,13 @@ The Ingredients and Menu Items frontend modules are complete. The Dashboard page
   - **Phase 3.5: Ingredients Module (100% Complete ✅)**
   - **Phase 3.5.8: Ingredients Follow-up (100% Complete ✅)**
   - **Phase 3.6: Menu Items (100% Complete ✅)**
+  - **Phase 3.7: Recipes & BOM UI (100% Complete ✅)**
 - **Current Phase:**
-  - **Phase 3.7: Recipes & BOM UI (In Progress; 0% complete)**
+  - **Phase 3.8: Inventory UI (In Progress; 0% complete)**
   - **Completed Milestones: 3.5.8.1 — Ingredient Search; 3.5.8.2 — View Ingredient; 3.5.8.3 — Edit Ingredient; 3.5.8.4 — Delete Ingredient**
   - **Completed Milestones: 3.6.1–3.6.8 — Menu Item Types and Service, List, Create, Search and Filter, View, Update, Delete, and Polish**
-  - **Current Milestone: 3.7.1 — Recipe and BOM Services**
+  - **Completed Milestones: 3.7.1–3.7.9 — Recipe and BOM Services, List, Create, Add Requirements, Search and Filter, View, Edit, Delete, and Polish**
+  - **Current Milestone: 3.8.1 — Inventory Types and Services**
 - **Upcoming Phases:**
   - **Phase 4: Production Readiness & Deployment (Planned 📋)**
   - **Post-MVP: Authentication, Analytics, and AI Recommendations 📋**
@@ -95,7 +97,7 @@ The Ingredients and Menu Items frontend modules are complete. The Dashboard page
 - **Server State Management:** TanStack React Query v5 initialized with standard caching defaults (`QueryClientProvider`).
 - **Application Shell Layout:** Reusable, modern SaaS layout featuring a dark sidebar (`bg-slate-900`), top navigation bar with search and profile badges, and responsive drawer handling.
 - **Foundation Verification:** The initial frontend foundation passed TypeScript, ESLint, and production build verification.
-- **Current Frontend State:** The Ingredients and Menu Items modules are complete. The dashboard still uses static sample data; Recipes, Inventory, Availability, and Settings remain placeholder pages.
+- **Current Frontend State:** The Ingredients, Menu Items, and Recipes modules are complete. The dashboard still uses static sample data; Inventory, Availability, and Settings remain placeholder pages.
 
 ### 10. Ingredients Module (Phase 3.5 and Phase 3.5.8 Complete)
 - **UI and Data Fetching:** Loads ingredients from the backend and displays them in the implemented table with loading, error, and empty states.
@@ -114,6 +116,13 @@ The Ingredients and Menu Items frontend modules are complete. The Dashboard page
 - **View and Delete:** Provides read-only details and confirmed deletion with pending, error, success, and refresh feedback.
 - **Responsive and Accessible UI:** Includes keyboard-operable dialogs and catalog actions, labeled controls, and small-screen layouts.
 
+### 12. Recipes and BOM Module (Phase 3.7 Complete)
+- **Recipe Catalog:** Loads recipes with associated menu item names and supports local search by recipe/menu item and menu item filtering.
+- **Recipe Creation:** Creates recipes for available menu items with validation, submission feedback, and catalog refresh.
+- **Bill of Materials:** Adds ingredient requirements per serving, displays the recipe BOM, and supports updating quantities and removing requirements.
+- **Recipe Details and Deletion:** Provides a read-only recipe details view and confirmed recipe deletion with pending, success, error, and refresh feedback.
+- **Responsive and Accessible UI:** Recipe actions use labeled controls, responsive layouts, and loading, empty, and error states.
+
 ---
 
 ## 4. Test Coverage & Verification
@@ -125,7 +134,7 @@ The Ingredients and Menu Items frontend modules are complete. The Dashboard page
 
 ---
 
-## 5. Upcoming Frontend Feature Modules (Phase 3.7 onward)
+## 5. Upcoming Frontend Feature Modules (Phase 3.8 onward)
 
 With the frontend foundation verified, implementation of the feature modules will proceed sequentially:
 
@@ -134,8 +143,8 @@ With the frontend foundation verified, implementation of the feature modules wil
   - **Phase 3.5 — Ingredients:** Complete. Create, list, search, view, edit, and delete are implemented.
   - **Phase 3.5.8 — Ingredients Follow-up:** Complete. Milestones 3.5.8.1–3.5.8.4 (Search, View, Edit, and Delete) are complete.
   - **Phase 3.6 — Menu Items:** Complete (100%). Milestones 3.6.1–3.6.8 are complete.
-  - **Phase 3.7 — Recipes & BOM UI:** In progress (0%). Current milestone is 3.7.1, Recipe and BOM Services.
-  - **Phase 3.8 — Inventory Lots & Tracking UI:** Physical batch intake form, expiration status badges, transaction history log.
+  - **Phase 3.7 — Recipes & BOM UI:** Complete (100%). Milestones 3.7.1–3.7.9 are complete.
+  - **Phase 3.8 — Inventory Lots & Tracking UI:** In progress (0%). Current milestone is 3.8.1, Inventory Types and Services. Planned work includes physical batch intake, expiration status, and transaction history.
   - **Phase 3.9 — Live Availability Engine UI:** Real-time dish availability view, servings capacity indicators, bottleneck warnings.
   - **Phase 3.10 — Operations Dashboard & Production Simulator:** Live metrics and inventory alerts, followed by interactive FEFO order fulfillment simulation.
 

@@ -9,7 +9,7 @@ A production-inspired **Restaurant Operations & Inventory Management System** bu
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Status: Frontend In Progress](https://img.shields.io/badge/Frontend-In%20Progress-yellow.svg)](PROJECT_STATUS.md)
 
-RestaurantAI is a full-stack system engineered to solve fundamental operational challenges in commercial restaurant kitchens: physical inventory lot tracking, immutable stock movement auditing, automated First-Expiring, First-Out (FEFO) ingredient consumption, and real-time dish availability calculation. The React frontend is in progress. The Ingredients and Menu Items modules are complete; Recipes, Inventory, Availability, and Settings remain placeholders, and the Dashboard still uses static sample data.
+RestaurantAI is a full-stack system engineered to solve fundamental operational challenges in commercial restaurant kitchens: physical inventory lot tracking, immutable stock movement auditing, automated First-Expiring, First-Out (FEFO) ingredient consumption, and real-time dish availability calculation. The React frontend is in progress. The Ingredients, Menu Items, and Recipes modules are complete. Inventory, Availability, and Settings remain placeholders, and the Dashboard still uses static sample data.
 
 Built with a learning-first mindset, this project adheres to modern software engineering best practices: layered architecture, type safety, database-level integrity constraints, atomic transactions, and comprehensive automated testing.
 
@@ -26,8 +26,9 @@ Built with a learning-first mindset, this project adheres to modern software eng
 - **Synchronized Ingredient Stock:** Master ingredient stock is a single-source-of-truth derived sum of all active batches, synchronized automatically via database-level SQL `COALESCE(SUM())` aggregation. Proactive health endpoints monitor low-stock items, near-expiry lots, and expired stock.
 - **Automated FEFO / FIFO Inventory Consumption:** Multi-batch ingredient deduction engine prioritizing lots closest to expiration (*First-Expiring, First-Out*) with FIFO tie-breaking. Two-phase execution validates stock across all recipe ingredients upfront and aborts atomically with zero partial writes if any item is short.
 - **Real-Time Dish Availability Engine:** Instant calculations determining how many servings of any recipe or menu item can be prepared based on current stock, highlighting exact ingredient bottlenecks and shortage quantities with optimized bulk queries that eliminate N+1 database round-trips.
-- **Frontend Ingredient Management:** The Ingredients page reads live ingredient data and supports case-insensitive search, read-only ingredient details, and create, edit, and delete actions. Forms provide client-side validation, loading and error feedback, duplicate submission prevention, and automatic list refresh. Other unimplemented feature routes remain placeholders.
+- **Frontend Ingredient Management:** The Ingredients page reads live ingredient data and supports case-insensitive search, read-only ingredient details, and create, edit, and delete actions. Forms provide client-side validation, loading and error feedback, duplicate submission prevention, and automatic list refresh.
 - **Frontend Menu Item Management:** The Menu Items page reads the live catalog and supports name search, category filtering, read-only details, and create, edit, and delete actions. The responsive UI includes loading, empty, success, and error feedback.
+- **Frontend Recipe and BOM Management:** The Recipes page supports local search and menu item filtering, recipe creation and deletion, read-only recipe details, and editing recipe details and per-serving ingredient requirements.
 
 ---
 
