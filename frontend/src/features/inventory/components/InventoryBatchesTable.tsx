@@ -1,3 +1,4 @@
+import { Eye, LoaderCircle, Pencil, Trash2 } from 'lucide-react'
 import type { Ingredient } from '../../ingredients/types'
 import type { InventoryBatch } from '../types'
 import { batchStatusLabels, getBatchStatus } from '../utils/batchStatus'
@@ -6,6 +7,10 @@ type InventoryBatchesTableProps = {
   batches: InventoryBatch[]
   ingredients: Ingredient[]
   hasActiveFilters: boolean
+  onViewBatch: (batch: InventoryBatch) => void
+  onEditBatch: (batch: InventoryBatch) => void
+  onDeleteBatch: (batch: InventoryBatch) => void
+  deletingBatchId: number | null
 }
 
 const formatDate = (value: string) =>
@@ -26,7 +31,15 @@ const BatchStatusBadge = ({ batch }: { batch: InventoryBatch }) => {
   )
 }
 
-const InventoryBatchesTable = ({ batches, ingredients, hasActiveFilters }: InventoryBatchesTableProps) => {
+const InventoryBatchesTable = ({
+  batches,
+  ingredients,
+  hasActiveFilters,
+  onViewBatch,
+  onEditBatch,
+  onDeleteBatch,
+  deletingBatchId,
+}: InventoryBatchesTableProps) => {
   const ingredientNames = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient]))
 
   return (
@@ -46,7 +59,7 @@ const InventoryBatchesTable = ({ batches, ingredients, hasActiveFilters }: Inven
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[1100px] border-collapse text-left text-sm">
             <caption className="sr-only">Inventory batches, associated ingredients, quantities, and expiry status</caption>
             <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
@@ -57,6 +70,7 @@ const InventoryBatchesTable = ({ batches, ingredients, hasActiveFilters }: Inven
                 <th scope="col" className="px-5 py-3.5">Expires</th>
                 <th scope="col" className="px-5 py-3.5 text-right">Remaining</th>
                 <th scope="col" className="px-5 py-3.5">Supplier</th>
+                <th scope="col" className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-700">
@@ -75,6 +89,19 @@ const InventoryBatchesTable = ({ batches, ingredients, hasActiveFilters }: Inven
                       {batch.quantity}{ingredient ? ` ${ingredient.unit}` : ''}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4">{batch.supplier}</td>
+                    <td className="whitespace-nowrap px-5 py-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <button type="button" aria-label={`View batch ${batch.batch_number}`} title="View batch" onClick={() => onViewBatch(batch)} className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                          <Eye aria-hidden="true" className="size-4" />
+                        </button>
+                        <button type="button" aria-label={`Edit batch ${batch.batch_number}`} title="Edit batch" onClick={() => onEditBatch(batch)} className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                          <Pencil aria-hidden="true" className="size-4" />
+                        </button>
+                        <button type="button" aria-label={`Delete batch ${batch.batch_number}`} title="Delete batch" aria-busy={deletingBatchId === batch.id} disabled={deletingBatchId !== null} onClick={() => onDeleteBatch(batch)} className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50">
+                          {deletingBatchId === batch.id ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : <Trash2 aria-hidden="true" className="size-4" />}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}

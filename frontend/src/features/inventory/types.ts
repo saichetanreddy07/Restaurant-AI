@@ -14,6 +14,14 @@ export type InventoryBatch = InventoryBatchPayload & {
   updated_at: string
 }
 
+export type InventoryBatchUpdatePayload = Partial<
+  Pick<InventoryBatchPayload, 'quantity' | 'unit_cost' | 'supplier' | 'expiry_date'>
+>
+
+export type DeleteInventoryBatchResponse = {
+  message: string
+}
+
 export type InventoryTransactionType =
   | 'CONSUMPTION'
   | 'WASTE'

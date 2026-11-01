@@ -2,8 +2,10 @@ import apiClient from '../../../api/client'
 import type {
   ExpiredBatch,
   ExpiringBatch,
+  DeleteInventoryBatchResponse,
   InventoryBatch,
   InventoryBatchPayload,
+  InventoryBatchUpdatePayload,
   InventoryTransaction,
   LowStockIngredient,
 } from '../types'
@@ -25,6 +27,28 @@ export async function createInventoryBatch(
   const response = await apiClient.post<InventoryBatch>(
     '/inventory-batches/',
     batch,
+  )
+
+  return response.data
+}
+
+export async function updateInventoryBatch(
+  batchId: number,
+  batch: InventoryBatchUpdatePayload,
+): Promise<InventoryBatch> {
+  const response = await apiClient.put<InventoryBatch>(
+    `/inventory-batches/${batchId}`,
+    batch,
+  )
+
+  return response.data
+}
+
+export async function deleteInventoryBatch(
+  batchId: number,
+): Promise<DeleteInventoryBatchResponse> {
+  const response = await apiClient.delete<DeleteInventoryBatchResponse>(
+    `/inventory-batches/${batchId}`,
   )
 
   return response.data
