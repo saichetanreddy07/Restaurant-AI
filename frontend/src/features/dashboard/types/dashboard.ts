@@ -21,26 +21,10 @@ export interface DashboardStat {
 export interface InventoryCategory {
   id: string
   name: string
-  percentage: number
-  color: string
+  count: number
 }
 
 export interface InventoryOverviewData {
   totalIngredients: number
   categories: InventoryCategory[]
-}
-
-export interface LowStockIngredient {
-  id: string
-  name: string
-  quantity: number
-  unit: string
-  icon: LucideIcon
-}
-
-export interface ExpiringSoonIngredient {
-  id: string
-  name: string
-  daysUntilExpiry: number
-  icon: LucideIcon
 }

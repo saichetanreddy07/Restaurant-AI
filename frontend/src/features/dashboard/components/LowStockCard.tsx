@@ -1,20 +1,24 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, CircleAlert } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import type { LowStockIngredient } from '../types/dashboard'
+import type { LowStockIngredient } from '../../inventory/types'
 
 interface LowStockCardProps {
   ingredients: LowStockIngredient[]
+  isLoading: boolean
+  error: string
   viewAllHref?: string
 }
 
 export const LowStockCard = ({
   ingredients,
-  viewAllHref = '/ingredients',
+  isLoading,
+  error,
+  viewAllHref = '/inventory',
 }: LowStockCardProps) => {
   return (
     <section
       aria-labelledby="low-stock-title"
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
     >
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -22,7 +26,7 @@ export const LowStockCard = ({
             Low Stock Ingredients
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Ingredients that need attention soon
+            Ingredients at or below their minimum stock level
           </p>
         </div>
         <Link
@@ -34,30 +38,39 @@ export const LowStockCard = ({
         </Link>
       </div>
 
-      <ul className="mt-5 divide-y divide-slate-100">
-        {ingredients.map((ingredient) => {
-          const Icon = ingredient.icon
-
-          return (
+      {isLoading ? (
+        <p role="status" className="mt-5 text-sm text-slate-500">
+          Loading low-stock ingredients…
+        </p>
+      ) : error ? (
+        <p role="alert" className="mt-5 text-sm text-rose-700">{error}</p>
+      ) : ingredients.length === 0 ? (
+        <p className="mt-5 text-sm text-slate-500">No low-stock ingredients.</p>
+      ) : (
+        <ul className="mt-5 divide-y divide-slate-100">
+          {ingredients.map((ingredient) => (
             <li
-              key={ingredient.id}
+              key={ingredient.ingredient_id}
               className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
             >
               <div className="flex min-w-0 items-center gap-3">
                 <div className="rounded-lg bg-amber-50 p-2 text-amber-600">
-                  <Icon aria-hidden="true" className="size-4" strokeWidth={2} />
+                  <CircleAlert aria-hidden="true" className="size-4" />
                 </div>
                 <span className="truncate text-sm font-medium text-slate-700">
-                  {ingredient.name}
+                  {ingredient.ingredient_name}
                 </span>
               </div>
-              <span className="shrink-0 text-sm font-semibold text-amber-700">
-                {ingredient.quantity} {ingredient.unit}
+              <span className="shrink-0 text-right text-sm font-semibold text-amber-700">
+                {ingredient.current_stock} {ingredient.unit}
+                <span className="block text-xs font-normal text-slate-500">
+                  Minimum {ingredient.minimum_stock} {ingredient.unit}
+                </span>
               </span>
             </li>
-          )
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

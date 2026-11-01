@@ -1,12 +1,25 @@
+import type { Ingredient } from '../../ingredients/types'
 import type { InventoryOverviewData } from '../types/dashboard'
 
-export const inventoryOverview: InventoryOverviewData = {
-  totalIngredients: 48,
-  categories: [
-    { id: 'vegetables', name: 'Vegetables', percentage: 35, color: '#10b981' },
-    { id: 'dairy', name: 'Dairy', percentage: 20, color: '#3b82f6' },
-    { id: 'meat', name: 'Meat', percentage: 15, color: '#f97316' },
-    { id: 'grains', name: 'Grains', percentage: 15, color: '#eab308' },
-    { id: 'others', name: 'Others', percentage: 15, color: '#94a3b8' },
-  ],
+export function createInventoryOverview(ingredients: Ingredient[]): InventoryOverviewData {
+  const categories = new Map<string, { name: string; count: number }>()
+
+  ingredients.forEach((ingredient) => {
+    const categoryName = ingredient.category?.trim() || 'Uncategorized'
+    const categoryKey = categoryName.toLocaleLowerCase()
+    const category = categories.get(categoryKey)
+
+    if (category) {
+      category.count += 1
+    } else {
+      categories.set(categoryKey, { name: categoryName, count: 1 })
+    }
+  })
+
+  return {
+    totalIngredients: ingredients.length,
+    categories: Array.from(categories.entries())
+      .map(([id, category]) => ({ id, ...category }))
+      .sort((first, second) => first.name.localeCompare(second.name)),
+  }
 }

@@ -4,49 +4,78 @@ import { ExpiringSoonCard } from '../features/dashboard/components/ExpiringSoonC
 import { InventoryOverview } from '../features/dashboard/components/InventoryOverview'
 import { LowStockCard } from '../features/dashboard/components/LowStockCard'
 import { StatsGrid } from '../features/dashboard/components/StatsGrid'
-import { inventoryOverview } from '../features/dashboard/data/inventoryOverview'
-import { expiringSoonIngredients } from '../features/dashboard/data/expiringSoonIngredients'
-import { lowStockIngredients } from '../features/dashboard/data/lowStockIngredients'
-import { getDashboardSummary, type DashboardSummary } from '../features/dashboard/services/dashboardService'
+import { createInventoryOverview } from '../features/dashboard/data/inventoryOverview'
+import {
+  getDashboardData,
+  type DashboardData,
+} from '../features/dashboard/services/dashboardService'
 
 export const DashboardPage = () => {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null)
-  const [isLoadingSummary, setIsLoadingSummary] = useState(true)
-  const [summaryError, setSummaryError] = useState('')
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     let isActive = true
 
-    async function loadSummary() {
+    async function loadDashboard() {
       try {
-        const data = await getDashboardSummary()
-        if (isActive) setSummary(data)
+        const data = await getDashboardData()
+        if (isActive) setDashboardData(data)
       } catch {
-        if (isActive) setSummaryError('Unable to load dashboard metrics.')
+        if (isActive) setLoadError('Unable to load dashboard data.')
       } finally {
-        if (isActive) setIsLoadingSummary(false)
+        if (isActive) setIsLoading(false)
       }
     }
 
-    void loadSummary()
+    void loadDashboard()
 
     return () => {
       isActive = false
     }
   }, [])
 
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <DashboardHeader />
+        <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {loadError}
+        </p>
+      </div>
+    )
+  }
+
+  const ingredients = dashboardData?.ingredients.data ?? []
+  const inventoryOverview = dashboardData?.ingredients.data
+    ? createInventoryOverview(ingredients)
+    : null
+
   return (
     <div className="space-y-6">
       <DashboardHeader />
       <StatsGrid
-        summary={summary}
-        isLoading={isLoadingSummary}
-        error={summaryError}
+        summary={dashboardData?.summary.data ?? null}
+        isLoading={isLoading}
+        error={dashboardData?.summary.error ?? ''}
       />
-      <InventoryOverview data={inventoryOverview} />
+      <InventoryOverview
+        data={inventoryOverview}
+        isLoading={isLoading}
+        error={dashboardData?.ingredients.error ?? ''}
+      />
       <div className="grid gap-6 lg:grid-cols-2">
-        <LowStockCard ingredients={lowStockIngredients} />
-        <ExpiringSoonCard ingredients={expiringSoonIngredients} />
+        <LowStockCard
+          ingredients={dashboardData?.lowStockIngredients.data ?? []}
+          isLoading={isLoading}
+          error={dashboardData?.lowStockIngredients.error ?? ''}
+        />
+        <ExpiringSoonCard
+          batches={dashboardData?.expiringBatches.data ?? []}
+          isLoading={isLoading}
+          error={dashboardData?.expiringBatches.error ?? ''}
+        />
       </div>
     </div>
   )
