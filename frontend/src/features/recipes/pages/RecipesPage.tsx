@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AddRecipeModal from '../components/AddRecipeModal'
 import AddRecipeIngredientModal from '../components/AddRecipeIngredientModal'
+import EditRecipeModal from '../components/EditRecipeModal'
+import ViewRecipeModal from '../components/ViewRecipeModal'
 import { getMenuItems } from '../../menu/services/menuItemService'
 import type { MenuItem } from '../../menu/types'
-import { getRecipes } from '../services/recipeService'
+import { deleteRecipe, getRecipes } from '../services/recipeService'
 import type { Recipe } from '../types'
 import RecipesTable from '../components/RecipesTable'
 import RecipesToolbar from '../components/RecipesToolbar'
@@ -17,8 +19,13 @@ const RecipesPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
   const [recipeForIngredients, setRecipeForIngredients] = useState<Recipe | null>(null)
+  const [recipeToEdit, setRecipeToEdit] = useState<Recipe | null>(null)
+  const [recipeToView, setRecipeToView] = useState<Recipe | null>(null)
+  const [deletingRecipeId, setDeletingRecipeId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [menuItemFilter, setMenuItemFilter] = useState('')
+  const deletionInProgressRef = useRef(false)
 
   const availableMenuItems = menuItems.filter(
     (menuItem) => !recipes.some((recipe) => recipe.menu_item_id === menuItem.id),
@@ -87,6 +94,7 @@ const RecipesPage = () => {
 
   const handleOpenAddModal = () => {
     setSuccessMessage('')
+    setDeleteError('')
     setIsAddModalOpen(true)
   }
 
@@ -103,16 +111,48 @@ const RecipesPage = () => {
     )
   }
 
+  const handleDeleteRecipe = async (recipe: Recipe) => {
+    if (deletionInProgressRef.current) return
+    if (!window.confirm(`Delete ${recipe.name}? Its ingredient requirements will also be removed.`)) return
+
+    deletionInProgressRef.current = true
+    setDeletingRecipeId(recipe.id)
+    setDeleteError('')
+    setSuccessMessage('')
+    try {
+      await deleteRecipe(recipe.id)
+      setSuccessMessage('Recipe deleted successfully.')
+      setIsLoading(true)
+      setRetryCount((count) => count + 1)
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Unable to delete recipe.')
+    } finally {
+      deletionInProgressRef.current = false
+      setDeletingRecipeId(null)
+    }
+  }
+
+  const handleRecipeUpdated = (message: string) => {
+    setSuccessMessage(message)
+    setIsLoading(true)
+    setRetryCount((count) => count + 1)
+  }
+
+  const editableMenuItems = [
+    ...availableMenuItems,
+    ...menuItems.filter((item) => item.id === recipeToEdit?.menu_item_id),
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Recipes
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Browse recipes and their associated menu items.
-        </p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Recipes
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Browse recipes, view ingredient requirements, and manage recipe details.
+          </p>
         </div>
         <button
           type="button"
@@ -133,6 +173,14 @@ const RecipesPage = () => {
             className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
           >
             {successMessage}
+          </p>
+        )}
+        {deleteError && (
+          <p
+            role="alert"
+            className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800"
+          >
+            {deleteError}
           </p>
         )}
         {!isLoading && !loadError && (
@@ -189,7 +237,11 @@ const RecipesPage = () => {
               recipes={filteredRecipes}
               menuItems={menuItems}
               hasActiveFilters={hasActiveFilters}
+              onViewRecipe={setRecipeToView}
+              onEditRecipe={setRecipeToEdit}
+              onDeleteRecipe={handleDeleteRecipe}
               onAddIngredient={setRecipeForIngredients}
+              deletingRecipeId={deletingRecipeId}
             />
           )}
         </div>
@@ -208,6 +260,21 @@ const RecipesPage = () => {
           recipe={recipeForIngredients}
           onClose={() => setRecipeForIngredients(null)}
           onSaved={handleIngredientRequirementAdded}
+        />
+      )}
+      {recipeToView && (
+        <ViewRecipeModal
+          recipe={recipeToView}
+          menuItems={menuItems}
+          onClose={() => setRecipeToView(null)}
+        />
+      )}
+      {recipeToEdit && (
+        <EditRecipeModal
+          recipe={recipeToEdit}
+          menuItems={editableMenuItems}
+          onClose={() => setRecipeToEdit(null)}
+          onSaved={handleRecipeUpdated}
         />
       )}
     </div>
