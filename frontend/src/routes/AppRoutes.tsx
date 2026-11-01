@@ -3,6 +3,7 @@ import { MainLayout } from '../layouts/MainLayout'
 import { DashboardPage } from '../pages/DashboardPage'
 import IngredientsPage from "../features/ingredients/pages/IngredientsPage";
 import MenuItemsPage from '../features/menu/pages/MenuItemsPage'
+import RecipesPage from '../features/recipes/pages/RecipesPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 export const AppRoutes = () => {
@@ -12,15 +13,7 @@ export const AppRoutes = () => {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/ingredients" element={<IngredientsPage />} />
         <Route path="/menu" element={<MenuItemsPage />} />
-        <Route
-          path="/recipes"
-          element={
-            <PlaceholderPage
-              title="Recipes"
-              description="Formulate kitchen recipes and associate ingredient requirements."
-            />
-          }
-        />
+        <Route path="/recipes" element={<RecipesPage />} />
         <Route
           path="/inventory"
           element={
