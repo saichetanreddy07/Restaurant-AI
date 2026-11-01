@@ -1,12 +1,14 @@
+import { ListPlus } from 'lucide-react'
 import type { MenuItem } from '../../menu/types'
 import type { Recipe } from '../types'
 
 type RecipesTableProps = {
   recipes: Recipe[]
   menuItems: MenuItem[]
+  onAddIngredient: (recipe: Recipe) => void
 }
 
-const RecipesTable = ({ recipes, menuItems }: RecipesTableProps) => {
+const RecipesTable = ({ recipes, menuItems, onAddIngredient }: RecipesTableProps) => {
   const menuItemNames = new Map(
     menuItems.map((menuItem) => [menuItem.id, menuItem.name]),
   )
@@ -32,6 +34,7 @@ const RecipesTable = ({ recipes, menuItems }: RecipesTableProps) => {
               <tr>
                 <th scope="col" className="px-6 py-3.5">Recipe</th>
                 <th scope="col" className="px-6 py-3.5">Menu Item</th>
+                <th scope="col" className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-700">
@@ -42,6 +45,17 @@ const RecipesTable = ({ recipes, menuItems }: RecipesTableProps) => {
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     {menuItemNames.get(recipe.menu_item_id) ?? `Menu item #${recipe.menu_item_id}`}
+                  </td>
+                  <td className="whitespace-nowrap px-6 py-4 text-right">
+                    <button
+                      type="button"
+                      aria-label={`Add ingredient requirement to ${recipe.name}`}
+                      title="Add ingredient requirement"
+                      onClick={() => onAddIngredient(recipe)}
+                      className="inline-flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+                    >
+                      <ListPlus aria-hidden="true" className="size-4" />
+                    </button>
                   </td>
                 </tr>
               ))}

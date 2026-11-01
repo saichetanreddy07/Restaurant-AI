@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AddRecipeModal from '../components/AddRecipeModal'
+import AddRecipeIngredientModal from '../components/AddRecipeIngredientModal'
 import { getMenuItems } from '../../menu/services/menuItemService'
 import type { MenuItem } from '../../menu/types'
 import { getRecipes } from '../services/recipeService'
@@ -14,6 +15,7 @@ const RecipesPage = () => {
   const [retryCount, setRetryCount] = useState(0)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [recipeForIngredients, setRecipeForIngredients] = useState<Recipe | null>(null)
 
   const availableMenuItems = menuItems.filter(
     (menuItem) => !recipes.some((recipe) => recipe.menu_item_id === menuItem.id),
@@ -72,6 +74,12 @@ const RecipesPage = () => {
     setSuccessMessage('Recipe created successfully.')
     setIsLoading(true)
     setRetryCount((currentCount) => currentCount + 1)
+  }
+
+  const handleIngredientRequirementAdded = (ingredientName: string) => {
+    setSuccessMessage(
+      `${ingredientName} requirement added to ${recipeForIngredients?.name ?? 'recipe'}.`,
+    )
   }
 
   return (
@@ -143,7 +151,11 @@ const RecipesPage = () => {
               </button>
             </div>
           ) : (
-            <RecipesTable recipes={recipes} menuItems={menuItems} />
+            <RecipesTable
+              recipes={recipes}
+              menuItems={menuItems}
+              onAddIngredient={setRecipeForIngredients}
+            />
           )}
         </div>
       </section>
@@ -154,6 +166,13 @@ const RecipesPage = () => {
           hasMenuItems={menuItems.length > 0}
           onClose={() => setIsAddModalOpen(false)}
           onSaved={handleRecipeCreated}
+        />
+      )}
+      {recipeForIngredients && (
+        <AddRecipeIngredientModal
+          recipe={recipeForIngredients}
+          onClose={() => setRecipeForIngredients(null)}
+          onSaved={handleIngredientRequirementAdded}
         />
       )}
     </div>
