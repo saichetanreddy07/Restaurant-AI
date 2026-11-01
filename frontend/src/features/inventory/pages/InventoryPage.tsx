@@ -4,6 +4,7 @@ import type { Ingredient } from '../../ingredients/types'
 import { getInventoryBatches } from '../services/inventoryService'
 import type { InventoryBatch } from '../types'
 import InventoryBatchesTable from '../components/InventoryBatchesTable'
+import ReceiveInventoryBatchModal from '../components/ReceiveInventoryBatchModal'
 
 const InventoryPage = () => {
   const [batches, setBatches] = useState<InventoryBatch[]>([])
@@ -11,6 +12,8 @@ const InventoryPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
+  const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     let isCurrentRequest = true
@@ -48,21 +51,46 @@ const InventoryPage = () => {
     }
   }, [retryCount])
 
+  const handleBatchReceived = () => {
+    setIsReceiveModalOpen(false)
+    setSuccessMessage('Inventory batch received successfully.')
+    setIsLoading(true)
+    setRetryCount((count) => count + 1)
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Inventory
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Track received ingredient batches, remaining stock, and expiry dates.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Inventory
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Track received ingredient batches, remaining stock, and expiry dates.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setSuccessMessage('')
+            setIsReceiveModalOpen(true)
+          }}
+          disabled={ingredients.length === 0 && !isLoading}
+          className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Receive Batch
+        </button>
       </div>
 
       <section
         aria-label="Inventory batches"
         className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
       >
+        {successMessage && (
+          <p role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+            {successMessage}
+          </p>
+        )}
         <div
           aria-label="Inventory batches table area"
           className="min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"
@@ -95,6 +123,14 @@ const InventoryPage = () => {
           )}
         </div>
       </section>
+
+      {isReceiveModalOpen && (
+        <ReceiveInventoryBatchModal
+          ingredients={ingredients}
+          onClose={() => setIsReceiveModalOpen(false)}
+          onSaved={handleBatchReceived}
+        />
+      )}
     </div>
   )
 }
