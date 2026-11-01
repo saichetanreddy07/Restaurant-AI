@@ -11,26 +11,53 @@ type ViewRecipeAvailabilityModalProps = {
 
 const ViewRecipeAvailabilityModal = ({ result, menuItem, onClose }: ViewRecipeAvailabilityModalProps) => {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLElement>(null)
   const isMenuItemResult = 'menu_item_name' in result
   const dishName = isMenuItemResult ? result.menu_item_name : result.recipe_name
   const recipeName = result.recipe_name
   const limitingIngredients = result.ingredients.filter(
     (ingredient) => ingredient.maximum_servings === result.maximum_servings,
   )
+  const shortageIngredients = result.ingredients.filter((ingredient) => ingredient.has_shortage)
   const categoryLabel = menuCategories.find((category) => category.value === menuItem?.category)?.label ?? menuItem?.category ?? 'Not available'
 
   useEffect(() => {
+    const previouslyFocusedElement = document.activeElement
     closeButtonRef.current?.focus()
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+
+      if (event.key !== 'Tab') return
+
+      const focusableElements = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      if (!focusableElements?.length) return
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      if (previouslyFocusedElement instanceof HTMLElement) previouslyFocusedElement.focus()
+    }
   }, [onClose])
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 px-4 py-6" role="presentation">
-      <section aria-labelledby="recipe-availability-title" aria-modal="true" role="dialog" className="my-auto max-h-[calc(100vh-3rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
+      <section ref={dialogRef} aria-labelledby="recipe-availability-title" aria-modal="true" role="dialog" className="my-auto max-h-[calc(100vh-3rem)] w-full max-w-3xl overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <div>
             <h2 id="recipe-availability-title" className="text-lg font-semibold text-slate-900">Availability Details</h2>
@@ -57,23 +84,22 @@ const ViewRecipeAvailabilityModal = ({ result, menuItem, onClose }: ViewRecipeAv
             </div>
           </dl>
 
-          {limitingIngredients.length > 0 && (
+          {(limitingIngredients.length > 0 || shortageIngredients.length > 0) && (
             <section aria-labelledby="availability-limit-title" className="rounded-lg border border-amber-200 bg-amber-50 p-4">
               <h3 id="availability-limit-title" className="text-sm font-semibold text-amber-900">
-                {result.available ? 'Capacity limiting ingredient' : 'Ingredient shortage'}
-                {limitingIngredients.length === 1 ? '' : 's'}
+                {result.available ? 'Capacity limiting ingredients' : 'Ingredient shortage details'}
               </h3>
-              <p className="mt-1 text-sm text-amber-800">
-                {limitingIngredients.map((ingredient) => ingredient.ingredient_name).join(', ')}
-                {result.available
-                  ? ` limits this dish to ${result.maximum_servings} servings.`
-                  : ' limits current production capacity.'}
-              </p>
-              {limitingIngredients.some((ingredient) => ingredient.has_shortage) && (
+              {limitingIngredients.length > 0 && (
+                <p className="mt-1 text-sm text-amber-800">
+                  {limitingIngredients.map((ingredient) => ingredient.ingredient_name).join(', ')}
+                  {limitingIngredients.length === 1 ? ' limits' : ' limit'} this dish to {result.maximum_servings} servings.
+                </p>
+              )}
+              {shortageIngredients.length > 0 && (
                 <ul className="mt-2 space-y-1 text-sm text-amber-900">
-                  {limitingIngredients.filter((ingredient) => ingredient.has_shortage).map((ingredient) => (
+                  {shortageIngredients.map((ingredient) => (
                     <li key={ingredient.ingredient_id}>
-                      {ingredient.ingredient_name}: short {ingredient.shortage_quantity} {ingredient.unit} for one serving.
+                      {ingredient.ingredient_name}: short by {ingredient.shortage_quantity} {ingredient.unit} for one serving.
                     </li>
                   ))}
                 </ul>
@@ -83,7 +109,7 @@ const ViewRecipeAvailabilityModal = ({ result, menuItem, onClose }: ViewRecipeAv
 
           <section aria-labelledby="ingredient-capacity-title">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 id="ingredient-capacity-title" className="text-sm font-semibold text-slate-900">Ingredient Stock by Serving</h3>
+              <h3 id="ingredient-capacity-title" className="text-sm font-semibold text-slate-900">Ingredient requirements and stock</h3>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${result.available ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                 {result.available ? 'Can be prepared' : 'Unavailable'}
               </span>
@@ -101,9 +127,9 @@ const ViewRecipeAvailabilityModal = ({ result, menuItem, onClose }: ViewRecipeAv
                   <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     <tr>
                       <th scope="col" className="px-4 py-3">Ingredient</th>
-                      <th scope="col" className="px-4 py-3 text-right">Required / Serving</th>
-                      <th scope="col" className="px-4 py-3 text-right">In Stock</th>
-                      <th scope="col" className="px-4 py-3 text-right">Capacity</th>
+                      <th scope="col" className="px-4 py-3 text-right">Required per serving</th>
+                      <th scope="col" className="px-4 py-3 text-right">Available stock</th>
+                      <th scope="col" className="px-4 py-3 text-right">Max servings</th>
                       <th scope="col" className="px-4 py-3">Status</th>
                     </tr>
                   </thead>
