@@ -1,47 +1,32 @@
 import type { Ingredient } from '../../ingredients/types'
 import type { InventoryBatch } from '../types'
+import { batchStatusLabels, getBatchStatus } from '../utils/batchStatus'
 
 type InventoryBatchesTableProps = {
   batches: InventoryBatch[]
   ingredients: Ingredient[]
-}
-
-const getDaysUntilExpiry = (expiryDate: string) => {
-  const [year, month, day] = expiryDate.split('-').map(Number)
-  const expiryDay = Date.UTC(year, month - 1, day)
-  const today = new Date()
-  const todayDay = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())
-
-  return Math.floor((expiryDay - todayDay) / 86_400_000)
+  hasActiveFilters: boolean
 }
 
 const formatDate = (value: string) =>
   new Date(`${value}T00:00:00`).toLocaleDateString()
 
 const BatchStatusBadge = ({ batch }: { batch: InventoryBatch }) => {
-  const daysUntilExpiry = getDaysUntilExpiry(batch.expiry_date)
-  const isDepleted = Number(batch.quantity) <= 0
-  const label = isDepleted
-    ? 'Depleted'
-    : daysUntilExpiry < 0
-      ? 'Expired'
-      : daysUntilExpiry <= 7
-        ? 'Expiring soon'
-        : 'In date'
-  const colorClasses = isDepleted || daysUntilExpiry < 0
+  const status = getBatchStatus(batch)
+  const colorClasses = status === 'depleted' || status === 'expired'
     ? 'bg-red-100 text-red-700'
-    : daysUntilExpiry <= 7
+    : status === 'expiring'
       ? 'bg-amber-100 text-amber-700'
       : 'bg-emerald-100 text-emerald-700'
 
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClasses}`}>
-      {label}
+      {batchStatusLabels[status]}
     </span>
   )
 }
 
-const InventoryBatchesTable = ({ batches, ingredients }: InventoryBatchesTableProps) => {
+const InventoryBatchesTable = ({ batches, ingredients, hasActiveFilters }: InventoryBatchesTableProps) => {
   const ingredientNames = new Map(ingredients.map((ingredient) => [ingredient.id, ingredient]))
 
   return (
@@ -49,9 +34,13 @@ const InventoryBatchesTable = ({ batches, ingredients }: InventoryBatchesTablePr
       {batches.length === 0 ? (
         <div className="flex min-h-72 items-center justify-center px-6 py-12 text-center">
           <div className="max-w-sm">
-            <h2 className="text-base font-semibold text-slate-900">No inventory batches found</h2>
+            <h2 className="text-base font-semibold text-slate-900">
+              {hasActiveFilters ? 'No matching inventory batches' : 'No inventory batches found'}
+            </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Received batches will appear here when they are added to inventory.
+              {hasActiveFilters
+                ? 'Try changing your search or clearing the filters.'
+                : 'Received batches will appear here when they are added to inventory.'}
             </p>
           </div>
         </div>

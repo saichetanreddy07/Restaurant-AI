@@ -5,6 +5,8 @@ import { getInventoryBatches } from '../services/inventoryService'
 import type { InventoryBatch } from '../types'
 import InventoryBatchesTable from '../components/InventoryBatchesTable'
 import ReceiveInventoryBatchModal from '../components/ReceiveInventoryBatchModal'
+import InventoryBatchesToolbar from '../components/InventoryBatchesToolbar'
+import { getBatchStatus, type BatchStatus } from '../utils/batchStatus'
 
 const InventoryPage = () => {
   const [batches, setBatches] = useState<InventoryBatch[]>([])
@@ -14,6 +16,27 @@ const InventoryPage = () => {
   const [retryCount, setRetryCount] = useState(0)
   const [isReceiveModalOpen, setIsReceiveModalOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [ingredientFilter, setIngredientFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<BatchStatus | ''>('')
+
+  const normalizedSearchQuery = searchQuery.trim().toLocaleLowerCase()
+  const filteredBatches = batches.filter((batch) => {
+    const ingredient = ingredients.find((item) => item.id === batch.ingredient_id)
+    const matchesSearch =
+      !normalizedSearchQuery ||
+      batch.batch_number.toLocaleLowerCase().includes(normalizedSearchQuery) ||
+      (ingredient?.name.toLocaleLowerCase().includes(normalizedSearchQuery) ?? false)
+    const matchesIngredient =
+      !ingredientFilter || String(batch.ingredient_id) === ingredientFilter
+    const matchesStatus = !statusFilter || getBatchStatus(batch) === statusFilter
+
+    return matchesSearch && matchesIngredient && matchesStatus
+  })
+  const hasActiveFilters = Boolean(normalizedSearchQuery || ingredientFilter || statusFilter)
+  const batchIngredients = ingredients.filter((ingredient) =>
+    batches.some((batch) => batch.ingredient_id === ingredient.id),
+  )
 
   useEffect(() => {
     let isCurrentRequest = true
@@ -91,6 +114,22 @@ const InventoryPage = () => {
             {successMessage}
           </p>
         )}
+        {!isLoading && !loadError && (
+          <InventoryBatchesToolbar
+            ingredients={batchIngredients}
+            searchQuery={searchQuery}
+            ingredientFilter={ingredientFilter}
+            statusFilter={statusFilter}
+            onSearchChange={setSearchQuery}
+            onIngredientChange={setIngredientFilter}
+            onStatusChange={setStatusFilter}
+            onClearFilters={() => {
+              setSearchQuery('')
+              setIngredientFilter('')
+              setStatusFilter('')
+            }}
+          />
+        )}
         <div
           aria-label="Inventory batches table area"
           className="min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"
@@ -119,7 +158,11 @@ const InventoryPage = () => {
               </button>
             </div>
           ) : (
-            <InventoryBatchesTable batches={batches} ingredients={ingredients} />
+            <InventoryBatchesTable
+              batches={filteredBatches}
+              ingredients={ingredients}
+              hasActiveFilters={hasActiveFilters}
+            />
           )}
         </div>
       </section>
