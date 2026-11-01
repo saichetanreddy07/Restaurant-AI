@@ -27,7 +27,7 @@ const AvailabilityToolbar = ({
   return (
     <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center">
       <label className="relative block flex-1">
-        <span className="sr-only">Search recipe availability</span>
+        <span className="sr-only">Search dish availability</span>
         <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
         <input type="search" value={searchQuery} onChange={(event) => onSearchChange(event.currentTarget.value)} placeholder="Search recipes or menu items..." className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
       </label>

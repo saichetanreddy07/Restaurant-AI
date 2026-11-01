@@ -28,3 +28,5 @@ export type MenuItemAvailability = {
   maximum_servings: number
   ingredients: IngredientAvailability[]
 }
+
+export type AvailabilityResult = RecipeAvailability | MenuItemAvailability
