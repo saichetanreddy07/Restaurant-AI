@@ -5,6 +5,7 @@ import IngredientsPage from "../features/ingredients/pages/IngredientsPage";
 import MenuItemsPage from '../features/menu/pages/MenuItemsPage'
 import RecipesPage from '../features/recipes/pages/RecipesPage'
 import InventoryPage from '../features/inventory/pages/InventoryPage'
+import AvailabilityPage from '../features/availability/pages/AvailabilityPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 export const AppRoutes = () => {
@@ -16,15 +17,7 @@ export const AppRoutes = () => {
         <Route path="/menu" element={<MenuItemsPage />} />
         <Route path="/recipes" element={<RecipesPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
-        <Route
-          path="/availability"
-          element={
-            <PlaceholderPage
-              title="Dish Availability"
-              description="Real-time dish capacity engine and ingredient bottleneck inspection."
-            />
-          }
-        />
+        <Route path="/availability" element={<AvailabilityPage />} />
         <Route
           path="/settings"
           element={
