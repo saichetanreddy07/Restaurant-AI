@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AddRecipeModal from '../components/AddRecipeModal'
 import { getMenuItems } from '../../menu/services/menuItemService'
 import type { MenuItem } from '../../menu/types'
 import { getRecipes } from '../services/recipeService'
@@ -11,6 +12,12 @@ const RecipesPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+
+  const availableMenuItems = menuItems.filter(
+    (menuItem) => !recipes.some((recipe) => recipe.menu_item_id === menuItem.id),
+  )
 
   useEffect(() => {
     let isCurrentRequest = true
@@ -55,21 +62,50 @@ const RecipesPage = () => {
     setRetryCount((currentCount) => currentCount + 1)
   }
 
+  const handleOpenAddModal = () => {
+    setSuccessMessage('')
+    setIsAddModalOpen(true)
+  }
+
+  const handleRecipeCreated = () => {
+    setIsAddModalOpen(false)
+    setSuccessMessage('Recipe created successfully.')
+    setIsLoading(true)
+    setRetryCount((currentCount) => currentCount + 1)
+  }
+
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           Recipes
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           Browse recipes and their associated menu items.
         </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleOpenAddModal}
+          className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"
+        >
+          Add Recipe
+        </button>
       </div>
 
       <section
         aria-label="Recipe catalog"
         className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
       >
+        {successMessage && (
+          <p
+            role="status"
+            className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"
+          >
+            {successMessage}
+          </p>
+        )}
         <div
           aria-label="Recipes table area"
           className="min-h-80 rounded-lg border border-slate-100 bg-slate-50/50"
@@ -111,6 +147,15 @@ const RecipesPage = () => {
           )}
         </div>
       </section>
+
+      {isAddModalOpen && (
+        <AddRecipeModal
+          menuItems={availableMenuItems}
+          hasMenuItems={menuItems.length > 0}
+          onClose={() => setIsAddModalOpen(false)}
+          onSaved={handleRecipeCreated}
+        />
+      )}
     </div>
   )
 }
