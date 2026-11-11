@@ -225,7 +225,7 @@ const AddMenuItemModal = ({ onClose, onSaved, menuItem }: AddMenuItemModalProps)
 
             <div>
               <label htmlFor="menu-item-price" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Price
+                Price (INR)
               </label>
               <input
                 id="menu-item-price"
@@ -233,7 +233,7 @@ const AddMenuItemModal = ({ onClose, onSaved, menuItem }: AddMenuItemModalProps)
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="e.g. 12.50"
+                placeholder="e.g. 249"
                 value={formData.price}
                 onChange={handleInputChange}
                 aria-invalid={Boolean(fieldErrors.price)}

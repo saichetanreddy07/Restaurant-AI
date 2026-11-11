@@ -1,5 +1,6 @@
 import { Eye, LoaderCircle, Pencil, Trash2 } from 'lucide-react'
 import type { MenuItem } from '../types'
+import { formatCurrency } from '../../../utils/formatCurrency'
 
 type MenuItemsTableProps = {
   menuItems: MenuItem[]
@@ -55,7 +56,7 @@ const MenuItemsTable = ({
                     {menuItem.category}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-slate-900">
-                    {menuItem.price}
+                    {formatCurrency(menuItem.price)}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <div className="flex items-center justify-end gap-1">

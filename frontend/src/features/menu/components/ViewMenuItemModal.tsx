@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { menuCategories, type MenuItem } from '../types'
+import { formatCurrency } from '../../../utils/formatCurrency'
 
 type ViewMenuItemModalProps = {
   menuItem: MenuItem
@@ -29,7 +30,7 @@ const ViewMenuItemModal = ({ menuItem, onClose }: ViewMenuItemModalProps) => {
   const details = [
     ['Menu Item Name', menuItem.name],
     ['Category', categoryLabel],
-    ['Price', String(menuItem.price)],
+    ['Price', formatCurrency(menuItem.price)],
   ]
 
   return (

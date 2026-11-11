@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 import type { Ingredient } from "../types";
+import { formatCurrency } from "../../../utils/formatCurrency";
 
 type ViewIngredientModalProps = {
   ingredient: Ingredient;
@@ -36,7 +37,10 @@ const ViewIngredientModal = ({
     ["Unit", ingredient.unit],
     ["Current Stock", `${ingredient.current_stock} ${ingredient.unit}`],
     ["Minimum Stock", `${ingredient.minimum_stock} ${ingredient.unit}`],
-    ["Cost per Unit", `${ingredient.cost_per_unit} / ${ingredient.unit}`],
+    [
+      "Cost per Unit",
+      `${formatCurrency(ingredient.cost_per_unit)} / ${ingredient.unit}`,
+    ],
     ["Supplier", ingredient.supplier || "Not provided"],
     ["Created", formatDate(ingredient.created_at)],
     ["Last Updated", formatDate(ingredient.updated_at)],

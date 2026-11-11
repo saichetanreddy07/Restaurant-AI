@@ -1,21 +1,24 @@
 import { Menu, Search, Bell, User } from 'lucide-react'
 
 interface NavbarProps {
+  /** Opens the mobile drawer – called only on small screens */
   onMenuClick: () => void
 }
 
 export const Navbar = ({ onMenuClick }: NavbarProps) => {
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
-      {/* Left side: Hamburger button + Search */}
+      {/* Left side: Hamburger (mobile only) + Search */}
       <div className="flex items-center gap-4 flex-1 max-w-lg">
+        {/* Only shown on mobile – desktop uses the sidebar logo to toggle */}
         <button
           type="button"
           onClick={onMenuClick}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
           aria-label="Open sidebar"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
 
         {/* Global search input */}

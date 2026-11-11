@@ -28,6 +28,7 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+TESTING_WORKFLOW.md
 
 # Logs
 *.log

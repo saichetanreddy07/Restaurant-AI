@@ -253,9 +253,9 @@ const AddIngredientModal = ({
 
             <div>
               <label htmlFor="ingredient-cost-per-unit" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Cost per Unit
+                Cost per Unit (INR)
               </label>
-              <input id="ingredient-cost-per-unit" name="cost_per_unit" type="number" step="any" placeholder="e.g. 2.50" value={formData.cost_per_unit} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.cost_per_unit)} aria-describedby={fieldErrors.cost_per_unit ? 'ingredient-cost-per-unit-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-cost-per-unit" name="cost_per_unit" type="number" step="any" placeholder="e.g. 25" value={formData.cost_per_unit} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.cost_per_unit)} aria-describedby={fieldErrors.cost_per_unit ? 'ingredient-cost-per-unit-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
               {fieldErrors.cost_per_unit && <p id="ingredient-cost-per-unit-error" className="mt-1 text-sm text-red-700">{fieldErrors.cost_per_unit}</p>}
             </div>
 

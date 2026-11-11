@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import type { Ingredient } from '../../ingredients/types'
 import type { InventoryBatch } from '../types'
 import { batchStatusLabels, getBatchStatus } from '../utils/batchStatus'
+import { formatCurrency } from '../../../utils/formatCurrency'
 
 type ViewInventoryBatchModalProps = {
   batch: InventoryBatch
@@ -33,7 +34,7 @@ const ViewInventoryBatchModal = ({ batch, ingredient, onClose }: ViewInventoryBa
     ['Received Date', formatDate(batch.received_date)],
     ['Expiry Date', formatDate(batch.expiry_date)],
     ['Remaining Quantity', `${batch.quantity}${ingredient ? ` ${ingredient.unit}` : ''}`],
-    ['Unit Cost', `${batch.unit_cost}${ingredient ? ` / ${ingredient.unit}` : ''}`],
+    ['Unit Cost', `${formatCurrency(batch.unit_cost)}${ingredient ? ` / ${ingredient.unit}` : ''}`],
   ]
 
   return (
