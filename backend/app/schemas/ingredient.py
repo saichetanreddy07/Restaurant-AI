@@ -1,5 +1,4 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -16,15 +15,7 @@ class IngredientBase(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     category: Optional[str] = Field(default=None, max_length=50)
     unit: Unit
-    current_stock: float = Field(default=0.0, ge=0)
     minimum_stock: float = Field(default=0.0, ge=0)
-    cost_per_unit: Decimal = Field(
-        default=Decimal("0.00"),
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-    )
-    supplier: Optional[str] = Field(default=None, max_length=100)
 
     @field_validator("name")
     @classmethod
@@ -36,7 +27,7 @@ class IngredientBase(BaseModel):
 
         return value.title()
 
-    @field_validator("category", "supplier")
+    @field_validator("category")
     @classmethod
     def normalize_optional_text(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
@@ -53,7 +44,7 @@ class IngredientBase(BaseModel):
 class IngredientCreate(IngredientBase):
     """Schema for creating a new ingredient."""
 
-    pass
+    model_config = ConfigDict(extra="ignore")
 
 
 class IngredientUpdate(BaseModel):
@@ -62,21 +53,15 @@ class IngredientUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     category: Optional[str] = Field(default=None, max_length=50)
     unit: Optional[Unit] = None
-    current_stock: Optional[float] = Field(default=None, ge=0)
     minimum_stock: Optional[float] = Field(default=None, ge=0)
-    cost_per_unit: Optional[Decimal] = Field(
-        default=None,
-        ge=0,
-        max_digits=10,
-        decimal_places=2,
-    )
-    supplier: Optional[str] = Field(default=None, max_length=100)
+
+    model_config = ConfigDict(extra="ignore")
 
     @field_validator("name")
     @classmethod
     def validate_name(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
-            return None
+            raise ValueError("Name must not be null.")
 
         value = value.strip()
 
@@ -85,7 +70,16 @@ class IngredientUpdate(BaseModel):
 
         return value.title()
 
-    @field_validator("category", "supplier")
+    @field_validator("unit", "minimum_stock")
+    @classmethod
+    def reject_null_required_fields(
+        cls, value: Unit | float | None
+    ) -> Unit | float:
+        if value is None:
+            raise ValueError("This field must not be null.")
+        return value
+
+    @field_validator("category")
     @classmethod
     def normalize_optional_text(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
@@ -103,6 +97,7 @@ class IngredientResponse(IngredientBase):
     """Schema for ingredient responses, configured for SQLAlchemy ORM objects."""
 
     id: int
+    current_stock: float
     created_at: datetime
     updated_at: datetime
 

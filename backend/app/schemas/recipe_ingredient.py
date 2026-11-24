@@ -107,7 +107,9 @@ class RecipeIngredientUpdate(BaseModel):
         Raises:
             ValueError: If the ID is less than or equal to zero.
         """
-        if value is not None and value <= 0:
+        if value is None:
+            raise ValueError("Ingredient ID must not be null.")
+        if value <= 0:
             raise ValueError("ID must be greater than zero.")
         return value
 
@@ -125,7 +127,9 @@ class RecipeIngredientUpdate(BaseModel):
         Raises:
             ValueError: If the quantity is less than or equal to zero.
         """
-        if value is not None and value <= 0:
+        if value is None:
+            raise ValueError("Quantity must not be null.")
+        if value <= 0:
             raise ValueError("Quantity must be greater than zero.")
         return value
 

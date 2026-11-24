@@ -61,7 +61,7 @@ class RecipeUpdate(BaseModel):
             ValueError: If the name is empty or whitespace-only.
         """
         if value is None:
-            return None
+            raise ValueError("Name must not be null.")
 
         value = value.strip()
 
@@ -69,6 +69,13 @@ class RecipeUpdate(BaseModel):
             raise ValueError("Name must not be empty or whitespace.")
 
         return value.title()
+
+    @field_validator("menu_item_id")
+    @classmethod
+    def validate_menu_item_id(cls, value: Optional[int]) -> Optional[int]:
+        if value is None:
+            raise ValueError("Menu item ID must not be null.")
+        return value
 
 
 class RecipeResponse(RecipeBase):

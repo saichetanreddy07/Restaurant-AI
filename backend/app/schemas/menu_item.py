@@ -54,7 +54,7 @@ class MenuItemUpdate(BaseModel):
     @classmethod
     def validate_name(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
-            return None
+            raise ValueError("Name must not be null.")
 
         value = value.strip()
 
@@ -62,6 +62,15 @@ class MenuItemUpdate(BaseModel):
             raise ValueError("Name must not be empty or whitespace.")
 
         return value.title()
+
+    @field_validator("category", "price")
+    @classmethod
+    def reject_null_required_fields(
+        cls, value: MenuCategory | Decimal | None
+    ) -> MenuCategory | Decimal:
+        if value is None:
+            raise ValueError("This field must not be null.")
+        return value
 
 
 class MenuItemResponse(MenuItemBase):

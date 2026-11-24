@@ -6,7 +6,7 @@ import MenuItemsPage from '../features/menu/pages/MenuItemsPage'
 import RecipesPage from '../features/recipes/pages/RecipesPage'
 import InventoryPage from '../features/inventory/pages/InventoryPage'
 import AvailabilityPage from '../features/availability/pages/AvailabilityPage'
-import { PlaceholderPage } from '../pages/PlaceholderPage'
+import { SettingsPage } from '../pages/SettingsPage'
 
 export const AppRoutes = () => {
   return (
@@ -18,15 +18,7 @@ export const AppRoutes = () => {
         <Route path="/recipes" element={<RecipesPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/availability" element={<AvailabilityPage />} />
-        <Route
-          path="/settings"
-          element={
-            <PlaceholderPage
-              title="Settings"
-              description="Application preferences and environment settings."
-            />
-          }
-        />
+        <Route path="/settings" element={<SettingsPage />} />
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

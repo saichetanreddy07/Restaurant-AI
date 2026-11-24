@@ -7,6 +7,7 @@ import {
   type MenuItem,
   type MenuItemPayload,
 } from '../types'
+import { validateDecimalInput } from '../../../utils/validation'
 
 type AddMenuItemModalProps = {
   onClose: () => void
@@ -44,14 +45,13 @@ const validateMenuItemForm = (
     errors.category = 'Please select a category.'
   }
 
-  const price = formData.price.trim()
-  if (!price) {
-    errors.price = 'Price is required.'
-  } else if (!Number.isFinite(Number(price)) || Number(price) < 0) {
-    errors.price = 'Price must be a number greater than or equal to 0.'
-  } else if (!/^\d+(\.\d{1,2})?$/.test(price)) {
-    errors.price = 'Price can have no more than 2 decimal places.'
-  }
+  const priceError = validateDecimalInput(formData.price, 'Price', {
+    minimum: 0,
+    minimumIsExclusive: false,
+    maximumDigits: 10,
+    decimalPlaces: 2,
+  })
+  if (priceError) errors.price = priceError
 
   return errors
 }
@@ -108,7 +108,7 @@ const AddMenuItemModal = ({ onClose, onSaved, menuItem }: AddMenuItemModalProps)
     const payload: MenuItemPayload = {
       name: formData.name.trim(),
       category: formData.category as MenuCategory,
-      price: Number(formData.price),
+      price: Number(formData.price.trim()),
     }
 
     try {
@@ -232,6 +232,7 @@ const AddMenuItemModal = ({ onClose, onSaved, menuItem }: AddMenuItemModalProps)
                 name="price"
                 type="number"
                 min="0"
+                max="99999999.99"
                 step="0.01"
                 placeholder="e.g. 249"
                 value={formData.price}

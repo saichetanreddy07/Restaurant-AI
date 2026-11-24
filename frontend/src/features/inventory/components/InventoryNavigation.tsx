@@ -1,6 +1,6 @@
 import type { KeyboardEvent } from 'react'
 
-export type InventoryView = 'batches' | 'transactions' | 'alerts'
+export type InventoryView = 'batches' | 'current-stock' | 'transactions' | 'alerts'
 
 type InventoryNavigationProps = {
   activeView: InventoryView
@@ -9,6 +9,7 @@ type InventoryNavigationProps = {
 
 const views: { id: InventoryView; label: string }[] = [
   { id: 'batches', label: 'Batches' },
+  { id: 'current-stock', label: 'Current Stock' },
   { id: 'transactions', label: 'Transactions' },
   { id: 'alerts', label: 'Stock & Expiry Alerts' },
 ]

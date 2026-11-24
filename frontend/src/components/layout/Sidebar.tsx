@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -34,13 +34,13 @@ function writeCollapsed(value: boolean): void {
 
 // ─── Navigation items ────────────────────────────────────────────────────────
 const navigationItems: NavigationItem[] = [
-  { name: 'Dashboard',   href: '/',            icon: LayoutDashboard },
-  { name: 'Ingredients', href: '/ingredients', icon: Carrot          },
-  { name: 'Menu Items',  href: '/menu',        icon: UtensilsCrossed },
-  { name: 'Recipes',     href: '/recipes',     icon: BookOpen        },
-  { name: 'Inventory',   href: '/inventory',   icon: Boxes           },
-  { name: 'Availability',href: '/availability',icon: CheckCircle2    },
-  { name: 'Settings',    href: '/settings',    icon: Settings        },
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Ingredients', href: '/ingredients', icon: Carrot },
+  { name: 'Menu Items', href: '/menu', icon: UtensilsCrossed },
+  { name: 'Recipes', href: '/recipes', icon: BookOpen },
+  { name: 'Inventory', href: '/inventory', icon: Boxes },
+  { name: 'Availability', href: '/availability', icon: CheckCircle2 },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -55,6 +55,39 @@ interface SidebarProps {
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   // Collapsed state lives here — persisted to localStorage
   const [isCollapsed, setIsCollapsed] = useState<boolean>(readCollapsed)
+  const [hoveredTooltip, setHoveredTooltip] = useState<{
+    label: string
+    top: number
+  } | null>(null)
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearTooltipTimeout = () => {
+    if (tooltipTimeoutRef.current !== null) {
+      clearTimeout(tooltipTimeoutRef.current)
+      tooltipTimeoutRef.current = null
+    }
+  }
+
+  const showTooltip = (link: HTMLAnchorElement, label: string) => {
+    if (!isCollapsed) return
+    clearTooltipTimeout()
+    const sidebarBounds = link.closest('aside')?.getBoundingClientRect()
+    if (!sidebarBounds) return
+
+    const linkBounds = link.getBoundingClientRect()
+    setHoveredTooltip({
+      label,
+      top: linkBounds.top - sidebarBounds.top + linkBounds.height / 2,
+    })
+  }
+
+  const scheduleTooltipHide = () => {
+    clearTooltipTimeout()
+    tooltipTimeoutRef.current = setTimeout(() => {
+      setHoveredTooltip(null)
+      tooltipTimeoutRef.current = null
+    }, 150)
+  }
 
   const toggleCollapsed = () => {
     setIsCollapsed((prev) => {
@@ -62,7 +95,17 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       writeCollapsed(next)
       return next
     })
+    setHoveredTooltip(null)
   }
+
+  useEffect(
+    () => () => {
+      if (tooltipTimeoutRef.current !== null) {
+        clearTimeout(tooltipTimeoutRef.current)
+      }
+    },
+    [],
+  )
 
   return (
     <>
@@ -82,13 +125,12 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       */}
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-50 flex flex-col bg-slate-900 border-r border-slate-800',
+          'fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col bg-slate-900 border-r border-slate-800',
           'transition-all duration-300 ease-in-out',
-          'w-64',                                                   // mobile width
           isOpen ? 'translate-x-0' : '-translate-x-full',          // mobile slide
           isCollapsed                                               // desktop width
-            ? 'lg:static lg:translate-x-0 lg:w-[72px]'
-            : 'lg:static lg:translate-x-0 lg:w-64',
+            ? 'lg:relative lg:translate-x-0 lg:w-[72px]'
+            : 'lg:relative lg:translate-x-0 lg:w-64',
         ].join(' ')}
         aria-label="Main navigation"
       >
@@ -167,18 +209,25 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </div>
 
         {/* ── Navigation links ───────────────────────────────────────────── */}
-        <nav className="flex-1 overflow-y-auto py-4" aria-label="Site navigation">
+        <nav
+          className="flex-1 overflow-y-auto py-4"
+          aria-label="Site navigation"
+          onMouseLeave={scheduleTooltipHide}
+        >
           <ul className="space-y-1 px-2" role="list">
             {navigationItems.map((item) => {
               const Icon = item.icon
               return (
                 <li key={item.name} className="relative">
                   {/* Tooltip wrapper – uses CSS group for hover + focus-within */}
-                  <div className="group">
+                  <div>
                     <NavLink
                       to={item.href}
                       end={item.href === '/'}
                       onClick={onClose}
+                      onMouseEnter={(event) => showTooltip(event.currentTarget, item.name)}
+                      onFocus={(event) => showTooltip(event.currentTarget, item.name)}
+                      onBlur={() => setHoveredTooltip(null)}
                       aria-label={item.name}
                       className={({ isActive }) =>
                         [
@@ -211,28 +260,23 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                       </span>
                     </NavLink>
 
-                    {/* Tooltip – desktop collapsed only, shows on hover OR focus-within */}
-                    <span
-                      role="tooltip"
-                      className={[
-                        'pointer-events-none absolute left-full top-1/2 z-50 ml-3',
-                        '-translate-y-1/2 whitespace-nowrap rounded-md',
-                        'bg-slate-700 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg',
-                        'opacity-0 transition-opacity duration-150',
-                        // Only visible on desktop when collapsed
-                        isCollapsed
-                          ? 'lg:group-hover:opacity-100 lg:group-focus-within:opacity-100'
-                          : 'hidden',
-                      ].join(' ')}
-                    >
-                      {item.name}
-                    </span>
                   </div>
                 </li>
               )
             })}
           </ul>
         </nav>
+        {isCollapsed && hoveredTooltip && (
+          <span
+            role="tooltip"
+            className="absolute left-full top-0 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md bg-slate-700 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg lg:block"
+            style={{ top: hoveredTooltip.top }}
+            onMouseEnter={clearTooltipTimeout}
+            onMouseLeave={scheduleTooltipHide}
+          >
+            {hoveredTooltip.label}
+          </span>
+        )}
       </aside>
     </>
   )

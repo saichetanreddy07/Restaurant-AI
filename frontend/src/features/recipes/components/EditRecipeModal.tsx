@@ -10,6 +10,7 @@ import {
   updateRecipeIngredient,
 } from '../services/recipeService'
 import type { Recipe, RecipeIngredient } from '../types'
+import { validateDecimalInput } from '../../../utils/validation'
 
 type EditRecipeModalProps = {
   recipe: Recipe
@@ -31,6 +32,13 @@ const EditRecipeModal = ({ recipe, menuItems, onClose, onSaved }: EditRecipeModa
   const [pendingRequirementId, setPendingRequirementId] = useState<number | null>(null)
   const [loadError, setLoadError] = useState('')
   const [actionError, setActionError] = useState('')
+  const [recipeFieldErrors, setRecipeFieldErrors] = useState<{
+    name?: string
+    menuItemId?: string
+  }>({})
+  const [requirementErrors, setRequirementErrors] = useState<
+    Record<number, string>
+  >({})
   const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
@@ -79,8 +87,18 @@ const EditRecipeModal = ({ recipe, menuItems, onClose, onSaved }: EditRecipeModa
     event.preventDefault()
     if (requestInProgressRef.current) return
     const trimmedName = name.trim()
+    const errors: { name?: string; menuItemId?: string } = {}
     if (trimmedName.length < 2 || trimmedName.length > 100) {
-      setActionError('Recipe name must be between 2 and 100 characters.')
+      errors.name = 'Recipe name must be between 2 and 100 characters.'
+    }
+    if (
+      !menuItemId ||
+      !menuItems.some((item) => item.id === Number(menuItemId))
+    ) {
+      errors.menuItemId = 'Please select a valid menu item.'
+    }
+    setRecipeFieldErrors(errors)
+    if (Object.keys(errors).length > 0) {
       return
     }
     requestInProgressRef.current = true
@@ -101,10 +119,23 @@ const EditRecipeModal = ({ recipe, menuItems, onClose, onSaved }: EditRecipeModa
   const handleSaveRequirement = async (requirement: RecipeIngredient) => {
     if (requestInProgressRef.current) return
     const quantity = quantities[requirement.id]?.trim() ?? ''
-    if (!/^\d+(\.\d{1,2})?$/.test(quantity) || Number(quantity) <= 0) {
-      setActionError('Requirement quantity must be greater than zero and have no more than 2 decimal places.')
+    const quantityError = validateDecimalInput(quantity, 'Quantity per serving', {
+      minimum: 0,
+      minimumIsExclusive: true,
+      maximumDigits: 10,
+      decimalPlaces: 2,
+    })
+    if (quantityError) {
+      setRequirementErrors((current) => ({
+        ...current,
+        [requirement.id]: quantityError,
+      }))
       return
     }
+    setRequirementErrors((current) => ({
+      ...current,
+      [requirement.id]: '',
+    }))
     requestInProgressRef.current = true
     setPendingRequirementId(requirement.id)
     setActionError('')
@@ -151,16 +182,25 @@ const EditRecipeModal = ({ recipe, menuItems, onClose, onSaved }: EditRecipeModa
         </div>
 
         <div className="space-y-6 px-5 py-6">
-          <form onSubmit={handleSaveRecipe} className="space-y-4">
+          <form onSubmit={handleSaveRecipe} noValidate className="space-y-4">
             <div>
               <label htmlFor="edit-recipe-name" className="mb-1.5 block text-sm font-medium text-slate-700">Recipe Name</label>
-              <input id="edit-recipe-name" value={name} maxLength={100} onChange={(event) => setName(event.currentTarget.value)} disabled={isBusy} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
+              <input id="edit-recipe-name" value={name} maxLength={100} onChange={(event) => {
+                setName(event.currentTarget.value)
+                setRecipeFieldErrors((current) => ({ ...current, name: undefined }))
+              }} disabled={isBusy} aria-invalid={Boolean(recipeFieldErrors.name)} aria-describedby={recipeFieldErrors.name ? 'edit-recipe-name-error' : undefined} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
+              {recipeFieldErrors.name && <p id="edit-recipe-name-error" className="mt-1 text-sm text-red-700">{recipeFieldErrors.name}</p>}
             </div>
             <div>
               <label htmlFor="edit-recipe-menu-item" className="mb-1.5 block text-sm font-medium text-slate-700">Menu Item</label>
-              <select id="edit-recipe-menu-item" value={menuItemId} onChange={(event) => setMenuItemId(event.currentTarget.value)} disabled={isBusy} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100">
+              <select id="edit-recipe-menu-item" value={menuItemId} onChange={(event) => {
+                setMenuItemId(event.currentTarget.value)
+                setRecipeFieldErrors((current) => ({ ...current, menuItemId: undefined }))
+              }} disabled={isBusy} aria-invalid={Boolean(recipeFieldErrors.menuItemId)} aria-describedby={recipeFieldErrors.menuItemId ? 'edit-recipe-menu-item-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100">
+                <option value="" disabled>Select a menu item</option>
                 {menuItems.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
               </select>
+              {recipeFieldErrors.menuItemId && <p id="edit-recipe-menu-item-error" className="mt-1 text-sm text-red-700">{recipeFieldErrors.menuItemId}</p>}
             </div>
             <button type="submit" disabled={isBusy} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
               {isSavingRecipe && <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />}
@@ -187,9 +227,14 @@ const EditRecipeModal = ({ recipe, menuItems, onClose, onSaved }: EditRecipeModa
                       </div>
                       <label className="flex items-center gap-2 text-sm text-slate-600">
                         <span className="sr-only">Quantity per serving for {ingredient?.name ?? 'ingredient'}</span>
-                        <input type="number" min="0.01" step="0.01" value={quantities[requirement.id] ?? ''} onChange={(event) => setQuantities((current) => ({ ...current, [requirement.id]: event.currentTarget.value }))} disabled={isBusy} className="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-right tabular-nums focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
+                        <input type="number" min="0.01" max="99999999.99" step="0.01" value={quantities[requirement.id] ?? ''} onChange={(event) => {
+                          const value = event.currentTarget.value
+                          setQuantities((current) => ({ ...current, [requirement.id]: value }))
+                          setRequirementErrors((current) => ({ ...current, [requirement.id]: '' }))
+                        }} disabled={isBusy} aria-invalid={Boolean(requirementErrors[requirement.id])} aria-describedby={requirementErrors[requirement.id] ? `edit-recipe-quantity-error-${requirement.id}` : undefined} className="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-right tabular-nums focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
                         <span>per serving</span>
                       </label>
+                      {requirementErrors[requirement.id] && <p id={`edit-recipe-quantity-error-${requirement.id}`} className="text-sm text-red-700 sm:basis-full">{requirementErrors[requirement.id]}</p>}
                       <div className="flex items-center justify-end gap-2">
                         <button type="button" onClick={() => handleSaveRequirement(requirement)} disabled={isBusy || Number(quantities[requirement.id]) === Number(requirement.quantity)} className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">{isPending ? 'Saving…' : 'Save'}</button>
                         <button type="button" onClick={() => handleDeleteRequirement(requirement)} disabled={isBusy} className="rounded-md px-2 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50">Remove</button>

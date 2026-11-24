@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getIngredients } from '../../ingredients/services/ingredientService'
 import type { Ingredient } from '../../ingredients/types'
+import CurrentStockTable from '../components/CurrentStockTable'
 import EditInventoryBatchModal from '../components/EditInventoryBatchModal'
 import InventoryAlertsPanel from '../components/InventoryAlertsPanel'
 import InventoryBatchesTable from '../components/InventoryBatchesTable'
@@ -255,6 +256,22 @@ const InventoryPage = () => {
                 />
               )}
             </div>
+          </div>
+        )}
+
+        {activeView === 'current-stock' && (
+          <div
+            id="inventory-panel-current-stock"
+            role="tabpanel"
+            aria-labelledby="inventory-tab-current-stock"
+          >
+            {isLoadingBatches
+              ? renderLoading('Loading current stock')
+              : batchLoadError
+                ? renderError(batchLoadError, () =>
+                    setBatchRetryCount((count) => count + 1),
+                  )
+                : <CurrentStockTable ingredients={ingredients} />}
           </div>
         )}
 

@@ -13,10 +13,7 @@ type IngredientFormData = {
   name: string
   category: string
   unit: string
-  current_stock: string
   minimum_stock: string
-  cost_per_unit: string
-  supplier: string
 }
 
 type IngredientFormErrors = Partial<Record<keyof IngredientFormData, string>>
@@ -26,39 +23,27 @@ const validateIngredientForm = (
 ): IngredientFormErrors => {
   const errors: IngredientFormErrors = {}
 
-  if (!formData.name.trim()) {
+  const name = formData.name.trim()
+  if (!name) {
     errors.name = 'Ingredient name is required.'
+  } else if (name.length < 2 || name.length > 100) {
+    errors.name = 'Ingredient name must be between 2 and 100 characters.'
   }
 
-  if (!formData.category.trim()) {
-    errors.category = 'Category is required.'
+  if (formData.category.trim().length > 50) {
+    errors.category = 'Category must be no more than 50 characters.'
   }
 
   if (!formData.unit) {
     errors.unit = 'Please select a unit.'
   }
 
-  const requiredNumberFields = [
-    ['current_stock', 'Current stock'],
-    ['minimum_stock', 'Minimum stock'],
-  ] as const
-
-  requiredNumberFields.forEach(([field, label]) => {
-    const value = formData[field].trim()
-
-    if (!value) {
-      errors[field] = `${label} is required.`
-    } else if (!Number.isFinite(Number(value)) || Number(value) < 0) {
-      errors[field] = `${label} must be a number greater than or equal to 0.`
-    }
-  })
-
-  if (formData.cost_per_unit.trim()) {
-    const costPerUnit = Number(formData.cost_per_unit)
-
-    if (!Number.isFinite(costPerUnit) || costPerUnit < 0) {
-      errors.cost_per_unit = 'Cost per unit must be a number greater than or equal to 0.'
-    }
+  const minimumStock = formData.minimum_stock.trim()
+  if (
+    minimumStock !== '' &&
+    (!Number.isFinite(Number(minimumStock)) || Number(minimumStock) < 0)
+  ) {
+    errors.minimum_stock = 'Minimum stock must be a number greater than or equal to 0.'
   }
 
   return errors
@@ -68,10 +53,7 @@ const initialFormData: IngredientFormData = {
   name: '',
   category: '',
   unit: '',
-  current_stock: '',
   minimum_stock: '',
-  cost_per_unit: '',
-  supplier: '',
 }
 
 const AddIngredientModal = ({
@@ -87,10 +69,7 @@ const AddIngredientModal = ({
           name: ingredient.name,
           category: ingredient.category || '',
           unit: ingredient.unit,
-          current_stock: String(ingredient.current_stock),
           minimum_stock: String(ingredient.minimum_stock),
-          cost_per_unit: String(ingredient.cost_per_unit),
-          supplier: ingredient.supplier || '',
         }
       : initialFormData,
   )
@@ -134,10 +113,12 @@ const AddIngredientModal = ({
 
     try {
       const payload = {
-        ...formData,
-        current_stock: Number(formData.current_stock || 0),
-        minimum_stock: Number(formData.minimum_stock || 0),
-        cost_per_unit: Number(formData.cost_per_unit || 0),
+        name: formData.name.trim(),
+        category: formData.category.trim() || null,
+        unit: formData.unit,
+        minimum_stock: formData.minimum_stock.trim()
+          ? Number(formData.minimum_stock.trim())
+          : 0,
       }
 
       if (ingredient) {
@@ -208,7 +189,7 @@ const AddIngredientModal = ({
               <label htmlFor="ingredient-name" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Ingredient Name
               </label>
-              <input id="ingredient-name" name="name" type="text" placeholder="e.g. Tomatoes" value={formData.name} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? 'ingredient-name-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-name" name="name" type="text" maxLength={100} placeholder="e.g. Tomatoes" value={formData.name} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? 'ingredient-name-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
               {fieldErrors.name && <p id="ingredient-name-error" className="mt-1 text-sm text-red-700">{fieldErrors.name}</p>}
             </div>
 
@@ -216,7 +197,7 @@ const AddIngredientModal = ({
               <label htmlFor="ingredient-category" className="mb-1.5 block text-sm font-medium text-slate-700">
                 Category
               </label>
-              <input id="ingredient-category" name="category" type="text" placeholder="e.g. Vegetables" value={formData.category} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.category)} aria-describedby={fieldErrors.category ? 'ingredient-category-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-category" name="category" type="text" maxLength={50} placeholder="Optional, e.g. Vegetables" value={formData.category} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.category)} aria-describedby={fieldErrors.category ? 'ingredient-category-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
               {fieldErrors.category && <p id="ingredient-category-error" className="mt-1 text-sm text-red-700">{fieldErrors.category}</p>}
             </div>
 
@@ -236,34 +217,11 @@ const AddIngredientModal = ({
             </div>
 
             <div>
-              <label htmlFor="ingredient-current-stock" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Current Stock
-              </label>
-              <input id="ingredient-current-stock" name="current_stock" type="number" step="any" placeholder="e.g. 12.5" value={formData.current_stock} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.current_stock)} aria-describedby={fieldErrors.current_stock ? 'ingredient-current-stock-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
-              {fieldErrors.current_stock && <p id="ingredient-current-stock-error" className="mt-1 text-sm text-red-700">{fieldErrors.current_stock}</p>}
-            </div>
-
-            <div>
               <label htmlFor="ingredient-minimum-stock" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Minimum Stock
+                Minimum Stock (optional)
               </label>
-              <input id="ingredient-minimum-stock" name="minimum_stock" type="number" step="any" placeholder="e.g. 5" value={formData.minimum_stock} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.minimum_stock)} aria-describedby={fieldErrors.minimum_stock ? 'ingredient-minimum-stock-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+              <input id="ingredient-minimum-stock" name="minimum_stock" type="number" min="0" step="any" placeholder="e.g. 5" value={formData.minimum_stock} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.minimum_stock)} aria-describedby={fieldErrors.minimum_stock ? 'ingredient-minimum-stock-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
               {fieldErrors.minimum_stock && <p id="ingredient-minimum-stock-error" className="mt-1 text-sm text-red-700">{fieldErrors.minimum_stock}</p>}
-            </div>
-
-            <div>
-              <label htmlFor="ingredient-cost-per-unit" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Cost per Unit (INR)
-              </label>
-              <input id="ingredient-cost-per-unit" name="cost_per_unit" type="number" step="any" placeholder="e.g. 25" value={formData.cost_per_unit} onChange={handleInputChange} aria-invalid={Boolean(fieldErrors.cost_per_unit)} aria-describedby={fieldErrors.cost_per_unit ? 'ingredient-cost-per-unit-error' : undefined} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
-              {fieldErrors.cost_per_unit && <p id="ingredient-cost-per-unit-error" className="mt-1 text-sm text-red-700">{fieldErrors.cost_per_unit}</p>}
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="ingredient-supplier" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Supplier
-              </label>
-              <input id="ingredient-supplier" name="supplier" type="text" placeholder="e.g. Fresh Farms Co." value={formData.supplier} onChange={handleInputChange} className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
             </div>
           </div>
           {submitError && (

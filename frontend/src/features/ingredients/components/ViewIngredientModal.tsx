@@ -2,14 +2,11 @@ import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 import type { Ingredient } from "../types";
-import { formatCurrency } from "../../../utils/formatCurrency";
 
 type ViewIngredientModalProps = {
   ingredient: Ingredient;
   onClose: () => void;
 };
-
-const formatDate = (value: string) => new Date(value).toLocaleString();
 
 const ViewIngredientModal = ({
   ingredient,
@@ -31,19 +28,10 @@ const ViewIngredientModal = ({
   }, [onClose]);
 
   const details = [
-    ["Ingredient ID", String(ingredient.id)],
     ["Ingredient Name", ingredient.name],
     ["Category", ingredient.category || "Not provided"],
     ["Unit", ingredient.unit],
-    ["Current Stock", `${ingredient.current_stock} ${ingredient.unit}`],
     ["Minimum Stock", `${ingredient.minimum_stock} ${ingredient.unit}`],
-    [
-      "Cost per Unit",
-      `${formatCurrency(ingredient.cost_per_unit)} / ${ingredient.unit}`,
-    ],
-    ["Supplier", ingredient.supplier || "Not provided"],
-    ["Created", formatDate(ingredient.created_at)],
-    ["Last Updated", formatDate(ingredient.updated_at)],
   ];
 
   return (

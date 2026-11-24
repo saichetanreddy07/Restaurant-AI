@@ -18,7 +18,10 @@ try:
         InventoryConsumeRequest,
         InventoryConsumeResponse,
     )
-    from app.services.inventory_batch_service import InventoryBatchService
+    from app.services.inventory_batch_service import (
+        InventoryBatchService,
+        is_batch_eligible,
+    )
 except ModuleNotFoundError:
     from backend.app.core.enums import TransactionType
     from backend.app.models.inventory_batch import InventoryBatch
@@ -33,6 +36,7 @@ except ModuleNotFoundError:
     )
     from backend.app.services.inventory_batch_service import (
         InventoryBatchService,
+        is_batch_eligible,
     )
 
 
@@ -112,17 +116,18 @@ class InventoryConsumptionService:
 
             batch_query = (
                 select(InventoryBatch)
-                .where(
-                    InventoryBatch.ingredient_id == ri.ingredient_id,
-                    InventoryBatch.quantity > 0,
-                )
+                .where(InventoryBatch.ingredient_id == ri.ingredient_id)
                 .order_by(
                     InventoryBatch.expiry_date.asc(),
                     InventoryBatch.received_date.asc(),
                     InventoryBatch.batch_number.asc(),
                 )
             )
-            batches = list(self.db.execute(batch_query).scalars().all())
+            batches = [
+                batch
+                for batch in self.db.execute(batch_query).scalars().all()
+                if is_batch_eligible(batch)
+            ]
 
             ingredient_name = (
                 ri.ingredient.name if ri.ingredient else f"ID {ri.ingredient_id}"
@@ -152,72 +157,71 @@ class InventoryConsumptionService:
 
             ingredient_batch_map[ri.ingredient_id] = batches
 
-        # Execution phase: all ingredients validated, execute FEFO deductions
-        ingredients_consumed_results: list[ConsumedIngredientResponse] = []
+        # All inventory changes and cached stock updates share this transaction.
+        try:
+            ingredients_consumed_results: list[ConsumedIngredientResponse] = []
 
-        for ri in recipe_ingredients:
-            required_qty = ingredient_required_map[ri.ingredient_id]
-            remaining_to_deduct = required_qty
-            batches = ingredient_batch_map[ri.ingredient_id]
-            consumed_batches_info: list[ConsumedBatchResponse] = []
+            for ri in recipe_ingredients:
+                required_qty = ingredient_required_map[ri.ingredient_id]
+                remaining_to_deduct = required_qty
+                batches = ingredient_batch_map[ri.ingredient_id]
+                consumed_batches_info: list[ConsumedBatchResponse] = []
 
-            for batch in batches:
-                if remaining_to_deduct <= Decimal("0.00"):
-                    break
+                for batch in batches:
+                    if remaining_to_deduct <= Decimal("0.00"):
+                        break
 
-                deduct_amount = min(batch.quantity, remaining_to_deduct)
-                batch.quantity -= deduct_amount
-                remaining_to_deduct -= deduct_amount
+                    deduct_amount = min(batch.quantity, remaining_to_deduct)
+                    batch.quantity -= deduct_amount
+                    remaining_to_deduct -= deduct_amount
 
-                transaction = InventoryTransaction(
-                    inventory_batch_id=batch.id,
-                    transaction_type=TransactionType.CONSUMPTION,
-                    quantity=deduct_amount,
-                    notes=(
-                        f"Automated consumption of {deduct_amount} for recipe "
-                        f"'{recipe.name}' ({consume_in.servings} servings)."
-                    ),
+                    transaction = InventoryTransaction(
+                        inventory_batch_id=batch.id,
+                        transaction_type=TransactionType.CONSUMPTION,
+                        quantity=deduct_amount,
+                        notes=(
+                            f"Automated consumption of {deduct_amount} for recipe "
+                            f"'{recipe.name}' ({consume_in.servings} servings)."
+                        ),
+                    )
+                    self.db.add(transaction)
+
+                    consumed_batches_info.append(
+                        ConsumedBatchResponse(
+                            batch_number=batch.batch_number,
+                            quantity_consumed=deduct_amount,
+                            remaining_quantity=batch.quantity,
+                        )
+                    )
+
+                ingredient_name = (
+                    ri.ingredient.name if ri.ingredient else f"ID {ri.ingredient_id}"
                 )
-                self.db.add(transaction)
 
-                consumed_batches_info.append(
-                    ConsumedBatchResponse(
-                        batch_number=batch.batch_number,
-                        quantity_consumed=deduct_amount,
-                        remaining_quantity=batch.quantity,
+                ingredients_consumed_results.append(
+                    ConsumedIngredientResponse(
+                        ingredient=ingredient_name,
+                        ingredient_name=ingredient_name,
+                        ingredient_id=ri.ingredient_id,
+                        required_quantity=required_qty,
+                        consumed_batches=consumed_batches_info,
                     )
                 )
 
-            ingredient_name = (
-                ri.ingredient.name if ri.ingredient else f"ID {ri.ingredient_id}"
-            )
+            batch_service = InventoryBatchService(self.db)
+            for ingredient_id in ingredient_required_map:
+                batch_service.sync_ingredient_stock(ingredient_id)
 
-            ingredients_consumed_results.append(
-                ConsumedIngredientResponse(
-                    ingredient=ingredient_name,
-                    ingredient_name=ingredient_name,
-                    ingredient_id=ri.ingredient_id,
-                    required_quantity=required_qty,
-                    consumed_batches=consumed_batches_info,
-                )
+            response = InventoryConsumeResponse(
+                recipe_id=recipe.id,
+                servings=consume_in.servings,
+                total_ingredients_consumed=len(ingredients_consumed_results),
+                ingredients=ingredients_consumed_results,
             )
-
-        # Atomic commit of all deductions and inventory transactions
-        try:
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
 
-        # Synchronize master Ingredient stock quantities using shared sync logic
-        batch_service = InventoryBatchService(self.db)
-        for ri in recipe_ingredients:
-            batch_service.sync_ingredient_stock(ri.ingredient_id)
-
-        return InventoryConsumeResponse(
-            recipe_id=recipe.id,
-            servings=consume_in.servings,
-            total_ingredients_consumed=len(ingredients_consumed_results),
-            ingredients=ingredients_consumed_results,
-        )
+        return response
 

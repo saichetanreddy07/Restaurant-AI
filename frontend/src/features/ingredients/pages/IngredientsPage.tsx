@@ -112,7 +112,7 @@ const IngredientsPage = () => {
           Ingredients
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Manage ingredient inventory, measurement units, and stock levels.
+          Manage ingredient details and minimum stock thresholds.
         </p>
       </div>
 

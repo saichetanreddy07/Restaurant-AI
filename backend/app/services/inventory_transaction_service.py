@@ -84,27 +84,25 @@ class InventoryTransactionService:
         # Current implementation deducts stock for all supported transaction
         # types. Positive stock adjustments will be implemented in a future
         # inventory replenishment phase.
-        batch.quantity -= transaction_in.quantity
         ingredient_id = batch.ingredient_id
 
-        # InventoryTransaction records are immutable and serve as the audit
-        # trail of inventory movement.
-        transaction = InventoryTransaction(
-            **transaction_in.model_dump(),
-        )
-
-        self.db.add(transaction)
-
         try:
-            self.db.commit()
+            batch.quantity -= transaction_in.quantity
+
+            # InventoryTransaction records are immutable and serve as the audit
+            # trail of inventory movement.
+            transaction = InventoryTransaction(
+                **transaction_in.model_dump(),
+            )
+            self.db.add(transaction)
+
+            batch_service = InventoryBatchService(self.db)
+            batch_service.sync_ingredient_stock(ingredient_id)
             self.db.refresh(transaction)
+            self.db.commit()
         except Exception:
             self.db.rollback()
             raise
-
-        batch_service = InventoryBatchService(self.db)
-        batch_service.sync_ingredient_stock(ingredient_id)
-        self.db.refresh(transaction)
 
         return transaction
 

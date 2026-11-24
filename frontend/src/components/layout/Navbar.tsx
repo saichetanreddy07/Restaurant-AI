@@ -1,4 +1,4 @@
-import { Menu, Search, Bell, User } from 'lucide-react'
+import { Menu, Bell, User } from 'lucide-react'
 
 interface NavbarProps {
   /** Opens the mobile drawer – called only on small screens */
@@ -8,8 +8,7 @@ interface NavbarProps {
 export const Navbar = ({ onMenuClick }: NavbarProps) => {
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
-      {/* Left side: Hamburger (mobile only) + Search */}
-      <div className="flex items-center gap-4 flex-1 max-w-lg">
+      <div className="flex flex-1 items-center gap-4">
         {/* Only shown on mobile – desktop uses the sidebar logo to toggle */}
         <button
           type="button"
@@ -21,42 +20,19 @@ export const Navbar = ({ onMenuClick }: NavbarProps) => {
           <Menu className="h-5 w-5" aria-hidden="true" />
         </button>
 
-        {/* Global search input */}
-        <div className="relative w-full max-w-md hidden sm:block">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-            <Search className="h-4 w-4" />
-          </div>
-          <input
-            type="search"
-            placeholder="Search operations, recipes, inventory..."
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-3 text-sm text-slate-800 placeholder-slate-400 transition-colors focus:border-slate-400 focus:bg-white focus:outline-none"
-            readOnly
-          />
-        </div>
       </div>
 
-      {/* Right side: Notifications + User profile */}
       <div className="flex items-center gap-3">
-        {/* Notifications button */}
-        <button
-          type="button"
-          className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100"
-          aria-label="View notifications"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-emerald-500" />
-        </button>
-
-        <div className="h-6 w-px bg-slate-200" aria-hidden="true" />
-
-        {/* User profile capsule */}
-        <div className="flex items-center gap-3 pl-1">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-slate-700">
-            <User className="h-4 w-4" />
-          </div>
-          <div className="hidden text-left md:block">
-            <div className="text-xs font-semibold text-slate-800">Operations Manager</div>
-            <div className="text-[11px] text-slate-500">Kitchen Admin</div>
+        <div className="hidden items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:flex">
+          <Bell className="size-4 text-slate-400" aria-hidden="true" />
+          <span>Notifications</span>
+          <span className="rounded-full bg-slate-200 px-2 py-0.5 font-medium text-slate-600">Coming soon</span>
+        </div>
+        <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-2 py-1.5 text-xs text-slate-600 sm:px-3">
+          <User className="size-4 text-slate-400" aria-hidden="true" />
+          <div>
+            <div className="font-medium text-slate-700">Profile</div>
+            <div className="text-[11px] text-slate-500">Coming soon</div>
           </div>
         </div>
       </div>

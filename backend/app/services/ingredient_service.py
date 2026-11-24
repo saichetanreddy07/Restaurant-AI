@@ -4,9 +4,13 @@ from sqlalchemy.orm import Session
 
 try:
     from app.models.ingredient import Ingredient
+    from app.models.inventory_batch import InventoryBatch
+    from app.models.recipe_ingredient import RecipeIngredient
     from app.schemas.ingredient import IngredientCreate, IngredientUpdate
 except ModuleNotFoundError:
     from backend.app.models.ingredient import Ingredient
+    from backend.app.models.inventory_batch import InventoryBatch
+    from backend.app.models.recipe_ingredient import RecipeIngredient
     from backend.app.schemas.ingredient import IngredientCreate, IngredientUpdate
 
 
@@ -44,7 +48,7 @@ class IngredientService:
                 detail=f"Ingredient with name '{ingredient_in.name}' already exists.",
             )
 
-        ingredient = Ingredient(**ingredient_in.model_dump())
+        ingredient = Ingredient(**ingredient_in.model_dump(), current_stock=0.0)
         self.db.add(ingredient)
 
         try:
@@ -119,6 +123,36 @@ class IngredientService:
         """
         ingredient = self.get_ingredient(ingredient_id)
         update_data = ingredient_in.model_dump(exclude_unset=True)
+
+        if (
+            "unit" in update_data
+            and update_data["unit"] is not None
+            and update_data["unit"] != ingredient.unit
+        ):
+            has_inventory_batches = self.db.execute(
+                select(InventoryBatch.id)
+                .where(InventoryBatch.ingredient_id == ingredient_id)
+                .limit(1)
+            ).first() is not None
+            is_used_in_recipe = self.db.execute(
+                select(RecipeIngredient.id)
+                .where(RecipeIngredient.ingredient_id == ingredient_id)
+                .limit(1)
+            ).first() is not None
+
+            if has_inventory_batches or is_used_in_recipe:
+                usage = []
+                if has_inventory_batches:
+                    usage.append("existing inventory batches")
+                if is_used_in_recipe:
+                    usage.append("recipe ingredients")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        "Cannot change the ingredient unit because it is used by "
+                        f"{' and '.join(usage)}."
+                    ),
+                )
 
         if "name" in update_data and update_data["name"] is not None:
             new_name = update_data["name"]

@@ -1,6 +1,5 @@
 import { Eye, LoaderCircle, Pencil, Trash2 } from "lucide-react";
 
-import StockStatusBadge from "./StockStatusBadge";
 import type { Ingredient } from "../types";
 
 type IngredientsTableProps = {
@@ -39,16 +38,13 @@ const IngredientsTable = ({
                 </div>
             ) : (
                 <div className="overflow-x-auto">
-                    <table className="min-w-[1050px] w-full border-collapse text-left text-sm">
+                    <table className="min-w-[720px] w-full border-collapse text-left text-sm">
                         <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <tr>
                                 <th scope="col" className="px-6 py-3.5">Ingredient</th>
                                 <th scope="col" className="px-6 py-3.5">Category</th>
                                 <th scope="col" className="px-6 py-3.5">Unit</th>
-                                <th scope="col" className="px-6 py-3.5 text-right">Current Stock</th>
                                 <th scope="col" className="px-6 py-3.5 text-right">Minimum Stock</th>
-                                <th scope="col" className="px-6 py-3.5">Supplier</th>
-                                <th scope="col" className="px-6 py-3.5">Status</th>
                                 <th scope="col" className="px-6 py-3.5 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -61,17 +57,7 @@ const IngredientsTable = ({
                                     <td className="whitespace-nowrap px-6 py-4">{ingredient.category || "—"}</td>
                                     <td className="whitespace-nowrap px-6 py-4">{ingredient.unit}</td>
                                     <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-slate-900">
-                                        {ingredient.current_stock}
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4 text-right tabular-nums text-slate-900">
                                         {ingredient.minimum_stock}
-                                    </td>
-                                    <td className="whitespace-nowrap px-6 py-4">{ingredient.supplier || "—"}</td>
-                                    <td className="whitespace-nowrap px-6 py-4">
-                                        <StockStatusBadge
-                                            currentStock={ingredient.current_stock}
-                                            minimumStock={ingredient.minimum_stock}
-                                        />
                                     </td>
                                     <td className="whitespace-nowrap px-6 py-4">
                                         <div className="flex items-center justify-end gap-1">

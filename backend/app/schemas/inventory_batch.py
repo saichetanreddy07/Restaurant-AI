@@ -161,13 +161,22 @@ class InventoryBatchUpdate(BaseModel):
             ValueError: If the supplier name is empty or whitespace-only.
         """
         if value is None:
-            return None
+            raise ValueError("Supplier must not be null.")
 
         value = value.strip()
 
         if not value:
             raise ValueError("Supplier must not be empty or whitespace.")
 
+        return value
+
+    @field_validator("quantity", "unit_cost", "expiry_date")
+    @classmethod
+    def reject_null_values(
+        cls, value: Decimal | date | None
+    ) -> Decimal | date:
+        if value is None:
+            raise ValueError("This field must not be null.")
         return value
 
 

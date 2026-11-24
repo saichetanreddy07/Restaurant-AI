@@ -7,6 +7,7 @@ import {
   getRecipeIngredients,
 } from '../services/recipeService'
 import type { Recipe, RecipeIngredient } from '../types'
+import { validateDecimalInput } from '../../../utils/validation'
 
 type AddRecipeIngredientModalProps = {
   recipe: Recipe
@@ -139,14 +140,17 @@ const AddRecipeIngredientModal = ({
       errors.ingredientId = 'Please select an ingredient.'
     }
 
-    const quantity = formData.quantity.trim()
-    if (!quantity) {
-      errors.quantity = 'Quantity per serving is required.'
-    } else if (!Number.isFinite(Number(quantity)) || Number(quantity) <= 0) {
-      errors.quantity = 'Quantity must be greater than zero.'
-    } else if (!/^\d+(\.\d{1,2})?$/.test(quantity)) {
-      errors.quantity = 'Quantity can have no more than 2 decimal places.'
-    }
+    const quantityError = validateDecimalInput(
+      formData.quantity,
+      'Quantity per serving',
+      {
+        minimum: 0,
+        minimumIsExclusive: true,
+        maximumDigits: 10,
+        decimalPlaces: 2,
+      },
+    )
+    if (quantityError) errors.quantity = quantityError
 
     setFieldErrors(errors)
     if (Object.keys(errors).length > 0) {
@@ -169,7 +173,7 @@ const AddRecipeIngredientModal = ({
       await createRecipeIngredient({
         recipe_id: recipe.id,
         ingredient_id: selectedIngredient.id,
-        quantity: Number(quantity),
+        quantity: Number(formData.quantity.trim()),
       })
       setFormData(initialFormData)
       setSuccessMessage('Ingredient requirement added.')
@@ -325,7 +329,8 @@ const AddRecipeIngredientModal = ({
                         id="recipe-ingredient-quantity"
                         name="quantity"
                         type="number"
-                        min="0"
+                        min="0.01"
+                        max="99999999.99"
                         step="0.01"
                         placeholder="e.g. 0.25"
                         value={formData.quantity}

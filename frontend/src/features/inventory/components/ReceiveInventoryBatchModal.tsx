@@ -3,6 +3,7 @@ import { LoaderCircle, X } from 'lucide-react'
 import type { Ingredient } from '../../ingredients/types'
 import { createInventoryBatch } from '../services/inventoryService'
 import type { InventoryBatchPayload } from '../types'
+import { validateDecimalInput } from '../../../utils/validation'
 
 type ReceiveInventoryBatchModalProps = {
   ingredients: Ingredient[]
@@ -37,19 +38,21 @@ const validateBatchForm = (formData: BatchFormData): BatchFormErrors => {
     errors.ingredientId = 'Please select an ingredient.'
   }
 
-  const quantity = formData.quantity.trim()
-  if (!quantity) {
-    errors.quantity = 'Quantity is required.'
-  } else if (!/^\d+(\.\d{1,2})?$/.test(quantity) || Number(quantity) <= 0) {
-    errors.quantity = 'Quantity must be greater than zero with no more than 2 decimal places.'
-  }
+  const quantityError = validateDecimalInput(formData.quantity, 'Quantity', {
+    minimum: 0,
+    minimumIsExclusive: true,
+    maximumDigits: 10,
+    decimalPlaces: 2,
+  })
+  if (quantityError) errors.quantity = quantityError
 
-  const unitCost = formData.unitCost.trim()
-  if (!unitCost) {
-    errors.unitCost = 'Unit cost is required.'
-  } else if (!/^\d+(\.\d{1,2})?$/.test(unitCost) || Number(unitCost) <= 0) {
-    errors.unitCost = 'Unit cost must be greater than zero with no more than 2 decimal places.'
-  }
+  const unitCostError = validateDecimalInput(formData.unitCost, 'Unit cost', {
+    minimum: 0,
+    minimumIsExclusive: true,
+    maximumDigits: 10,
+    decimalPlaces: 2,
+  })
+  if (unitCostError) errors.unitCost = unitCostError
 
   const supplier = formData.supplier.trim()
   if (supplier.length < 2 || supplier.length > 100) {
@@ -102,8 +105,8 @@ const ReceiveInventoryBatchModal = ({
 
     const payload: InventoryBatchPayload = {
       ingredient_id: Number(formData.ingredientId),
-      quantity: Number(formData.quantity),
-      unit_cost: Number(formData.unitCost),
+      quantity: Number(formData.quantity.trim()),
+      unit_cost: Number(formData.unitCost.trim()),
       supplier: formData.supplier.trim(),
       received_date: formData.receivedDate,
       expiry_date: formData.expiryDate,
@@ -168,13 +171,13 @@ const ReceiveInventoryBatchModal = ({
 
             <div>
               <label htmlFor="batch-quantity" className="mb-1.5 block text-sm font-medium text-slate-700">Received Quantity</label>
-              <input id="batch-quantity" name="quantity" type="number" min="0.01" step="0.01" value={formData.quantity} onChange={handleInputChange} disabled={isSubmitting} aria-invalid={Boolean(fieldErrors.quantity)} aria-describedby={fieldErrors.quantity ? 'batch-quantity-error' : undefined} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
+              <input id="batch-quantity" name="quantity" type="number" min="0.01" max="99999999.99" step="0.01" value={formData.quantity} onChange={handleInputChange} disabled={isSubmitting} aria-invalid={Boolean(fieldErrors.quantity)} aria-describedby={fieldErrors.quantity ? 'batch-quantity-error' : undefined} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
               {renderError('quantity', 'batch-quantity-error')}
             </div>
 
             <div>
               <label htmlFor="batch-unit-cost" className="mb-1.5 block text-sm font-medium text-slate-700">Unit Cost (INR)</label>
-              <input id="batch-unit-cost" name="unitCost" type="number" min="0.01" step="0.01" value={formData.unitCost} onChange={handleInputChange} disabled={isSubmitting} aria-invalid={Boolean(fieldErrors.unitCost)} aria-describedby={fieldErrors.unitCost ? 'batch-unit-cost-error' : undefined} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
+              <input id="batch-unit-cost" name="unitCost" type="number" min="0.01" max="99999999.99" step="0.01" value={formData.unitCost} onChange={handleInputChange} disabled={isSubmitting} aria-invalid={Boolean(fieldErrors.unitCost)} aria-describedby={fieldErrors.unitCost ? 'batch-unit-cost-error' : undefined} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-slate-100" />
               {renderError('unitCost', 'batch-unit-cost-error')}
             </div>
 

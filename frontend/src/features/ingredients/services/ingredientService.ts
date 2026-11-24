@@ -3,12 +3,9 @@ import type { Ingredient } from "../types";
 
 export type IngredientPayload = {
     name: string;
-    category: string;
+    category: string | null;
     unit: string;
-    current_stock: number;
     minimum_stock: number;
-    cost_per_unit: number;
-    supplier: string;
 };
 
 export async function getIngredients(

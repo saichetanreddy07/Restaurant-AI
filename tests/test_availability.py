@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from backend.app.core.enums import MenuCategory, Unit
+from backend.app.core.enums import MenuCategory, TransactionType, Unit
 from backend.app.db.database import Base, get_db
 from backend.app.main import app
 from backend.app.models.ingredient import Ingredient
@@ -19,11 +19,24 @@ from backend.app.models.menu_item import MenuItem
 from backend.app.models.recipe import Recipe
 from backend.app.models.recipe_ingredient import RecipeIngredient
 from backend.app.schemas.inventory_consumption import InventoryConsumeRequest
+from backend.app.schemas.ingredient import IngredientCreate, IngredientUpdate
+from backend.app.schemas.inventory_batch import (
+    InventoryBatchCreate,
+    InventoryBatchUpdate,
+)
+from backend.app.schemas.inventory_transaction import InventoryTransactionCreate
 from backend.app.services.availability_service import AvailabilityService
-from backend.app.services.inventory_batch_service import InventoryBatchService
+from backend.app.services.inventory_batch_service import (
+    InventoryBatchService,
+    is_batch_eligible,
+)
 from backend.app.services.inventory_consumption_service import (
     InventoryConsumptionService,
 )
+from backend.app.services.inventory_transaction_service import (
+    InventoryTransactionService,
+)
+from backend.app.services.ingredient_service import IngredientService
 
 
 @pytest.fixture(name="db_session")
@@ -371,6 +384,398 @@ def test_dynamic_availability_with_inventory_sync(db_session: Session):
     avail_2 = service.check_recipe_availability(recipe.id)
     assert avail_2.available is True
     assert avail_2.maximum_servings == 4
+
+
+def test_ingredient_stock_is_only_changed_by_inventory_operations(
+    db_session: Session,
+):
+    """Ingredient writes ignore stock input; inventory operations own the aggregate."""
+    ingredient_service = IngredientService(db_session)
+    ingredient = ingredient_service.create_ingredient(
+        IngredientCreate.model_validate(
+            {
+                "name": "Olive Oil",
+                "unit": Unit.L,
+                "minimum_stock": 1.0,
+                "current_stock": 80.0,
+                "supplier": "Ignored Supplier",
+                "cost_per_unit": 8.5,
+            }
+        )
+    )
+    assert ingredient.current_stock == 0
+
+    ingredient = ingredient_service.update_ingredient(
+        ingredient.id,
+        IngredientUpdate.model_validate(
+            {"current_stock": 50.0, "minimum_stock": 2.0}
+        ),
+    )
+    assert ingredient.current_stock == 0
+    assert ingredient.minimum_stock == 2.0
+
+    batch_service = InventoryBatchService(db_session)
+    batch = batch_service.create_inventory_batch(
+        InventoryBatchCreate(
+            ingredient_id=ingredient.id,
+            quantity=Decimal("10.00"),
+            unit_cost=Decimal("4.25"),
+            supplier="Local Supplier",
+            received_date=date.today(),
+            expiry_date=date.today() + timedelta(days=30),
+        )
+    )
+    assert ingredient.current_stock == 10.0
+
+    batch_service.update_inventory_batch(
+        batch.id, InventoryBatchUpdate(quantity=Decimal("7.50"))
+    )
+    assert ingredient.current_stock == 7.5
+
+    InventoryTransactionService(db_session).create_inventory_transaction(
+        InventoryTransactionCreate(
+            inventory_batch_id=batch.id,
+            transaction_type=TransactionType.CONSUMPTION,
+            quantity=Decimal("2.25"),
+            notes="Recipe use",
+        )
+    )
+    assert ingredient.current_stock == 5.25
+
+    batch_service.delete_inventory_batch(batch.id)
+    assert ingredient.current_stock == 0
+
+    ingredient_service.delete_ingredient(ingredient.id)
+    with pytest.raises(HTTPException) as exc_info:
+        ingredient_service.get_ingredient(ingredient.id)
+    assert exc_info.value.status_code == 404
+
+
+def test_batch_eligibility_controls_stock_consumption_and_expiry_alerts(
+    db_session: Session,
+):
+    """Only received, unexpired batches with remaining stock are usable."""
+    today = date.today()
+    ingredient = create_sample_ingredient(
+        db_session, "Fresh Flour", stock=999.0, unit=Unit.KG
+    )
+    menu_item = create_sample_menu_item(db_session, "Fresh Bread")
+    recipe = create_sample_recipe(db_session, menu_item.id, "Fresh Bread Recipe")
+    add_recipe_ingredient(
+        db_session, recipe.id, ingredient.id, Decimal("1.00")
+    )
+
+    batches = [
+        InventoryBatch(
+            ingredient_id=ingredient.id,
+            batch_number="FLOUR-ELIGIBLE",
+            quantity=Decimal("8.00"),
+            unit_cost=Decimal("2.00"),
+            supplier="Supplier",
+            received_date=today - timedelta(days=2),
+            expiry_date=today,
+        ),
+        InventoryBatch(
+            ingredient_id=ingredient.id,
+            batch_number="FLOUR-EXPIRED",
+            quantity=Decimal("9.00"),
+            unit_cost=Decimal("2.00"),
+            supplier="Supplier",
+            received_date=today - timedelta(days=3),
+            expiry_date=today - timedelta(days=1),
+        ),
+        InventoryBatch(
+            ingredient_id=ingredient.id,
+            batch_number="FLOUR-FUTURE",
+            quantity=Decimal("10.00"),
+            unit_cost=Decimal("2.00"),
+            supplier="Supplier",
+            received_date=today + timedelta(days=1),
+            expiry_date=today + timedelta(days=4),
+        ),
+        InventoryBatch(
+            ingredient_id=ingredient.id,
+            batch_number="FLOUR-DEPLETED",
+            quantity=Decimal("0.00"),
+            unit_cost=Decimal("2.00"),
+            supplier="Supplier",
+            received_date=today - timedelta(days=1),
+            expiry_date=today + timedelta(days=2),
+        ),
+    ]
+    db_session.add_all(batches)
+    db_session.commit()
+
+    assert is_batch_eligible(batches[0], today)
+    assert not is_batch_eligible(batches[1], today)
+    assert not is_batch_eligible(batches[2], today)
+    assert not is_batch_eligible(batches[3], today)
+
+    batch_service = InventoryBatchService(db_session)
+    batch_service.sync_ingredient_stock(ingredient.id)
+    db_session.commit()
+    assert ingredient.current_stock == 8.0
+
+    availability = AvailabilityService(db_session).check_recipe_availability(
+        recipe.id
+    )
+    assert availability.available is True
+    assert availability.maximum_servings == 8
+
+    expiring = batch_service.get_expiring_batches(days=7)
+    assert [batch["batch_number"] for batch in expiring] == [
+        "FLOUR-ELIGIBLE"
+    ]
+
+    consumed = InventoryConsumptionService(db_session).consume_recipe_inventory(
+        InventoryConsumeRequest(recipe_id=recipe.id, servings=6)
+    )
+    assert [
+        batch.batch_number
+        for batch in consumed.ingredients[0].consumed_batches
+    ] == ["FLOUR-ELIGIBLE"]
+    assert batches[0].quantity == Decimal("2.00")
+    assert batches[1].quantity == Decimal("9.00")
+    assert batches[2].quantity == Decimal("10.00")
+    assert batches[3].quantity == Decimal("0.00")
+    assert ingredient.current_stock == 2.0
+
+    availability = AvailabilityService(db_session).check_recipe_availability(
+        recipe.id
+    )
+    assert availability.maximum_servings == 2
+
+
+def test_ingredient_unit_change_is_blocked_after_inventory_or_recipe_usage(
+    db_session: Session,
+):
+    service = IngredientService(db_session)
+    free_ingredient = create_sample_ingredient(
+        db_session, "Unassigned Flour", unit=Unit.KG
+    )
+    changed = service.update_ingredient(
+        free_ingredient.id, IngredientUpdate(unit=Unit.G)
+    )
+    assert changed.unit == Unit.G
+
+    batched_ingredient = create_sample_ingredient(
+        db_session, "Batched Flour", unit=Unit.KG
+    )
+    InventoryBatchService(db_session).create_inventory_batch(
+        InventoryBatchCreate(
+            ingredient_id=batched_ingredient.id,
+            quantity=Decimal("2.00"),
+            unit_cost=Decimal("1.00"),
+            supplier="Supplier",
+            received_date=date.today(),
+            expiry_date=date.today() + timedelta(days=10),
+        )
+    )
+    with pytest.raises(HTTPException) as batch_error:
+        service.update_ingredient(
+            batched_ingredient.id, IngredientUpdate(unit=Unit.G)
+        )
+    assert batch_error.value.status_code == 409
+    assert "inventory batches" in batch_error.value.detail
+
+    recipe_ingredient = create_sample_ingredient(
+        db_session, "Recipe Flour", unit=Unit.KG
+    )
+    menu_item = create_sample_menu_item(db_session, "Flour Bowl")
+    recipe = create_sample_recipe(db_session, menu_item.id, "Flour Bowl Recipe")
+    add_recipe_ingredient(
+        db_session, recipe.id, recipe_ingredient.id, Decimal("1.00")
+    )
+    with pytest.raises(HTTPException) as recipe_error:
+        service.update_ingredient(
+            recipe_ingredient.id, IngredientUpdate(unit=Unit.G)
+        )
+    assert recipe_error.value.status_code == 409
+    assert "recipe ingredients" in recipe_error.value.detail
+
+
+def test_batch_operations_roll_back_when_stock_sync_fails(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+):
+    ingredient = create_sample_ingredient(
+        db_session, "Atomic Flour", stock=0.0, unit=Unit.KG
+    )
+    batch_service = InventoryBatchService(db_session)
+    batch = batch_service.create_inventory_batch(
+        InventoryBatchCreate(
+            ingredient_id=ingredient.id,
+            quantity=Decimal("5.00"),
+            unit_cost=Decimal("1.00"),
+            supplier="Supplier",
+            received_date=date.today(),
+            expiry_date=date.today() + timedelta(days=10),
+        )
+    )
+
+    original_sync = InventoryBatchService.sync_ingredient_stock
+
+    def sync_then_fail(service: InventoryBatchService, ingredient_id: int) -> None:
+        original_sync(service, ingredient_id)
+        raise RuntimeError("Simulated stock sync failure.")
+
+    monkeypatch.setattr(
+        InventoryBatchService, "sync_ingredient_stock", sync_then_fail
+    )
+
+    create_payload = InventoryBatchCreate(
+        ingredient_id=ingredient.id,
+        quantity=Decimal("3.00"),
+        unit_cost=Decimal("1.00"),
+        supplier="Supplier",
+        received_date=date.today(),
+        expiry_date=date.today() + timedelta(days=10),
+    )
+    with pytest.raises(RuntimeError, match="Simulated stock sync failure"):
+        batch_service.create_inventory_batch(create_payload)
+
+    assert db_session.scalar(
+        select(func.count(InventoryBatch.id)).where(
+            InventoryBatch.ingredient_id == ingredient.id
+        )
+    ) == 1
+    assert db_session.scalar(
+        select(Ingredient.current_stock).where(Ingredient.id == ingredient.id)
+    ) == 5.0
+
+    with pytest.raises(RuntimeError, match="Simulated stock sync failure"):
+        batch_service.update_inventory_batch(
+            batch.id, InventoryBatchUpdate(quantity=Decimal("9.00"))
+        )
+
+    assert db_session.scalar(
+        select(InventoryBatch.quantity).where(InventoryBatch.id == batch.id)
+    ) == Decimal("5.00")
+    assert db_session.scalar(
+        select(Ingredient.current_stock).where(Ingredient.id == ingredient.id)
+    ) == 5.0
+
+    with pytest.raises(RuntimeError, match="Simulated stock sync failure"):
+        batch_service.delete_inventory_batch(batch.id)
+
+    assert db_session.scalar(
+        select(InventoryBatch.quantity).where(InventoryBatch.id == batch.id)
+    ) == Decimal("5.00")
+    assert db_session.scalar(
+        select(Ingredient.current_stock).where(Ingredient.id == ingredient.id)
+    ) == 5.0
+
+    with pytest.raises(RuntimeError, match="Simulated stock sync failure"):
+        InventoryTransactionService(db_session).create_inventory_transaction(
+            InventoryTransactionCreate(
+                inventory_batch_id=batch.id,
+                transaction_type=TransactionType.CONSUMPTION,
+                quantity=Decimal("1.00"),
+            )
+        )
+
+    assert db_session.scalar(
+        select(InventoryBatch.quantity).where(InventoryBatch.id == batch.id)
+    ) == Decimal("5.00")
+    assert db_session.scalar(
+        select(Ingredient.current_stock).where(Ingredient.id == ingredient.id)
+    ) == 5.0
+    assert db_session.scalar(select(func.count(InventoryTransaction.id))) == 0
+
+
+def test_consumption_rolls_back_batch_transaction_and_cached_stock(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+):
+    ingredient = create_sample_ingredient(
+        db_session, "Atomic Sugar", stock=0.0, unit=Unit.KG
+    )
+    menu_item = create_sample_menu_item(db_session, "Sugar Cake")
+    recipe = create_sample_recipe(db_session, menu_item.id, "Sugar Cake Recipe")
+    add_recipe_ingredient(
+        db_session, recipe.id, ingredient.id, Decimal("1.00")
+    )
+    batch = InventoryBatchService(db_session).create_inventory_batch(
+        InventoryBatchCreate(
+            ingredient_id=ingredient.id,
+            quantity=Decimal("5.00"),
+            unit_cost=Decimal("1.00"),
+            supplier="Supplier",
+            received_date=date.today(),
+            expiry_date=date.today() + timedelta(days=10),
+        )
+    )
+
+    original_sync = InventoryBatchService.sync_ingredient_stock
+
+    def sync_then_fail(service: InventoryBatchService, ingredient_id: int) -> None:
+        original_sync(service, ingredient_id)
+        raise RuntimeError("Simulated stock sync failure.")
+
+    monkeypatch.setattr(
+        InventoryBatchService, "sync_ingredient_stock", sync_then_fail
+    )
+
+    with pytest.raises(RuntimeError, match="Simulated stock sync failure"):
+        InventoryConsumptionService(db_session).consume_recipe_inventory(
+            InventoryConsumeRequest(recipe_id=recipe.id, servings=2)
+        )
+
+    assert db_session.scalar(
+        select(InventoryBatch.quantity).where(InventoryBatch.id == batch.id)
+    ) == Decimal("5.00")
+    assert db_session.scalar(
+        select(Ingredient.current_stock).where(Ingredient.id == ingredient.id)
+    ) == 5.0
+    assert db_session.scalar(select(func.count(InventoryTransaction.id))) == 0
+
+
+def test_put_endpoints_reject_explicit_null_for_non_nullable_fields(
+    client: TestClient, db_session: Session
+):
+    menu_item = create_sample_menu_item(db_session, "Null Check Dish")
+    ingredient = create_sample_ingredient(
+        db_session, "Null Check Ingredient", unit=Unit.KG
+    )
+    recipe = create_sample_recipe(db_session, menu_item.id, "Null Check Recipe")
+    recipe_ingredient = add_recipe_ingredient(
+        db_session, recipe.id, ingredient.id, Decimal("1.00")
+    )
+    batch = InventoryBatchService(db_session).create_inventory_batch(
+        InventoryBatchCreate(
+            ingredient_id=ingredient.id,
+            quantity=Decimal("2.00"),
+            unit_cost=Decimal("1.00"),
+            supplier="Supplier",
+            received_date=date.today(),
+            expiry_date=date.today() + timedelta(days=10),
+        )
+    )
+
+    null_updates = [
+        (f"/ingredients/{ingredient.id}", {"name": None}),
+        (f"/ingredients/{ingredient.id}", {"unit": None}),
+        (f"/ingredients/{ingredient.id}", {"minimum_stock": None}),
+        (f"/inventory-batches/{batch.id}", {"quantity": None}),
+        (f"/inventory-batches/{batch.id}", {"unit_cost": None}),
+        (f"/inventory-batches/{batch.id}", {"supplier": None}),
+        (f"/inventory-batches/{batch.id}", {"expiry_date": None}),
+        (f"/recipes/{recipe.id}", {"name": None}),
+        (f"/recipes/{recipe.id}", {"menu_item_id": None}),
+        (f"/recipe-ingredients/{recipe_ingredient.id}", {"ingredient_id": None}),
+        (f"/recipe-ingredients/{recipe_ingredient.id}", {"quantity": None}),
+        (f"/menu-items/{menu_item.id}", {"name": None}),
+        (f"/menu-items/{menu_item.id}", {"category": None}),
+        (f"/menu-items/{menu_item.id}", {"price": None}),
+    ]
+
+    for path, payload in null_updates:
+        response = client.put(path, json=payload)
+        assert response.status_code == 422, (path, payload, response.json())
+
+    nullable_category_response = client.put(
+        f"/ingredients/{ingredient.id}", json={"category": None}
+    )
+    assert nullable_category_response.status_code == 200
+    assert nullable_category_response.json()["category"] is None
 
 
 # ==============================================================================

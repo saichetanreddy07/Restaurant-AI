@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 try:
@@ -24,6 +24,16 @@ except ModuleNotFoundError:
     )
 
 
+def is_batch_eligible(batch: InventoryBatch, today: date | None = None) -> bool:
+    """Return whether a batch can contribute to usable stock today."""
+    current_date = today if today is not None else date.today()
+    return (
+        batch.quantity > 0
+        and batch.received_date <= current_date
+        and (batch.expiry_date is None or batch.expiry_date >= current_date)
+    )
+
+
 class InventoryBatchService:
     """Service layer for managing inventory batch operations."""
 
@@ -38,9 +48,9 @@ class InventoryBatchService:
     def sync_ingredient_stock(self, ingredient_id: int) -> None:
         """Synchronize Ingredient stock with total quantity across all its inventory batches.
 
-        Ingredient stock is a derived value equal to the sum of quantities across
-        all existing inventory batches belonging to this ingredient. If no batches
-        remain, stock is reset to 0.
+        Ingredient stock is the sum of quantities across eligible batches. The
+        caller owns the transaction and commits this update with the inventory
+        operation.
 
         Args:
             ingredient_id: The unique primary key ID of the ingredient.
@@ -48,6 +58,8 @@ class InventoryBatchService:
         Raises:
             HTTPException: 404 Not Found if the referenced ingredient does not exist.
         """
+        self.db.flush()
+
         ingredient_query = select(Ingredient).where(Ingredient.id == ingredient_id)
         ingredient = self.db.execute(ingredient_query).scalar_one_or_none()
 
@@ -57,19 +69,20 @@ class InventoryBatchService:
                 detail=f"Ingredient with ID {ingredient_id} not found.",
             )
 
-        total_quantity_query = select(
-            func.coalesce(func.sum(InventoryBatch.quantity), Decimal("0.00"))
-        ).where(InventoryBatch.ingredient_id == ingredient_id)
-        total_quantity = self.db.execute(total_quantity_query).scalar_one()
+        batches_query = select(InventoryBatch).where(
+            InventoryBatch.ingredient_id == ingredient_id
+        )
+        batches = self.db.execute(batches_query).scalars().all()
+        total_quantity = sum(
+            (
+                batch.quantity
+                for batch in batches
+                if is_batch_eligible(batch)
+            ),
+            Decimal("0.00"),
+        )
 
         ingredient.stock_quantity = float(total_quantity)
-
-        try:
-            self.db.commit()
-            self.db.refresh(ingredient)
-        except Exception:
-            self.db.rollback()
-            raise
 
     def _generate_next_batch_number(
         self, ingredient: Ingredient, received_date: date
@@ -144,17 +157,15 @@ class InventoryBatchService:
         batch_data = batch_in.model_dump()
         batch_data["batch_number"] = batch_number
         batch = InventoryBatch(**batch_data)
-        self.db.add(batch)
 
         try:
-            self.db.commit()
+            self.db.add(batch)
+            self.sync_ingredient_stock(batch.ingredient_id)
             self.db.refresh(batch)
+            self.db.commit()
         except Exception:
             self.db.rollback()
             raise
-
-        self.sync_ingredient_stock(batch.ingredient_id)
-        self.db.refresh(batch)
 
         return batch
 
@@ -243,18 +254,15 @@ class InventoryBatchService:
                     detail="Expiry date must be on or after received date.",
                 )
 
-        for field, value in update_data.items():
-            setattr(batch, field, value)
-
         try:
-            self.db.commit()
+            for field, value in update_data.items():
+                setattr(batch, field, value)
+            self.sync_ingredient_stock(batch.ingredient_id)
             self.db.refresh(batch)
+            self.db.commit()
         except Exception:
             self.db.rollback()
             raise
-
-        self.sync_ingredient_stock(batch.ingredient_id)
-        self.db.refresh(batch)
 
         return batch
 
@@ -275,15 +283,14 @@ class InventoryBatchService:
         """
         batch = self.get_inventory_batch(batch_id)
         ingredient_id = batch.ingredient_id
-        self.db.delete(batch)
 
         try:
+            self.db.delete(batch)
+            self.sync_ingredient_stock(ingredient_id)
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
-
-        self.sync_ingredient_stock(ingredient_id)
 
         return {
             "message": f"Inventory batch with ID {batch_id} successfully deleted."
@@ -356,14 +363,16 @@ class InventoryBatchService:
                 InventoryBatch.expiry_date.asc(),
                 InventoryBatch.batch_number.asc(),
             )
-            .offset(skip)
-            .limit(limit)
         )
 
         batches = self.db.execute(query).scalars().all()
+        eligible_batches = [
+            batch for batch in batches if is_batch_eligible(batch, today)
+        ]
+        eligible_batches = eligible_batches[skip : skip + limit]
 
         results = []
-        for batch in batches:
+        for batch in eligible_batches:
             results.append(
                 {
                     "batch_number": batch.batch_number,
